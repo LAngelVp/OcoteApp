@@ -4,7 +4,7 @@ Version documental: 2.0. Fecha de corte: 2026-11-24. Estado: base funcional, seg
 
 ## 1. Proposito y gobierno SDD
 
-OCOTE proviene del nahuatl *ocotl*, pino resinoso que ilumina el camino. Constancia, claridad y trazabilidad orientan un sistema de Gestion de Planes, Ejecucion Operativa y Evaluacion Gerencial para BI, TI, Inventarios, Compras, Contabilidad, Operacion y otros departamentos configurados.
+OCOTE proviene del nahuatl _ocotl_, pino resinoso que ilumina el camino. Constancia, claridad y trazabilidad orientan un sistema de Gestion de Planes, Ejecucion Operativa y Evaluacion Gerencial para BI, TI, Inventarios, Compras, Contabilidad, Operacion y otros departamentos configurados.
 
 La identidad de planes anuales se conserva, pero el producto gestiona tambien horizontes semestrales, trimestrales, mensuales y personalizados, incluso entre anios. No existe un unico ciclo anual obligatorio.
 
@@ -22,18 +22,18 @@ Una discrepancia bloquea la fase afectada: se resuelve en los documentos afectad
 
 ### Decisiones y supuestos controlados
 
-| ID | Base normativa | Confirmacion requerida |
-| --- | --- | --- |
-| D01 | Una organizacion, rangos/horizontes configurables, multiples planes y cruces de anio; zona operativa en system_settings.organization_timezone; sin multitenencia | Flexibilidad adoptada; Gerencia confirma zona IANA antes de F1 y ejemplos antes de F3; ORGANIZATION_TIMEZONE solo para bootstrap |
-| D02 | Cada usuario tiene un rol y como maximo un departamento; `gerente` tiene lectura global | Aprobar matriz de permisos y responsables antes de F2 |
-| D03 | Avance con pesos iguales; evaluacion departamental sin ranking individual ni nota compuesta | Aprobar formulas y politica de evaluacion antes de F3 |
-| D04 | Etapas/transiciones globales y catalogos en BD; cierre irreversible; roles y formulas no editables como configuracion | Aprobar flujo y catalogos antes de F2/F3; no habilitar cierres que requieran evidencia antes de F5 |
-| D05 | Evidencia privada PDF/PNG/JPEG con techo 10 MiB; exportacion interna JSON/CSV; sin conexiones a sistemas externos en MVP | Aprobar clasificacion, retencion y responsables antes de F1; antimalware antes de F5 y exportaciones antes de F6 |
-| D06 | Desarrollo portable 18.4; cliente soporta PostgreSQL 18 local/contenedor o gestionado remoto; base exacta ocoteAppDatabase | F1 prueba roles, migracion y recuperacion; F7 homologa ambas modalidades, proveedor/red/TLS/pooling, RPO/RTO y protocolo de release |
-| D07 | Angular 18.2 es restriccion de esta base; no actualizar automaticamente | Resolver soporte de seguridad y compatibilidad real de librerias antes de F1 |
-| D08 | Evaluaciones finales inmutables, corte al momento de generacion y cohorte por fecha original | Aprobar calendario, cortes y responsables antes de F3 |
+| ID  | Base normativa                                                                                                                                                   | Confirmacion requerida                                                                                                              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| D01 | Una organizacion, rangos/horizontes configurables, multiples planes y cruces de anio; zona operativa en system_settings.organization_timezone; sin multitenencia | America/Mexico_City ratificada expresamente por el titular del proyecto el 2026-11-24; ORGANIZATION_TIMEZONE solo bootstrap; ejemplos temporales pendientes F3 |
+| D02 | Cada usuario tiene un rol y como maximo un departamento; `gerente` tiene lectura global                                                                          | Aprobar matriz de permisos y responsables antes de F2                                                                               |
+| D03 | Avance con pesos iguales; evaluacion departamental sin ranking individual ni nota compuesta                                                                      | Aprobar formulas y politica de evaluacion antes de F3                                                                               |
+| D04 | Etapas/transiciones globales y catalogos en BD; cierre irreversible; roles y formulas no editables como configuracion                                            | Aprobar flujo y catalogos antes de F2/F3; no habilitar cierres que requieran evidencia antes de F5                                  |
+| D05 | Evidencia privada PDF/PNG/JPEG con techo 10 MiB; exportacion interna JSON/CSV; sin conexiones a sistemas externos en MVP                                         | Base de privacidad/retencion aprobada el 2026-11-24 en guia 05, seccion 3.1; no habilita datos reales, cargas ni aprobacion legal; escaneo fail-closed antes de F5 |
+| D06 | Desarrollo portable 18.4; cliente soporta PostgreSQL 18 local/contenedor o gestionado remoto; base exacta ocoteAppDatabase                                       | Objetivos de diseno RPO <=24 h/RTO <=4 h y responsable LUIS ANGEL VALLEJO - DESARROLLADOR aprobados; sin suplente bajo excepcion local hasta 2026-12-24; restore local probado, homologacion productiva pendiente |
+| D07 | Angular 18.2 es restriccion de esta base; no actualizar automaticamente                                                                                          | Compatibilidad tecnica probada; Angular 18 sin soporte y 61 alertas npm aceptadas expresamente como riesgos separados solo F1/F2 local/sintetico hasta 2026-12-24; acta y controles en roadmap seccion 7 |
+| D08 | Evaluaciones finales inmutables, corte al momento de generacion y cohorte por fecha original                                                                     | Aprobar calendario, cortes y responsables antes de F3                                                                               |
 
-Estas decisiones son supuestos de trabajo explicitos, no aprobaciones obtenidas. La documentacion queda completa sin fingir resueltas las confirmaciones de negocio. Su puerta correspondiente permanece cerrada mientras falte firma responsable.
+Ratificaciones expresas del titular del proyecto el 2026-11-24: D01; base de politica D05 y objetivos/responsable D06; excepciones temporales D06 sin suplente y D07 por fin de soporte y, en una decision separada tras conocer la auditoria, por las 61 alertas npm. Detalle y limites en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06) y [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local). No son firmas de seguridad/legal/TI productiva ni aprobaciones D02/D03/D04/D08. Una puerta sin decision expresa permanece cerrada; vencer una excepcion bloquea continuar bajo ella, no la renueva automaticamente.
 
 ## 2. Alcance y permisos
 
@@ -41,18 +41,18 @@ MVP: autenticacion, configuracion en BD, planes/objetivos, tareas/subtareas con 
 
 Fuera de MVP: multiples empresas, SSO, aplicaciones moviles nativas, notificaciones externas, chat, registro de horas, dependencias criticas tipo Gantt, tareas recurrentes, pesos personalizados, IA predictiva, ranking de empleados y reapertura de tareas completadas. Timeline no implica un motor de planificacion automatica.
 
-| Capacidad | admin | gerente | lider | colaborador |
-| --- | --- | --- | --- | --- |
-| Catalogos, roles, etapas y transiciones | Global | No | No | No |
-| Planes y objetivos | Global | Global | Lectura filtrada propia | Solo contexto minimo en tarea |
-| Crear tareas, reasignar, programar, gestionar subtareas | Global | Lectura global | Su departamento | No |
-| Mover etapa y adjuntar evidencia | Global | Lectura global | Su departamento | Solo tareas asignadas |
-| Completar subtarea existente | Global | Lectura global | Su departamento | Solo tareas asignadas |
-| Solicitar/cancelar cambio de compromiso | Global | Global | Solicita en su departamento; cancela propias pendientes | No |
-| Aprobar/rechazar o ejecutar cambio de compromiso | Global | Global | No | No |
-| Kanban, Timeline e historial de tarea | Global | Global | Su departamento | Solo tareas asignadas, sin totales ajenos |
-| Analitica y metricas agregadas/exportaciones | Global | Global | Su departamento | No |
-| Evaluar y finalizar evaluaciones | Global | Global | Lectura propia final | No |
+| Capacidad                                               | admin  | gerente        | lider                                                   | colaborador                               |
+| ------------------------------------------------------- | ------ | -------------- | ------------------------------------------------------- | ----------------------------------------- |
+| Catalogos, roles, etapas y transiciones                 | Global | No             | No                                                      | No                                        |
+| Planes y objetivos                                      | Global | Global         | Lectura filtrada propia                                 | Solo contexto minimo en tarea             |
+| Crear tareas, reasignar, programar, gestionar subtareas | Global | Lectura global | Su departamento                                         | No                                        |
+| Mover etapa y adjuntar evidencia                        | Global | Lectura global | Su departamento                                         | Solo tareas asignadas                     |
+| Completar subtarea existente                            | Global | Lectura global | Su departamento                                         | Solo tareas asignadas                     |
+| Solicitar/cancelar cambio de compromiso                 | Global | Global         | Solicita en su departamento; cancela propias pendientes | No                                        |
+| Aprobar/rechazar o ejecutar cambio de compromiso        | Global | Global         | No                                                      | No                                        |
+| Kanban, Timeline e historial de tarea                   | Global | Global         | Su departamento                                         | Solo tareas asignadas, sin totales ajenos |
+| Analitica y metricas agregadas/exportaciones            | Global | Global         | Su departamento                                         | No                                        |
+| Evaluar y finalizar evaluaciones                        | Global | Global         | Lectura propia final                                    | No                                        |
 
 `admin` es una facultad excepcional auditada, no una identidad para trabajo cotidiano. La API calcula alcance desde la identidad; ningun `department_id` enviado por el cliente concede permisos. Un colaborador ve el objetivo y plan minimos de sus tareas, pero no agregados que revelen trabajo ajeno. Recursos inexistentes o fuera de alcance devuelven 404; acciones no permitidas sobre recursos visibles devuelven 403.
 
@@ -60,20 +60,20 @@ Fuera de MVP: multiples empresas, SSO, aplicaciones moviles nativas, notificacio
 
 Rutas SPA objetivo, aun no implementadas. A=admin, G=gerente, L=lider, C=colaborador; oculto significa sin enlace de menu ni precarga de datos. El servidor aplica la misma politica a URL directa y API.
 
-| Ruta/pantalla | A | G | L | C |
-| --- | --- | --- | --- | --- |
-| /login y /perfil | Login publico; perfil propio | Igual | Igual | Igual |
-| /planes y /planes/:id | Global; CRUD autorizado | Global; CRUD autorizado | Planes con objetivos propios; proyeccion filtrada | Oculto; contexto minimo dentro de tarea |
-| /objetivos y /objetivos/:id | Global; crear/editar/periodos | Global; crear/editar/periodos | Lectura del departamento | Oculto; contexto minimo dentro de tarea |
-| /tareas y /tareas/:id | Global; acciones operativas | Lectura global y comandos de fecha | Crear/gestionar en su departamento | Solo asignadas; etapa, subtarea existente y evidencia |
-| /kanban y /timeline | Global; editar segun accion | Global; lectura, fecha por formulario | Departamento; mover segun arista | Asignadas; mover segun arista, sin editar fecha |
-| /solicitudes-fecha | Global; decidir/cancelar | Global; decidir/cancelar | Departamento; solicitar, leer, cancelar propias pendientes | Oculto |
-| /analitica | Global | Global | Departamento | Oculto y API 403 |
-| /evaluaciones y /evaluaciones/:id | Global; draft/final y comandos | Global; draft/final y comandos | Solo finales propias | Oculto y API 403 |
-| /administracion/departamentos y /administracion/usuarios | Catalogos/roles; proteger ultimo admin | Oculto | Oculto | Oculto |
-| /administracion/etapas y /administracion/transiciones | Configuracion global auditada | Oculto | Oculto | Oculto |
-| /administracion/parametros, /administracion/prioridades, /administracion/horizontes | Parametros/catalogos segun RN-07 | Oculto | Oculto | Oculto |
-| /administracion/releases y /administracion/auditoria | Lectura global sanitizada; sin secretos ni backups descargables | Oculto | Oculto | Oculto |
+| Ruta/pantalla                                                                       | A                                                               | G                                     | L                                                          | C                                                     |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------- |
+| /login y /perfil                                                                    | Login publico; perfil propio                                    | Igual                                 | Igual                                                      | Igual                                                 |
+| /planes y /planes/:id                                                               | Global; CRUD autorizado                                         | Global; CRUD autorizado               | Planes con objetivos propios; proyeccion filtrada          | Oculto; contexto minimo dentro de tarea               |
+| /objetivos y /objetivos/:id                                                         | Global; crear/editar/periodos                                   | Global; crear/editar/periodos         | Lectura del departamento                                   | Oculto; contexto minimo dentro de tarea               |
+| /tareas y /tareas/:id                                                               | Global; acciones operativas                                     | Lectura global y comandos de fecha    | Crear/gestionar en su departamento                         | Solo asignadas; etapa, subtarea existente y evidencia |
+| /kanban y /timeline                                                                 | Global; editar segun accion                                     | Global; lectura, fecha por formulario | Departamento; mover segun arista                           | Asignadas; mover segun arista, sin editar fecha       |
+| /solicitudes-fecha                                                                  | Global; decidir/cancelar                                        | Global; decidir/cancelar              | Departamento; solicitar, leer, cancelar propias pendientes | Oculto                                                |
+| /analitica                                                                          | Global                                                          | Global                                | Departamento                                               | Oculto y API 403                                      |
+| /evaluaciones y /evaluaciones/:id                                                   | Global; draft/final y comandos                                  | Global; draft/final y comandos        | Solo finales propias                                       | Oculto y API 403                                      |
+| /administracion/departamentos y /administracion/usuarios                            | Catalogos/roles; proteger ultimo admin                          | Oculto                                | Oculto                                                     | Oculto                                                |
+| /administracion/etapas y /administracion/transiciones                               | Configuracion global auditada                                   | Oculto                                | Oculto                                                     | Oculto                                                |
+| /administracion/parametros, /administracion/prioridades, /administracion/horizontes | Parametros/catalogos segun RN-07                                | Oculto                                | Oculto                                                     | Oculto                                                |
+| /administracion/releases y /administracion/auditoria                                | Lectura global sanitizada; sin secretos ni backups descargables | Oculto                                | Oculto                                                     | Oculto                                                |
 
 - Lider recibe en cada plan solo objetivos de su departamento y metricas sobre ese subconjunto; un plan compartido no concede visibilidad a otros objetivos. Catalogos de responsables solo incluyen usuarios elegibles del departamento.
 - Colaborador no usa listados completos de planes/objetivos: el detalle de su tarea incluye solo id/titulo/horizonte/fechas del objetivo y plan, sin descripcion gerencial, otras tareas, evaluaciones, nombres de companeros o porcentajes del objetivo/plan. Contadores Kanban y paginacion se calculan sobre sus tareas, no son metricas departamentales.
@@ -111,14 +111,14 @@ Rutas SPA objetivo, aun no implementadas. A=admin, G=gerente, L=lider, C=colabor
 
 Campos calculados de lectura, nunca editables:
 
-| Campo | Formula |
-| --- | --- |
-| `punctuality_status` | Con `completed_at`: `on_time` si fecha local de cierre <= `due_date`; si no `late`. Sin cierre: `overdue` si hoy local > `due_date`; si no `pending` |
-| `baseline_punctuality_status` | La misma formula, comparando con `original_due_date` |
-| `is_overdue` | Sin cierre y hoy local > `due_date`, aunque la etapa sea bloqueada |
-| `due_date_delta_days` | `due_date - original_due_date` en dias civiles, firmado |
-| `delay_days` | Maximo de 0 y diferencia entre fecha local de cierre (o hoy) y `due_date` |
-| `baseline_delay_days` | La misma formula contra `original_due_date` |
+| Campo                         | Formula                                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `punctuality_status`          | Con `completed_at`: `on_time` si fecha local de cierre <= `due_date`; si no `late`. Sin cierre: `overdue` si hoy local > `due_date`; si no `pending` |
+| `baseline_punctuality_status` | La misma formula, comparando con `original_due_date`                                                                                                 |
+| `is_overdue`                  | Sin cierre y hoy local > `due_date`, aunque la etapa sea bloqueada                                                                                   |
+| `due_date_delta_days`         | `due_date - original_due_date` en dias civiles, firmado                                                                                              |
+| `delay_days`                  | Maximo de 0 y diferencia entre fecha local de cierre (o hoy) y `due_date`                                                                            |
+| `baseline_delay_days`         | La misma formula contra `original_due_date`                                                                                                          |
 
 Etiquetas: `on_time` = A tiempo; `late` = Con retraso; `overdue` = Vencida; `pending` = Pendiente. `blocked` significa Bloqueada y es una clase de etapa, no un valor de puntualidad. La UI prioriza la etiqueta Bloqueada, pero conserva Vencida como indicador adicional si corresponde. Una reprogramacion puede mejorar puntualidad vigente, nunca borrar retraso original ni el historial.
 
@@ -172,23 +172,23 @@ Etiquetas: `on_time` = A tiempo; `late` = Con retraso; `overdue` = Vencida; `pen
 
 ## 4. Requisitos y aceptacion verificable
 
-| ID / modulo | Criterios de aceptacion |
-| --- | --- |
-| RF-01 Administracion | Admin crea/desactiva departamentos y usuarios y configura etapas/transiciones; email canonico y codigos duplicados dan 409. Un colaborador recibe 403 al administrarlos. No se desactiva ni degrada de rol al ultimo admin activo, ni se desactiva un departamento con objetivos de planes no cerrados o usuarios activos |
-| RF-02 Autenticacion | Login valido emite access token y cookie refresh; refresh rota una sola vez; reutilizarlo revoca la familia. Logout invalida la sesion; desactivar usuario o cambiar rol/contrasena invalida todas. Token vencido 401; acceso cruzado a tarea 404 |
-| RF-03 Plan y objetivos | Permite dos planes en el mismo anio y uno custom 2027-11-15..2028-02-20; objetivo con rango/horizonte propio contenido en padre. Rango invertido/fuera del padre: 422; contraccion que excluye hijos/evaluaciones: 409. Cambio de periodo requiere motivo, version y audit_events. Plan draft no acepta tareas; activar sin objetivos/cerrar con tareas abiertas: 409; closed rechaza mutaciones |
-| RF-04 Tareas y subtareas | Responsable de otro departamento da 422; tarea sin subtareas pasa de 0 a 100 al cierre; 1 de 4 subtareas da 25%; 4 de 4 da 100% y pendiente de cierre; cerrar con una pendiente da 409 |
-| RF-05 Fechas | Con original 2027-03-10, vigente 2027-03-15 y cierre local 2027-03-12: `on_time`, `baseline_punctuality_status=late`, delta 5, retraso original 2; cambiar fecha conserva original y evento. A medianoche del dia siguiente una tarea abierta pasa a overdue sin escritura programada |
-| RF-06 Workflow y evidencia | Solo transiciones configuradas; falta de motivo/evidencia requerida da 422; una etapa ocupada no se desactiva. Archivo ajeno da 404, invalido 415, demasiado grande 413. Ningun fallo mueve la tarjeta |
-| RF-07 Kanban | Carriles por etapas activas ordenadas; se mantienen columnas vacias. Filtros de plan, departamento, responsable y puntualidad; conteos y cursor por carril. Drag/drop y alternativa por menu usan el mismo comando; 409 restaura estado y anuncia conflicto; no se persiste un orden manual de tarjetas en MVP |
-| RF-08 Timeline | Mismos filtros, permisos y formulas del Kanban; grupos por departamento o responsable; barras start_date/due_date, marcador original y cierre con leyenda textual. No permite arrastrar fechas en MVP: usa formulario autorizado con motivo y confirma con respuesta API |
-| RF-09 Tableros | Comparacion departamental y tendencias mensuales por fecha original, filtros compartidos y tabla equivalente. Fixture con 4 tareas, 2 cerradas, una a tiempo original: cierre 50%, puntualidad original 25%; sin tareas muestra Sin datos. Un lider no obtiene agregados globales |
-| RF-10 Evaluacion | Cohorte por compromiso original en el periodo elegido, incluso entre anios; fuera del plan: 422. Foto final y detalle no cambian al reprogramar/entregar despues. Solapamiento 409; final sin datos o periodo abierto 409; colaborador no accede |
-| RF-11 Auditoria | Mover, reasignar, completar subtarea o cambiar fecha produce exactamente un evento de negocio correspondiente con antes/despues en la misma transaccion; fallo no produce evento exitoso. Historia ordenada por instante e id, paginada y autorizada |
-| RF-12 Experiencia y accesibilidad | Navegacion por teclado y lector, foco visible, estados vacio/carga/error/sin permisos/conflicto; sin solapamiento a 360, 768 y 1440 px, zoom 200%. Cumple contrastes de seccion 5 y reduced-motion; nunca depende solo del color |
-| RF-13 Parametros/catalogos | Admin edita claves tipadas, prioridades y cinco horizontes con version/motivo/audit_events; tipo/limite invalido 422, version obsoleta 409, clave no editable 403. Dos procesos observan mismo valor tras commit; zona bloqueada tras primer uso; seeds repetidos no pisan valores; referencia a catalogo inactivo se conserva pero no se selecciona para alta |
-| RF-14 Solicitudes de fecha | Lider solicita en su departamento; C recibe 403; duplicada pending 409. Aprobar por otra persona verifica versiones y contencion, preserva original y produce cambio+historia+decision atomicos; carrera con cierre/edicion da 409 sin aprobacion parcial; rechazo/cancelacion preservan fecha |
-| RF-15 Exportacion interna | Solo A/G global y L propio; C 403 incluso por URL. JSON/CSV de tareas y evaluaciones finales usan filtros, proyeccion y corte autorizados; limite, formula-injection, cero filas y auditoria de exito/fallo probados; sin descarga de secretos/binarios/backups ni filtros que amplien alcance |
+| ID / modulo                       | Criterios de aceptacion                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| RF-01 Administracion              | Admin crea/desactiva departamentos y usuarios y configura etapas/transiciones; email canonico y codigos duplicados dan 409. Un colaborador recibe 403 al administrarlos. No se desactiva ni degrada de rol al ultimo admin activo, ni se desactiva un departamento con objetivos de planes no cerrados o usuarios activos                                                                        |
+| RF-02 Autenticacion               | Login valido emite access token y cookie refresh; refresh rota una sola vez; reutilizarlo revoca la familia. Logout invalida la sesion; desactivar usuario o cambiar rol/contrasena invalida todas. Token vencido 401; acceso cruzado a tarea 404                                                                                                                                                |
+| RF-03 Plan y objetivos            | Permite dos planes en el mismo anio y uno custom 2027-11-15..2028-02-20; objetivo con rango/horizonte propio contenido en padre. Rango invertido/fuera del padre: 422; contraccion que excluye hijos/evaluaciones: 409. Cambio de periodo requiere motivo, version y audit_events. Plan draft no acepta tareas; activar sin objetivos/cerrar con tareas abiertas: 409; closed rechaza mutaciones |
+| RF-04 Tareas y subtareas          | Responsable de otro departamento da 422; tarea sin subtareas pasa de 0 a 100 al cierre; 1 de 4 subtareas da 25%; 4 de 4 da 100% y pendiente de cierre; cerrar con una pendiente da 409                                                                                                                                                                                                           |
+| RF-05 Fechas                      | Con original 2027-03-10, vigente 2027-03-15 y cierre local 2027-03-12: `on_time`, `baseline_punctuality_status=late`, delta 5, retraso original 2; cambiar fecha conserva original y evento. A medianoche del dia siguiente una tarea abierta pasa a overdue sin escritura programada                                                                                                            |
+| RF-06 Workflow y evidencia        | Solo transiciones configuradas; falta de motivo/evidencia requerida da 422; una etapa ocupada no se desactiva. Archivo ajeno da 404, invalido 415, demasiado grande 413. Ningun fallo mueve la tarjeta                                                                                                                                                                                           |
+| RF-07 Kanban                      | Carriles por etapas activas ordenadas; se mantienen columnas vacias. Filtros de plan, departamento, responsable y puntualidad; conteos y cursor por carril. Drag/drop y alternativa por menu usan el mismo comando; 409 restaura estado y anuncia conflicto; no se persiste un orden manual de tarjetas en MVP                                                                                   |
+| RF-08 Timeline                    | Mismos filtros, permisos y formulas del Kanban; grupos por departamento o responsable; barras start_date/due_date, marcador original y cierre con leyenda textual. No permite arrastrar fechas en MVP: usa formulario autorizado con motivo y confirma con respuesta API                                                                                                                         |
+| RF-09 Tableros                    | Comparacion departamental y tendencias mensuales por fecha original, filtros compartidos y tabla equivalente. Fixture con 4 tareas, 2 cerradas, una a tiempo original: cierre 50%, puntualidad original 25%; sin tareas muestra Sin datos. Un lider no obtiene agregados globales                                                                                                                |
+| RF-10 Evaluacion                  | Cohorte por compromiso original en el periodo elegido, incluso entre anios; fuera del plan: 422. Foto final y detalle no cambian al reprogramar/entregar despues. Solapamiento 409; final sin datos o periodo abierto 409; colaborador no accede                                                                                                                                                 |
+| RF-11 Auditoria                   | Mover, reasignar, completar subtarea o cambiar fecha produce exactamente un evento de negocio correspondiente con antes/despues en la misma transaccion; fallo no produce evento exitoso. Historia ordenada por instante e id, paginada y autorizada                                                                                                                                             |
+| RF-12 Experiencia y accesibilidad | Navegacion por teclado y lector, foco visible, estados vacio/carga/error/sin permisos/conflicto; sin solapamiento a 360, 768 y 1440 px, zoom 200%. Cumple contrastes de seccion 5 y reduced-motion; nunca depende solo del color                                                                                                                                                                 |
+| RF-13 Parametros/catalogos        | Admin edita claves tipadas, prioridades y cinco horizontes con version/motivo/audit_events; tipo/limite invalido 422, version obsoleta 409, clave no editable 403. Dos procesos observan mismo valor tras commit; zona bloqueada tras primer uso; seeds repetidos no pisan valores; referencia a catalogo inactivo se conserva pero no se selecciona para alta                                   |
+| RF-14 Solicitudes de fecha        | Lider solicita en su departamento; C recibe 403; duplicada pending 409. Aprobar por otra persona verifica versiones y contencion, preserva original y produce cambio+historia+decision atomicos; carrera con cierre/edicion da 409 sin aprobacion parcial; rechazo/cancelacion preservan fecha                                                                                                   |
+| RF-15 Exportacion interna         | Solo A/G global y L propio; C 403 incluso por URL. JSON/CSV de tareas y evaluaciones finales usan filtros, proyeccion y corte autorizados; limite, formula-injection, cero filas y auditoria de exito/fallo probados; sin descarga de secretos/binarios/backups ni filtros que amplien alcance                                                                                                   |
 
 Pruebas de borde obligatorias: anio bisiesto, cruces de anio, anual movil, rango de un dia y multiples planes solapados; objetivo fuera de plan y contraccion ante fecha original inmutable/evaluacion final; fin de dia y horario de verano; fecha adelantada/aplazada; bloqueada y vencida; 0 subtareas; denominador vacio; responsable desactivado; doble refresh; actualizaciones simultaneas; cierre concurrente con alta de subtarea; evidencia ajena; acceso directo a IDs y agregados fuera de alcance.
 
@@ -198,29 +198,29 @@ Pruebas de borde obligatorias: anio bisiesto, cruces de anio, anual movil, rango
 
 La tabla es el registro canonico de valores. Los otros documentos remiten a esta seccion. Los tokens `--ocote-*` seran la interfaz comun de Material, estilos SCSS, Kanban, Timeline y ECharts; no se duplican hexadecimales dispersos en componentes.
 
-| Token CSS propuesto | Nombre / rol | Valor | Uso |
-| --- | --- | --- | --- |
-| `--ocote-primary` | Resina de Ocote | `#B85A1E` | Acciones primarias, progreso y revision |
-| `--ocote-primary-dark` | Resina oscura | `#7A3810` | Hover/pressed y enlaces sobre tintes |
-| `--ocote-primary-tint` | Resina clara | `#FDECE0` | Seleccion y contenedores primarios |
-| `--ocote-secondary` | Bosque de Altura | `#2E5A44` | Rol secundario de producto |
-| `--ocote-tertiary` | Bosque de Altura | `#2E5A44` | Rol terciario Material, misma familia |
-| `--ocote-accent` | Rescoldo Dorado | `#D98A1C` | Enfasis y comparaciones, no texto blanco pequeno |
-| `--ocote-background` | Niebla de Sierra | `#F6F4F0` | Fondo general |
-| `--ocote-surface` | Madera Clara | `#FFFFFF` | Tablas, superficies y dialogos |
-| `--ocote-surface-secondary` | Arena de Bosque | `#ECE7DF` | Carriles Kanban, cabeceras secundarias |
-| `--ocote-border` | Tronco Suave | `#D8CFC2` | Divisores decorativos |
-| `--ocote-text` | Carbon de Ocote | `#1F1A16` | Texto principal y texto sobre dorado |
-| `--ocote-text-secondary` | Musgo Gris | `#5C534A` | Texto secundario y bordes de controles |
-| `--ocote-success` | Completado / a tiempo | `#2E7D5B` | Estado favorable |
-| `--ocote-in-progress` | En progreso / revision | `#B85A1E` | Estado en curso |
-| `--ocote-series-contrast` | Serie de contraste | `#2B5B84` | Serie comparativa, no redefinir exito |
-| `--ocote-warning` | En riesgo / aplazado | `#D98A1C` | Alerta con texto oscuro |
-| `--ocote-danger` | Vencido / bloqueado | `#B83227` | Error y excepciones operativas |
-| `--ocote-on-primary` | Texto sobre primario | `#FFFFFF` | Etiquetas y botones |
-| `--ocote-on-secondary` | Texto sobre bosque | `#FFFFFF` | Etiquetas y botones |
-| `--ocote-on-warning` | Texto sobre dorado | `#1F1A16` | Alertas y chips |
-| `--ocote-focus` | Contorno de foco | `#2B5B84` | Foco de al menos 2 px con separacion clara |
+| Token CSS propuesto         | Nombre / rol           | Valor     | Uso                                              |
+| --------------------------- | ---------------------- | --------- | ------------------------------------------------ |
+| `--ocote-primary`           | Resina de Ocote        | `#B85A1E` | Acciones primarias, progreso y revision          |
+| `--ocote-primary-dark`      | Resina oscura          | `#7A3810` | Hover/pressed y enlaces sobre tintes             |
+| `--ocote-primary-tint`      | Resina clara           | `#FDECE0` | Seleccion y contenedores primarios               |
+| `--ocote-secondary`         | Bosque de Altura       | `#2E5A44` | Rol secundario de producto                       |
+| `--ocote-tertiary`          | Bosque de Altura       | `#2E5A44` | Rol terciario Material, misma familia            |
+| `--ocote-accent`            | Rescoldo Dorado        | `#D98A1C` | Enfasis y comparaciones, no texto blanco pequeno |
+| `--ocote-background`        | Niebla de Sierra       | `#F6F4F0` | Fondo general                                    |
+| `--ocote-surface`           | Madera Clara           | `#FFFFFF` | Tablas, superficies y dialogos                   |
+| `--ocote-surface-secondary` | Arena de Bosque        | `#ECE7DF` | Carriles Kanban, cabeceras secundarias           |
+| `--ocote-border`            | Tronco Suave           | `#D8CFC2` | Divisores decorativos                            |
+| `--ocote-text`              | Carbon de Ocote        | `#1F1A16` | Texto principal y texto sobre dorado             |
+| `--ocote-text-secondary`    | Musgo Gris             | `#5C534A` | Texto secundario y bordes de controles           |
+| `--ocote-success`           | Completado / a tiempo  | `#2E7D5B` | Estado favorable                                 |
+| `--ocote-in-progress`       | En progreso / revision | `#B85A1E` | Estado en curso                                  |
+| `--ocote-series-contrast`   | Serie de contraste     | `#2B5B84` | Serie comparativa, no redefinir exito            |
+| `--ocote-warning`           | En riesgo / aplazado   | `#D98A1C` | Alerta con texto oscuro                          |
+| `--ocote-danger`            | Vencido / bloqueado    | `#B83227` | Error y excepciones operativas                   |
+| `--ocote-on-primary`        | Texto sobre primario   | `#FFFFFF` | Etiquetas y botones                              |
+| `--ocote-on-secondary`      | Texto sobre bosque     | `#FFFFFF` | Etiquetas y botones                              |
+| `--ocote-on-warning`        | Texto sobre dorado     | `#1F1A16` | Alertas y chips                                  |
+| `--ocote-focus`             | Contorno de foco       | `#2B5B84` | Foco de al menos 2 px con separacion clara       |
 
 ### Mapeo SCSS de Angular Material 18.2
 
@@ -254,58 +254,58 @@ Listados: `limit` 1..100, predeterminado 50, cursor opaco y orden estable `(crea
 
 ### Operaciones principales
 
-| Metodo y ruta relativa | Entrada / resultado | Permiso |
-| --- | --- | --- |
-| POST `/auth/login` | email, password; access token, perfil y cookie refresh; 200 | Publico limitado |
-| GET `/auth/csrf` | Cookie refresh valida y origen verificado; csrf_token; 200 | Recuperacion de CSRF tras recarga, sin emitir credenciales |
-| POST `/auth/refresh` | Cookie + CSRF; token nuevo y cookie rotada; 200 | Sesion valida |
-| POST `/auth/logout` | Cookie + CSRF; revoca familia y limpia cookie; 204 | Idempotente |
-| GET `/auth/me` | Perfil, rol y alcance; 200 | Autenticado |
-| POST `/auth/change-password` | current_password, new_password; revoca sesiones; 204 | Usuario propio |
-| GET/POST `/departments`, `/users`, `/workflow-stages` | Lista / alta; 200 / 201 | Admin; proyecciones operativas separadas en /catalogs |
-| PATCH `/departments/{id}`, `/users/{id}`, `/workflow-stages/{id}` | Campos autorizados + expected_version; 200 | Admin |
-| GET/POST `/workflow-transitions` | Lista / alta de from_stage_id, to_stage_id, allowed_roles; 200 / 201 | Admin; aristas operativas minimas por /catalogs/workflow |
-| PATCH `/workflow-transitions/{id}` | allowed_roles, is_active, expected_version; 200 | Admin |
-| GET `/catalogs/departments`, `/catalogs/assignees`, `/catalogs/workflow`, `/catalogs/priorities`, `/catalogs/horizons` | Proyecciones minimas elegibles; 200, no metadata administrativa | Autenticado segun rol/alcance; C sin catalogo de personas ajenas |
-| GET/PATCH `/settings/{key}` | value, reason, expected_version al editar; 200 | Admin; RN-07, sin secretos |
-| GET `/settings`, `/priorities`, `/horizon-types` | Listado administrativo; 200 | Admin |
-| POST `/priorities` | code, name, position, reason; 201 | Admin |
-| PATCH `/priorities/{id}`, `/horizon-types/{id}` | name, position, is_active, reason, expected_version; 200 | Admin; code/id/semantica inmutables |
-| GET `/releases`, `/releases/{id}`, `/audit-events` | Metadata sanitizada paginada; 200 | Admin, solo lectura; sin ruta/credencial de backup |
-| GET/POST `/annual-plans` | Lista / title, horizon_type, start_date, due_date; 200 / 201 | GET admin/gerente/lider filtrado; POST admin/gerente; C 403 |
-| GET `/annual-plans/{id}`, `/objectives/{id}` | Detalle filtrado; 200 | Admin/gerente o lider propio; C sin acceso al modulo (403) |
-| PATCH `/annual-plans/{id}` | title, expected_version; 200 | Admin o gerente |
-| POST `/annual-plans/{id}/period-changes` | horizon_type, start_date, due_date, reason, expected_version; 200 | Admin o gerente |
-| POST `/annual-plans/{id}/status-changes` | status, expected_version; 200 | Admin o gerente |
-| GET/POST `/objectives` | Lista / annual_plan_id, department_id, title, description, horizon_type, start_date, due_date; 200 / 201 | GET admin/gerente/lider propio; POST admin/gerente; C 403 |
-| PATCH `/objectives/{id}` | title, description, expected_version; 200 | Admin o gerente |
-| POST `/objectives/{id}/period-changes` | horizon_type, start_date, due_date, reason, expected_version; 200 | Admin o gerente |
-| GET/POST `/tasks` | Lista / alta de tarea; 200 / 201 | Alcance / admin o lider |
-| GET/PATCH `/tasks/{id}` | Detalle / title, description, priority_id, expected_version; 200 | Alcance / admin o lider |
-| POST `/tasks/{id}/assignments` | assignee_id, reason, expected_version; 200 | Admin o lider |
-| POST `/tasks/{id}/stage-transitions` | to_stage_id, reason opcional, evidence_ids, expected_version; 200 | Admin, lider o asignado segun arista |
-| POST `/tasks/{id}/due-date-changes` | due_date, reason, expected_version; 200 | Admin o gerente |
-| POST `/tasks/{id}/schedule-changes` | start_date, reason, expected_version; 200 | Admin o lider |
-| GET/POST `/tasks/{id}/subtasks` | Lista / title, start_date, due_date, expected_version del padre; 200 / 201 | Alcance / admin o lider |
-| PATCH `/subtasks/{id}` | title, expected_version, expected_task_version; 200 | Admin o lider |
-| POST `/subtasks/{id}/completion` | expected_version, expected_task_version; 200 | Admin, lider o asignado |
-| POST `/subtasks/{id}/due-date-changes` | due_date, reason, expected_version, expected_task_version; 200 | Admin o gerente |
-| POST `/subtasks/{id}/schedule-changes` | start_date, reason, expected_version, expected_task_version; 200 | Admin o lider |
-| POST `/tasks/{id}/due-date-requests` | proposed_due_date, reason, expected_task_version; 201 | Admin/gerente/lider propio |
-| POST `/subtasks/{id}/due-date-requests` | Igual + expected_subtask_version; 201 | Admin/gerente/lider propio |
-| GET `/due-date-requests`, `/due-date-requests/{id}` | Solicitudes/detalle segun alcance; 200 | Admin/gerente global; lider departamento; C 403 |
-| POST `/due-date-requests/{id}/approve`, `/due-date-requests/{id}/reject` | reason, expected_version de solicitud; approve verifica versiones capturadas de destino; 200 | Admin/gerente; approve nunca solicitante |
-| POST `/due-date-requests/{id}/cancel` | reason, expected_version; 200 | Solicitante lider propio o admin/gerente |
-| POST `/tasks/{id}/evidence` | multipart file, expected_version del padre; 201 | Admin, lider o asignado |
-| GET `/tasks/{id}/evidence`, `/evidence/{id}/content` | Metadatos / descarga protegida; 200 | Mismo alcance de tarea |
-| GET `/tasks/{id}/history` | Eventos paginados; 200 | Mismo alcance de tarea |
-| GET `/analytics/summary`, `/analytics/series` | plan, departamento, responsable, periodo; 200 | Admin/gerente global, lider departamento; C 403 |
-| GET/POST `/evaluations` | Lista / plan, departamento, periodo; 200 / 201 | Admin o gerente; lider solo finales propias |
-| GET `/evaluations/{id}` | Foto, items y summary; 200 | Igual alcance de evaluaciones |
-| POST `/evaluations/{id}/recalculate` | expected_version; 200 | Admin o gerente, solo draft |
-| POST `/evaluations/{id}/finalize` | summary, expected_version; 200 | Admin o gerente, solo draft |
-| POST `/exports/tasks` | format json/csv y filtros tipados; 200 archivo, 413 exceso de limite | Admin/gerente global, lider departamento; C 403 |
-| POST `/exports/evaluations/{id}` | format json/csv; 200 archivo desde foto final | Igual alcance de lectura de evaluaciones; C 403 |
+| Metodo y ruta relativa                                                                                                 | Entrada / resultado                                                                                      | Permiso                                                          |
+| ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| POST `/auth/login`                                                                                                     | email, password; access token, perfil y cookie refresh; 200                                              | Publico limitado                                                 |
+| GET `/auth/csrf`                                                                                                       | Cookie refresh valida y origen verificado; csrf_token; 200                                               | Recuperacion de CSRF tras recarga, sin emitir credenciales       |
+| POST `/auth/refresh`                                                                                                   | Cookie + CSRF; token nuevo y cookie rotada; 200                                                          | Sesion valida                                                    |
+| POST `/auth/logout`                                                                                                    | Cookie + CSRF; revoca familia y limpia cookie; 204                                                       | Idempotente                                                      |
+| GET `/auth/me`                                                                                                         | Perfil, rol y alcance; 200                                                                               | Autenticado                                                      |
+| POST `/auth/change-password`                                                                                           | current_password, new_password; revoca sesiones; 204                                                     | Usuario propio                                                   |
+| GET/POST `/departments`, `/users`, `/workflow-stages`                                                                  | Lista / alta; 200 / 201                                                                                  | Admin; proyecciones operativas separadas en /catalogs            |
+| PATCH `/departments/{id}`, `/users/{id}`, `/workflow-stages/{id}`                                                      | Campos autorizados + expected_version; 200                                                               | Admin                                                            |
+| GET/POST `/workflow-transitions`                                                                                       | Lista / alta de from_stage_id, to_stage_id, allowed_roles; 200 / 201                                     | Admin; aristas operativas minimas por /catalogs/workflow         |
+| PATCH `/workflow-transitions/{id}`                                                                                     | allowed_roles, is_active, expected_version; 200                                                          | Admin                                                            |
+| GET `/catalogs/departments`, `/catalogs/assignees`, `/catalogs/workflow`, `/catalogs/priorities`, `/catalogs/horizons` | Proyecciones minimas elegibles; 200, no metadata administrativa                                          | Autenticado segun rol/alcance; C sin catalogo de personas ajenas |
+| GET/PATCH `/settings/{key}`                                                                                            | value, reason, expected_version al editar; 200                                                           | Admin; RN-07, sin secretos                                       |
+| GET `/settings`, `/priorities`, `/horizon-types`                                                                       | Listado administrativo; 200                                                                              | Admin                                                            |
+| POST `/priorities`                                                                                                     | code, name, position, reason; 201                                                                        | Admin                                                            |
+| PATCH `/priorities/{id}`, `/horizon-types/{id}`                                                                        | name, position, is_active, reason, expected_version; 200                                                 | Admin; code/id/semantica inmutables                              |
+| GET `/releases`, `/releases/{id}`, `/audit-events`                                                                     | Metadata sanitizada paginada; 200                                                                        | Admin, solo lectura; sin ruta/credencial de backup               |
+| GET/POST `/annual-plans`                                                                                               | Lista / title, horizon_type, start_date, due_date; 200 / 201                                             | GET admin/gerente/lider filtrado; POST admin/gerente; C 403      |
+| GET `/annual-plans/{id}`, `/objectives/{id}`                                                                           | Detalle filtrado; 200                                                                                    | Admin/gerente o lider propio; C sin acceso al modulo (403)       |
+| PATCH `/annual-plans/{id}`                                                                                             | title, expected_version; 200                                                                             | Admin o gerente                                                  |
+| POST `/annual-plans/{id}/period-changes`                                                                               | horizon_type, start_date, due_date, reason, expected_version; 200                                        | Admin o gerente                                                  |
+| POST `/annual-plans/{id}/status-changes`                                                                               | status, expected_version; 200                                                                            | Admin o gerente                                                  |
+| GET/POST `/objectives`                                                                                                 | Lista / annual_plan_id, department_id, title, description, horizon_type, start_date, due_date; 200 / 201 | GET admin/gerente/lider propio; POST admin/gerente; C 403        |
+| PATCH `/objectives/{id}`                                                                                               | title, description, expected_version; 200                                                                | Admin o gerente                                                  |
+| POST `/objectives/{id}/period-changes`                                                                                 | horizon_type, start_date, due_date, reason, expected_version; 200                                        | Admin o gerente                                                  |
+| GET/POST `/tasks`                                                                                                      | Lista / alta de tarea; 200 / 201                                                                         | Alcance / admin o lider                                          |
+| GET/PATCH `/tasks/{id}`                                                                                                | Detalle / title, description, priority_id, expected_version; 200                                         | Alcance / admin o lider                                          |
+| POST `/tasks/{id}/assignments`                                                                                         | assignee_id, reason, expected_version; 200                                                               | Admin o lider                                                    |
+| POST `/tasks/{id}/stage-transitions`                                                                                   | to_stage_id, reason opcional, evidence_ids, expected_version; 200                                        | Admin, lider o asignado segun arista                             |
+| POST `/tasks/{id}/due-date-changes`                                                                                    | due_date, reason, expected_version; 200                                                                  | Admin o gerente                                                  |
+| POST `/tasks/{id}/schedule-changes`                                                                                    | start_date, reason, expected_version; 200                                                                | Admin o lider                                                    |
+| GET/POST `/tasks/{id}/subtasks`                                                                                        | Lista / title, start_date, due_date, expected_version del padre; 200 / 201                               | Alcance / admin o lider                                          |
+| PATCH `/subtasks/{id}`                                                                                                 | title, expected_version, expected_task_version; 200                                                      | Admin o lider                                                    |
+| POST `/subtasks/{id}/completion`                                                                                       | expected_version, expected_task_version; 200                                                             | Admin, lider o asignado                                          |
+| POST `/subtasks/{id}/due-date-changes`                                                                                 | due_date, reason, expected_version, expected_task_version; 200                                           | Admin o gerente                                                  |
+| POST `/subtasks/{id}/schedule-changes`                                                                                 | start_date, reason, expected_version, expected_task_version; 200                                         | Admin o lider                                                    |
+| POST `/tasks/{id}/due-date-requests`                                                                                   | proposed_due_date, reason, expected_task_version; 201                                                    | Admin/gerente/lider propio                                       |
+| POST `/subtasks/{id}/due-date-requests`                                                                                | Igual + expected_subtask_version; 201                                                                    | Admin/gerente/lider propio                                       |
+| GET `/due-date-requests`, `/due-date-requests/{id}`                                                                    | Solicitudes/detalle segun alcance; 200                                                                   | Admin/gerente global; lider departamento; C 403                  |
+| POST `/due-date-requests/{id}/approve`, `/due-date-requests/{id}/reject`                                               | reason, expected_version de solicitud; approve verifica versiones capturadas de destino; 200             | Admin/gerente; approve nunca solicitante                         |
+| POST `/due-date-requests/{id}/cancel`                                                                                  | reason, expected_version; 200                                                                            | Solicitante lider propio o admin/gerente                         |
+| POST `/tasks/{id}/evidence`                                                                                            | multipart file, expected_version del padre; 201                                                          | Admin, lider o asignado                                          |
+| GET `/tasks/{id}/evidence`, `/evidence/{id}/content`                                                                   | Metadatos / descarga protegida; 200                                                                      | Mismo alcance de tarea                                           |
+| GET `/tasks/{id}/history`                                                                                              | Eventos paginados; 200                                                                                   | Mismo alcance de tarea                                           |
+| GET `/analytics/summary`, `/analytics/series`                                                                          | plan, departamento, responsable, periodo; 200                                                            | Admin/gerente global, lider departamento; C 403                  |
+| GET/POST `/evaluations`                                                                                                | Lista / plan, departamento, periodo; 200 / 201                                                           | Admin o gerente; lider solo finales propias                      |
+| GET `/evaluations/{id}`                                                                                                | Foto, items y summary; 200                                                                               | Igual alcance de evaluaciones                                    |
+| POST `/evaluations/{id}/recalculate`                                                                                   | expected_version; 200                                                                                    | Admin o gerente, solo draft                                      |
+| POST `/evaluations/{id}/finalize`                                                                                      | summary, expected_version; 200                                                                           | Admin o gerente, solo draft                                      |
+| POST `/exports/tasks`                                                                                                  | format json/csv y filtros tipados; 200 archivo, 413 exceso de limite                                     | Admin/gerente global, lider departamento; C 403                  |
+| POST `/exports/evaluations/{id}`                                                                                       | format json/csv; 200 archivo desde foto final                                                            | Igual alcance de lectura de evaluaciones; C 403                  |
 
 No se exponen DELETE de dominio en v1. Los POST de comandos no son automaticamente idempotentes: clientes no reintentan a ciegas; tras respuesta perdida consultan recurso/version/historial. El control de version evita duplicar mutaciones del mismo recurso. Logout es la excepcion idempotente explicita.
 
@@ -444,17 +444,17 @@ Todas las respuestas de error de API usan `application/problem+json` con `type`,
 }
 ```
 
-| HTTP | Codigos estables previstos | Tratamiento |
-| --- | --- | --- |
-| 400 | `INVALID_CURSOR`, `INVALID_FILTER` | Corregir peticion |
-| 401 | `INVALID_CREDENTIALS`, `TOKEN_EXPIRED`, `SESSION_REVOKED`, `REFRESH_REUSED` | Login generico sin enumerar cuentas; reiniciar sesion cuando aplique |
-| 403 | `FORBIDDEN`, `CSRF_FAILED` | No conceder accion |
-| 404 | `RESOURCE_NOT_FOUND` | Inexistente o fuera de alcance |
-| 409 | `VERSION_CONFLICT`, `DUPLICATE_RESOURCE`, `INVALID_TRANSITION`, `PLAN_LOCKED`, `DEPENDENCY_CONFLICT`, `EVALUATION_LOCKED` | Refrescar o resolver conflicto; no reintento automatico |
-| 413 / 415 | `FILE_TOO_LARGE`, `EXPORT_TOO_LARGE` / `UNSUPPORTED_MEDIA_TYPE` | Rechazar evidencia excesiva/invalida o exportacion sobre limite, sin truncar |
-| 422 | `VALIDATION_ERROR`, `EVIDENCE_REQUIRED`, `REASON_REQUIRED` | errors con field y message; no eco de secretos |
-| 429 | `RATE_LIMITED` | Retry-After y espera controlada |
-| 500 / 503 | `INTERNAL_ERROR` / `SERVICE_UNAVAILABLE` | Mensaje seguro y request_id para soporte |
+| HTTP      | Codigos estables previstos                                                                                                | Tratamiento                                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 400       | `INVALID_CURSOR`, `INVALID_FILTER`                                                                                        | Corregir peticion                                                            |
+| 401       | `INVALID_CREDENTIALS`, `TOKEN_EXPIRED`, `SESSION_REVOKED`, `REFRESH_REUSED`                                               | Login generico sin enumerar cuentas; reiniciar sesion cuando aplique         |
+| 403       | `FORBIDDEN`, `CSRF_FAILED`                                                                                                | No conceder accion                                                           |
+| 404       | `RESOURCE_NOT_FOUND`                                                                                                      | Inexistente o fuera de alcance                                               |
+| 409       | `VERSION_CONFLICT`, `DUPLICATE_RESOURCE`, `INVALID_TRANSITION`, `PLAN_LOCKED`, `DEPENDENCY_CONFLICT`, `EVALUATION_LOCKED` | Refrescar o resolver conflicto; no reintento automatico                      |
+| 413 / 415 | `FILE_TOO_LARGE`, `EXPORT_TOO_LARGE` / `UNSUPPORTED_MEDIA_TYPE`                                                           | Rechazar evidencia excesiva/invalida o exportacion sobre limite, sin truncar |
+| 422       | `VALIDATION_ERROR`, `EVIDENCE_REQUIRED`, `REASON_REQUIRED`                                                                | errors con field y message; no eco de secretos                               |
+| 429       | `RATE_LIMITED`                                                                                                            | Retry-After y espera controlada                                              |
+| 500 / 503 | `INTERNAL_ERROR` / `SERVICE_UNAVAILABLE`                                                                                  | Mensaje seguro y request_id para soporte                                     |
 
 ## 7. Condicion de cierre documental
 

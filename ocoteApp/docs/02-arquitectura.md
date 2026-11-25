@@ -10,18 +10,18 @@ La [guia de entorno y portabilidad](04-entorno-y-portabilidad.md) contiene el pr
 
 Monorepo ligero: Angular permanece en la raiz, backend/ sera independiente. Monolito modular con PostgreSQL y transacciones ACID; frontend/API pueden permanecer in-house aunque PostgreSQL sea remoto gestionado. Nube no introduce multitenencia ni conexion del navegador a BD.
 
-| Area | Decision objetivo | Restriccion |
-| --- | --- | --- |
-| Frontend | Angular 18.2 standalone, SPA sin SSR, SCSS y Material 3 custom | Node compatible con Angular 18; seguridad/soporte pendiente D07 |
-| Interaccion | Angular Animations, CDK drag-drop, vis-timeline | Alternativa teclado al drag; Timeline de lectura/formulario |
-| Graficas | Apache ECharts mediante ngx-echarts | Validar peers y API con versiones del lockfile, no asumir compatibilidad por estar instalados |
-| API | Python 3.12, FastAPI, Pydantic v2 | DTOs estrictos separados de modelos ORM |
-| Persistencia | SQLAlchemy 2.0.x sincrono, psycopg 3 y Alembic | Endpoints de acceso sincrono `def` o ejecucion en threadpool; no bloquear event loop |
-| BD | Desarrollo 18.4/cluster 18; cliente PostgreSQL 18 local/contenedor o gestionado | Probar minor/proveedor y btree_gist; otra mayor requiere decision y homologacion, no editar PG_VERSION |
-| Base objetivo | Nombre exacto ocoteAppDatabase, incluidas mayusculas | init-dev solo desarrollo loopback; aprovisionamiento cliente separado y autorizado |
-| Seguridad | Argon2id y JWT access/refresh con rotacion | Sin contrasenas reversibles ni tokens en localStorage |
-| Despliegue | Reverse proxy HTTPS, SPA estatica, FastAPI y PostgreSQL privado | Mismo origen; la LAN no se considera confiable |
-| Tema | Tokens de seccion 5 de la SDD y paletas M3 verificadas | No generar aqui codigo de estilos ni paletas incompletas |
+| Area          | Decision objetivo                                                               | Restriccion                                                                                            |
+| ------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Frontend      | Angular 18.2 standalone, SPA sin SSR, SCSS y Material 3 custom                  | Node compatible con Angular 18; seguridad/soporte pendiente D07                                        |
+| Interaccion   | Angular Animations, CDK drag-drop, vis-timeline                                 | Alternativa teclado al drag; Timeline de lectura/formulario                                            |
+| Graficas      | Apache ECharts mediante ngx-echarts                                             | Validar peers y API con versiones del lockfile, no asumir compatibilidad por estar instalados          |
+| API           | Python 3.12, FastAPI, Pydantic v2                                               | DTOs estrictos separados de modelos ORM                                                                |
+| Persistencia  | SQLAlchemy 2.0.x sincrono, psycopg 3 y Alembic                                  | Endpoints de acceso sincrono `def` o ejecucion en threadpool; no bloquear event loop                   |
+| BD            | Desarrollo 18.4/cluster 18; cliente PostgreSQL 18 local/contenedor o gestionado | Probar minor/proveedor y btree_gist; otra mayor requiere decision y homologacion, no editar PG_VERSION |
+| Base objetivo | Nombre exacto ocoteAppDatabase, incluidas mayusculas                            | init-dev solo desarrollo loopback; aprovisionamiento cliente separado y autorizado                     |
+| Seguridad     | Argon2id y JWT access/refresh con rotacion                                      | Sin contrasenas reversibles ni tokens en localStorage                                                  |
+| Despliegue    | Reverse proxy HTTPS, SPA estatica, FastAPI y PostgreSQL privado                 | Mismo origen; la LAN no se considera confiable                                                         |
+| Tema          | Tokens de seccion 5 de la SDD y paletas M3 verificadas                          | No generar aqui codigo de estilos ni paletas incompletas                                               |
 
 ### Vista logica
 
@@ -36,7 +36,7 @@ flowchart LR
   Servicios --> Archivos[Almacen privado de evidencias]
 ```
 
-Routers autentican, validan DTO y adaptan HTTP; no calculan indicadores ni hacen commits parciales. Services autorizan por accion y recurso, aplican RN-*, calculan metricas y controlan transaccion. Models describen persistencia y restricciones; schemas nunca exponen password_hash, jti_hash ni claves de almacenamiento. Repositorios pequenos solo cuando una consulta compartida lo justifique; no imponer un framework generico adicional.
+Routers autentican, validan DTO y adaptan HTTP; no calculan indicadores ni hacen commits parciales. Services autorizan por accion y recurso, aplican RN-\*, calculan metricas y controlan transaccion. Models describen persistencia y restricciones; schemas nunca exponen password_hash, jti_hash ni claves de almacenamiento. Repositorios pequenos solo cuando una consulta compartida lo justifique; no imponer un framework generico adicional.
 
 Una Session por peticion/unidad de trabajo; commit unico despues de historia y cambios. Fallo: rollback y error uniforme. Las consultas aplican alcance antes de paginar o agregar. SQL parametrizado con ORM; sin concatenacion de filtros. API es unica autoridad: frontend solo representa permisos, no los impone.
 
@@ -122,41 +122,41 @@ erDiagram
 
 ### departments
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| code | VARCHAR(40), UNIQUE, formato estable `[a-z][a-z0-9_]*` |
-| name | VARCHAR(120), no vacio |
-| is_active | BOOLEAN DEFAULT true |
+| Columna   | Tipo / restriccion                                     |
+| --------- | ------------------------------------------------------ |
+| id, M     | Convenciones comunes                                   |
+| code      | VARCHAR(40), UNIQUE, formato estable `[a-z][a-z0-9_]*` |
+| name      | VARCHAR(120), no vacio                                 |
+| is_active | BOOLEAN DEFAULT true                                   |
 
 Indice UNIQUE(code). Desactivar exige no tener usuarios activos ni objetivos asociados a planes `draft`/`active`. No se reutiliza el codigo historico.
 
 ### users
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
+| Columna       | Tipo / restriccion                                  |
+| ------------- | --------------------------------------------------- |
+| id, M         | Convenciones comunes                                |
 | department_id | UUID FK departments.id, nullable solo admin/gerente |
-| email | VARCHAR(254), canonico trim + lowercase; UNIQUE |
-| display_name | VARCHAR(120), no vacio |
-| password_hash | TEXT, Argon2id completo, nunca serializado |
-| role | VARCHAR(20), CHECK admin/gerente/lider/colaborador |
-| token_version | INT DEFAULT 1, CHECK > 0 |
-| is_active | BOOLEAN DEFAULT true |
+| email         | VARCHAR(254), canonico trim + lowercase; UNIQUE     |
+| display_name  | VARCHAR(120), no vacio                              |
+| password_hash | TEXT, Argon2id completo, nunca serializado          |
+| role          | VARCHAR(20), CHECK admin/gerente/lider/colaborador  |
+| token_version | INT DEFAULT 1, CHECK > 0                            |
+| is_active     | BOOLEAN DEFAULT true                                |
 
 CHECK(role IN ('admin','gerente') OR department_id IS NOT NULL). UNIQUE(email) mas CHECK de forma canonica para impedir variantes por mayuscula; indice `(department_id, is_active)`. No se provee password por defecto: provision inicial CLI/interactiva en F2, sin secreto en repositorio; cambios administrativos fuerzan nueva credencial por mecanismo de soporte controlado, no reset por email en MVP.
 
 ### annual_plans
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| title | VARCHAR(200) |
-| horizon_type | VARCHAR(12), FK horizon_types.code; cinco valores definidos en catalogo |
-| start_date, due_date | DATE, extremos inclusivos obligatorios |
-| status | VARCHAR(12), CHECK draft/active/closed, DEFAULT draft |
-| created_by | UUID FK users.id |
-| activated_at, closed_at | TIMESTAMPTZ ?, consistentes con status |
+| Columna                 | Tipo / restriccion                                                      |
+| ----------------------- | ----------------------------------------------------------------------- |
+| id, M                   | Convenciones comunes                                                    |
+| title                   | VARCHAR(200)                                                            |
+| horizon_type            | VARCHAR(12), FK horizon_types.code; cinco valores definidos en catalogo |
+| start_date, due_date    | DATE, extremos inclusivos obligatorios                                  |
+| status                  | VARCHAR(12), CHECK draft/active/closed, DEFAULT draft                   |
+| created_by              | UUID FK users.id                                                        |
+| activated_at, closed_at | TIMESTAMPTZ ?, consistentes con status                                  |
 
 CHECK(start_date <= due_date). CHECK: draft sin activated_at/closed_at; active con activated_at y sin closed_at; closed con ambos y closed_at >= activated_at. Indice `(start_date, due_date, status)`; sin year obligatorio, UNIQUE(year) ni exclusion de periodos entre planes. Dos planes pueden coincidir/solaparse; UUID es su identidad. Horizon_type es clasificacion, el intervalo explicito es autoridad segun RN-01.
 
@@ -164,58 +164,58 @@ Service valida cambios de periodo bajo bloqueo del plan y sus hijos: ningun obje
 
 ### workflow_stages
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| code, name | VARCHAR(40) UNIQUE estable / VARCHAR(120) |
-| position | INT UNIQUE, CHECK >= 0 |
-| kind | VARCHAR(12), CHECK open/blocked/completed |
-| is_initial | BOOLEAN DEFAULT false |
-| requires_evidence, requires_reason | BOOLEAN DEFAULT false |
-| is_active | BOOLEAN DEFAULT true |
+| Columna                            | Tipo / restriccion                        |
+| ---------------------------------- | ----------------------------------------- |
+| id, M                              | Convenciones comunes                      |
+| code, name                         | VARCHAR(40) UNIQUE estable / VARCHAR(120) |
+| position                           | INT UNIQUE, CHECK >= 0                    |
+| kind                               | VARCHAR(12), CHECK open/blocked/completed |
+| is_initial                         | BOOLEAN DEFAULT false                     |
+| requires_evidence, requires_reason | BOOLEAN DEFAULT false                     |
+| is_active                          | BOOLEAN DEFAULT true                      |
 
 CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND NOT requires_reason)); CHECK(kind <> 'completed' OR is_active). Indices unicos parciales sobre constante para `WHERE is_initial` y `WHERE kind='completed'` garantizan como maximo una inicial y una terminal. Service/seed garantiza al menos una de cada y rechaza quitar la ultima. Reordenamiento en una transaccion con unicidad diferible de position, sin estados intermedios visibles. Se valida existencia de camino a terminal para cada etapa activa al guardar aristas/configuracion.
 
 ### workflow_transitions
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| from_stage_id, to_stage_id | UUID FK workflow_stages.id |
-| allowed_roles | ARRAY VARCHAR(20), no vacio, subconjunto de admin/lider/colaborador |
-| is_active | BOOLEAN DEFAULT true |
+| Columna                    | Tipo / restriccion                                                  |
+| -------------------------- | ------------------------------------------------------------------- |
+| id, M                      | Convenciones comunes                                                |
+| from_stage_id, to_stage_id | UUID FK workflow_stages.id                                          |
+| allowed_roles              | ARRAY VARCHAR(20), no vacio, subconjunto de admin/lider/colaborador |
+| is_active                  | BOOLEAN DEFAULT true                                                |
 
 UNIQUE(from_stage_id, to_stage_id), CHECK(from_stage_id <> to_stage_id). Sin rol gerente porque su rol es de lectura operativa. Service impide origen completed, destino inactivo, roles duplicados y grafos sin salida a completed. `admin` debe incluirse en toda arista habilitada; aun admin respeta reglas de negocio y no salta aristas. Indice `(from_stage_id, is_active)`.
 
 ### objectives
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| annual_plan_id | UUID FK annual_plans.id |
-| department_id | UUID FK departments.id |
-| title | VARCHAR(200) |
-| description | TEXT DEFAULT '', maximo 10000 validado |
-| horizon_type | VARCHAR(12), FK horizon_types.code; cinco valores definidos en catalogo |
-| start_date, due_date | DATE, obligatorios y contenidos en el intervalo del plan |
-| created_by | UUID FK users.id |
+| Columna              | Tipo / restriccion                                                      |
+| -------------------- | ----------------------------------------------------------------------- |
+| id, M                | Convenciones comunes                                                    |
+| annual_plan_id       | UUID FK annual_plans.id                                                 |
+| department_id        | UUID FK departments.id                                                  |
+| title                | VARCHAR(200)                                                            |
+| description          | TEXT DEFAULT '', maximo 10000 validado                                  |
+| horizon_type         | VARCHAR(12), FK horizon_types.code; cinco valores definidos en catalogo |
+| start_date, due_date | DATE, obligatorios y contenidos en el intervalo del plan                |
+| created_by           | UUID FK users.id                                                        |
 
 CHECK(start_date <= due_date). Indices `(annual_plan_id, department_id, created_at, id)` y `(annual_plan_id, start_date, due_date)`. Service garantiza contencion en padre y de start_date/original_due_date/due_date de todas sus tareas ante cambios; bloqueo y audit_events segun RN-01. Sin porcentaje persistido ni FK redundante desde tasks a departamento/plan. Titulo no unico: UUID identifica al objetivo.
 
 ### tasks
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| objective_id | UUID FK objectives.id |
-| assignee_id, created_by | UUID FK users.id |
-| stage_id | UUID FK workflow_stages.id |
-| priority_id | UUID FK priorities.id; alta sin valor resuelve normal en service, no UUID hardcodeado |
-| title, description | VARCHAR(200) / TEXT DEFAULT '' |
-| start_date | DATE |
-| original_due_date | DATE inmutable, copia inicial de due_date |
-| due_date | DATE, vigente |
-| completed_at | TIMESTAMPTZ ? |
+| Columna                 | Tipo / restriccion                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| id, M                   | Convenciones comunes                                                                  |
+| objective_id            | UUID FK objectives.id                                                                 |
+| assignee_id, created_by | UUID FK users.id                                                                      |
+| stage_id                | UUID FK workflow_stages.id                                                            |
+| priority_id             | UUID FK priorities.id; alta sin valor resuelve normal en service, no UUID hardcodeado |
+| title, description      | VARCHAR(200) / TEXT DEFAULT ''                                                        |
+| start_date              | DATE                                                                                  |
+| original_due_date       | DATE inmutable, copia inicial de due_date                                             |
+| due_date                | DATE, vigente                                                                         |
+| completed_at            | TIMESTAMPTZ ?                                                                         |
 
 CHECK(start_date <= original_due_date AND start_date <= due_date). Indices `(objective_id, stage_id, created_at, id)`, `(assignee_id, stage_id, created_at, id)`, `(stage_id, created_at, id)`, `(original_due_date, objective_id)` y `(due_date) WHERE completed_at IS NULL`. No se persiste `punctuality_status`: cambia al pasar el tiempo sin UPDATE.
 
@@ -223,79 +223,79 @@ Indice adicional (priority_id, created_at, id). Service valida catalogo activo a
 
 ### subtasks
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| task_id | UUID FK tasks.id |
-| title | VARCHAR(200) |
-| start_date, original_due_date, due_date | DATE, mismas convenciones de tarea |
-| status | VARCHAR(12), CHECK pending/completed, DEFAULT pending |
-| completed_at | TIMESTAMPTZ ? |
-| created_by | UUID FK users.id |
+| Columna                                 | Tipo / restriccion                                    |
+| --------------------------------------- | ----------------------------------------------------- |
+| id, M                                   | Convenciones comunes                                  |
+| task_id                                 | UUID FK tasks.id                                      |
+| title                                   | VARCHAR(200)                                          |
+| start_date, original_due_date, due_date | DATE, mismas convenciones de tarea                    |
+| status                                  | VARCHAR(12), CHECK pending/completed, DEFAULT pending |
+| completed_at                            | TIMESTAMPTZ ?                                         |
+| created_by                              | UUID FK users.id                                      |
 
 CHECK(start_date <= original_due_date AND start_date <= due_date); CHECK((status='completed') = (completed_at IS NOT NULL)). Indice `(task_id, status, created_at, id)`. Trigger protege original_due_date. Fechas dentro de limites de padre segun RN-02; hereda responsable y alcance, no tiene `assignee_id` ni etapa. Mutaciones bloquean padre antes de hija, verifican versiones y tambien incrementan version del padre.
 
 ### task_history
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, created_at | UUID PK / TIMESTAMPTZ |
-| task_id | UUID FK tasks.id |
-| subtask_id | UUID FK subtasks.id ? |
-| actor_id | UUID FK users.id |
-| event_type | VARCHAR(40), CHECK segun catalogo de eventos |
+| Columna                 | Tipo / restriccion                                      |
+| ----------------------- | ------------------------------------------------------- |
+| id, created_at          | UUID PK / TIMESTAMPTZ                                   |
+| task_id                 | UUID FK tasks.id                                        |
+| subtask_id              | UUID FK subtasks.id ?                                   |
+| actor_id                | UUID FK users.id                                        |
+| event_type              | VARCHAR(40), CHECK segun catalogo de eventos            |
 | before_data, after_data | JSONB, objetos con campos cambiados; {} para lado vacio |
-| reason | TEXT ?, obligatorio para operaciones que lo exigen |
-| request_id | UUID |
+| reason                  | TEXT ?, obligatorio para operaciones que lo exigen      |
+| request_id              | UUID                                                    |
 
 Catalogo: `task_created`, `task_updated`, `stage_changed`, `assignment_changed`, `due_date_changed`, `schedule_changed`, `subtask_created`, `subtask_updated`, `subtask_completed`, `subtask_due_date_changed`, `subtask_schedule_changed`, `evidence_added`. El cierre de tarea usa `stage_changed` con completed_at, sin duplicar un evento de cierre. JSON registra IDs y valores previos/nuevos; subtask_id debe pertenecer a task_id, validado en service. Indices `(task_id, created_at, id)`, `(subtask_id, created_at, id)` parcial y `(request_id)`.
 
 ### evidence_files
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, created_at | UUID PK / TIMESTAMPTZ |
-| task_id | UUID FK tasks.id |
-| uploaded_by | UUID FK users.id |
-| original_name | VARCHAR(255), saneado y solo informativo |
-| storage_key | VARCHAR(255) UNIQUE, generado por servidor |
-| media_type | VARCHAR(100), CHECK application/pdf, image/png o image/jpeg |
-| size_bytes | BIGINT CHECK entre 1 y 10485760 |
-| sha256 | CHAR(64), hexadecimal |
+| Columna        | Tipo / restriccion                                          |
+| -------------- | ----------------------------------------------------------- |
+| id, created_at | UUID PK / TIMESTAMPTZ                                       |
+| task_id        | UUID FK tasks.id                                            |
+| uploaded_by    | UUID FK users.id                                            |
+| original_name  | VARCHAR(255), saneado y solo informativo                    |
+| storage_key    | VARCHAR(255) UNIQUE, generado por servidor                  |
+| media_type     | VARCHAR(100), CHECK application/pdf, image/png o image/jpeg |
+| size_bytes     | BIGINT CHECK entre 1 y 10485760                             |
+| sha256         | CHAR(64), hexadecimal                                       |
 
 Indice `(task_id, created_at, id)`. Archivo en almacenamiento privado, nunca en `public/`; descarga `Content-Disposition: attachment` y `X-Content-Type-Options: nosniff`. Historia de transicion registra los `evidence_ids` usados y foto de reglas de etapa. Persistir archivo con staging/rename atomico y compensacion si falla BD; archivos huerfanos se reconcilian por job operacional, nunca se confirma una fila antes de disponer del archivo definitivo. Politica antimalware/retencion es puerta D05.
 
 ### refresh_sessions
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, created_at | UUID PK / TIMESTAMPTZ |
-| user_id | UUID FK users.id |
-| family_id | UUID comun a las rotaciones, usado por sid |
-| jti_hash | CHAR(64) UNIQUE |
-| token_version | INT CHECK > 0, version al emitir |
-| expires_at | TIMESTAMPTZ, limite absoluto comun a familia |
-| consumed_at, revoked_at | TIMESTAMPTZ ? |
-| replaced_by_id | UUID FK refresh_sessions.id ?, UNIQUE |
+| Columna                 | Tipo / restriccion                           |
+| ----------------------- | -------------------------------------------- |
+| id, created_at          | UUID PK / TIMESTAMPTZ                        |
+| user_id                 | UUID FK users.id                             |
+| family_id               | UUID comun a las rotaciones, usado por sid   |
+| jti_hash                | CHAR(64) UNIQUE                              |
+| token_version           | INT CHECK > 0, version al emitir             |
+| expires_at              | TIMESTAMPTZ, limite absoluto comun a familia |
+| consumed_at, revoked_at | TIMESTAMPTZ ?                                |
+| replaced_by_id          | UUID FK refresh_sessions.id ?, UNIQUE        |
 
 CHECK(expires_at > created_at); replaced_by_id requiere consumed_at. Indices `(family_id)`, `(user_id, revoked_at)` y `(expires_at)`. Las filas usadas se conservan durante toda la ventana de deteccion; limpieza solo tras expiracion mas retencion aprobada. Revocacion actualiza todas las filas de familia bajo bloqueo coordinado. No hay endpoint publico de CRUD de sesiones.
 
 ### evaluations
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| annual_plan_id | UUID FK annual_plans.id |
-| department_id | UUID FK departments.id |
-| evaluator_id | UUID FK users.id |
-| period_start, period_end | DATE inclusivas |
-| status | VARCHAR(12), CHECK draft/final, DEFAULT draft |
-| snapshot_at | TIMESTAMPTZ, corte real de lectura |
-| metrics | JSONB con esquema versionado, estructura RN-06 |
-| calculation_version | VARCHAR(20), inicialmente `1.0` |
-| organization_timezone | VARCHAR(100), copia de zona IANA usada |
-| summary | TEXT ?, 10..4000 al finalizar |
-| finalized_at | TIMESTAMPTZ ? |
+| Columna                  | Tipo / restriccion                             |
+| ------------------------ | ---------------------------------------------- |
+| id, M                    | Convenciones comunes                           |
+| annual_plan_id           | UUID FK annual_plans.id                        |
+| department_id            | UUID FK departments.id                         |
+| evaluator_id             | UUID FK users.id                               |
+| period_start, period_end | DATE inclusivas                                |
+| status                   | VARCHAR(12), CHECK draft/final, DEFAULT draft  |
+| snapshot_at              | TIMESTAMPTZ, corte real de lectura             |
+| metrics                  | JSONB con esquema versionado, estructura RN-06 |
+| calculation_version      | VARCHAR(20), inicialmente `1.0`                |
+| organization_timezone    | VARCHAR(100), copia de zona IANA usada         |
+| summary                  | TEXT ?, 10..4000 al finalizar                  |
+| finalized_at             | TIMESTAMPTZ ?                                  |
 
 CHECK(period_start <= period_end); CHECK((status='final') = (finalized_at IS NOT NULL)); final requiere summary. UNIQUE(annual_plan_id, department_id, period_start, period_end). Exclusion GiST con `btree_gist` por igualdad de annual_plan_id/department_id y solapamiento de `daterange(period_start, period_end, '[]')`, incluyendo draft; evita carreras entre periodos solapados. Instalar extension mediante migracion autorizada. Indice `(department_id, period_end, status)`.
 
@@ -305,102 +305,102 @@ La foto se obtiene con snapshot consistente REPEATABLE READ y filtros del actor;
 
 ### evaluation_items
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id | UUID PK |
-| evaluation_id | UUID FK evaluations.id |
-| task_id | UUID FK tasks.id |
+| Columna       | Tipo / restriccion                                |
+| ------------- | ------------------------------------------------- |
+| id            | UUID PK                                           |
+| evaluation_id | UUID FK evaluations.id                            |
+| task_id       | UUID FK tasks.id                                  |
 | snapshot_data | JSONB NOT NULL, esquema segun calculation_version |
 
 UNIQUE(evaluation_id, task_id). Cada item congela titulo/objetivo, departamento/responsable, clase/nombre de etapa, prioridad (id/code/name), horizonte (code/name), fechas original/vigente/cierre, totales de subtareas, avance sin redondeo, puntualidades, retrasos y version de tarea. Datos suficientes para explicar la foto sin nombres actuales, sin passwords/binarios ni historial completo. Cambios posteriores de catalogo no cambian la foto.
 
 ### audit_events
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, created_at | UUID PK / TIMESTAMPTZ |
-| actor_id | UUID FK users.id ?, nulo si intento no autenticado |
-| event_type | VARCHAR(80), catalogo controlado de seguridad/configuracion |
-| entity_type, entity_id | VARCHAR(40) / UUID ?, para configuracion y evaluaciones |
-| before_data, after_data | JSONB sanitizado |
-| request_id | UUID |
-| outcome | VARCHAR(12), CHECK success/denied/failure |
+| Columna                 | Tipo / restriccion                                          |
+| ----------------------- | ----------------------------------------------------------- |
+| id, created_at          | UUID PK / TIMESTAMPTZ                                       |
+| actor_id                | UUID FK users.id ?, nulo si intento no autenticado          |
+| event_type              | VARCHAR(80), catalogo controlado de seguridad/configuracion |
+| entity_type, entity_id  | VARCHAR(40) / UUID ?, para configuracion y evaluaciones     |
+| before_data, after_data | JSONB sanitizado                                            |
+| request_id              | UUID                                                        |
+| outcome                 | VARCHAR(12), CHECK success/denied/failure                   |
 
 Indices `(entity_type, entity_id, created_at, id)`, `(actor_id, created_at, id)`, `(request_id)`. No guardar passwords/tokens ni siquiera hashes de credenciales en before/after. Auditoria de mutaciones exitosas comparte transaccion; eventos de seguridad fallidos usan canal/transaccion independiente y no alteran datos de negocio. No se incluye navegador/IP por defecto hasta aprobar privacidad/retencion.
 
 ### system_settings
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| key | VARCHAR(64) UNIQUE; CHECK organization_name/organization_timezone/evidence_max_bytes/export_max_rows |
-| value | JSONB escalar, sin null; tipo/rango segun clave |
-| updated_by | UUID FK users.id ?, null solo bootstrap con actor operacional externo registrado |
+| Columna    | Tipo / restriccion                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------- |
+| id, M      | Convenciones comunes                                                                                 |
+| key        | VARCHAR(64) UNIQUE; CHECK organization_name/organization_timezone/evidence_max_bytes/export_max_rows |
+| value      | JSONB escalar, sin null; tipo/rango segun clave                                                      |
+| updated_by | UUID FK users.id ?, null solo bootstrap con actor operacional externo registrado                     |
 
 UNIQUE(key). CHECK dependiente de key: nombre JSON string 1..160; zona string 1..100; evidence/export JSON number entero 1..10485760 / 1..10000. Pydantic valida enteros sin coercion y pertenencia a zona IANA instalada; validacion numerica SQL con CASE por jsonb_typeof para no castear texto arbitrario. Valores iniciales: nombre y zona obligatorios suministrados por operador; limite evidencia 10485760 y exportacion 5000. No secretos, claves libres ni override env. Admin cambia value con reason/version, lock global exclusivo, audit_events en misma transaccion; insercion inicial solo seed/bootstrap, nunca DELETE runtime. Zona bloqueada tras primera tarea/evaluacion. Cada request operacional lee bajo lock compartido; sin cache invalida. Tipos/politica de edicion son codigo, no columnas editables.
 
 ### priorities
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| code | VARCHAR(40) UNIQUE, patron estable como departments.code |
-| name | VARCHAR(120), no vacio |
-| position | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED |
-| is_active | BOOLEAN DEFAULT true |
+| Columna   | Tipo / restriccion                                       |
+| --------- | -------------------------------------------------------- |
+| id, M     | Convenciones comunes                                     |
+| code      | VARCHAR(40) UNIQUE, patron estable como departments.code |
+| name      | VARCHAR(120), no vacio                                   |
+| position  | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED           |
+| is_active | BOOLEAN DEFAULT true                                     |
 
 CHECK(code <> 'normal' OR is_active). Seed inicial propuesto low/normal/high con posiciones 10/20/30; aprobar D04. Service exige normal existente; admin agrega/renombra/reordena/desactiva sin borrar ni cambiar code. UNIQUE(code) y UNIQUE(position) son indices; FK tasks.priority_id RESTRICT. Desactivar no reasigna tareas existentes, impide nuevas selecciones; cambio de prioridad en tarea abierta requiere version e historia. Lock global exclusivo en catalogo, compartido en operacion; eventos en audit_events. No prioridad por subtarea ni orden automatico por urgencia.
 
 ### horizon_types
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| code | VARCHAR(12) UNIQUE; CHECK annual/semiannual/quarterly/monthly/custom |
-| name | VARCHAR(120), no vacio |
-| position | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED |
-| is_active | BOOLEAN DEFAULT true |
+| Columna   | Tipo / restriccion                                                   |
+| --------- | -------------------------------------------------------------------- |
+| id, M     | Convenciones comunes                                                 |
+| code      | VARCHAR(12) UNIQUE; CHECK annual/semiannual/quarterly/monthly/custom |
+| name      | VARCHAR(120), no vacio                                               |
+| position  | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED                       |
+| is_active | BOOLEAN DEFAULT true                                                 |
 
 CHECK(code <> 'custom' OR is_active). Seed crea exactamente cinco filas con etiquetas RN-01 y posiciones 10..50; verifica faltantes/conflictos sin sobrescribir preferencias. FK annual_plans.horizon_type/objectives.horizon_type referencia code UNIQUE, no traduccion; no otro CHECK duplicado en padres. UUID/code inmutables; sin INSERT/DELETE runtime, solo nombre/orden/activo por admin con lock exclusivo, version/motivo y audit_events. No duracion rigida, formulas o JSON de plantillas ejecutables. Horizonte inactivo puede mantenerse en registros previos, nunca elegirse como nuevo code. Ampliar cinco semanticas exige revision de contrato, no CRUD.
 
 ### due_date_requests
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | Convenciones comunes |
-| task_id | UUID FK tasks.id |
-| subtask_id | UUID FK subtasks.id ?, null significa destino tarea |
-| requested_by | UUID FK users.id |
-| proposed_due_date, previous_due_date | DATE, propuesta y valor vigente al solicitar |
-| task_version_at_request | INT CHECK > 0, copia de tasks.version |
-| subtask_version_at_request | INT ?, CHECK > 0 cuando presente |
-| reason | TEXT, 10..2000 |
-| status | VARCHAR(12), CHECK pending/approved/rejected/cancelled, DEFAULT pending |
-| decided_by | UUID FK users.id ? |
-| decision_reason | TEXT ?, 10..2000 cuando presente |
-| decided_at | TIMESTAMPTZ ? |
+| Columna                              | Tipo / restriccion                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| id, M                                | Convenciones comunes                                                    |
+| task_id                              | UUID FK tasks.id                                                        |
+| subtask_id                           | UUID FK subtasks.id ?, null significa destino tarea                     |
+| requested_by                         | UUID FK users.id                                                        |
+| proposed_due_date, previous_due_date | DATE, propuesta y valor vigente al solicitar                            |
+| task_version_at_request              | INT CHECK > 0, copia de tasks.version                                   |
+| subtask_version_at_request           | INT ?, CHECK > 0 cuando presente                                        |
+| reason                               | TEXT, 10..2000                                                          |
+| status                               | VARCHAR(12), CHECK pending/approved/rejected/cancelled, DEFAULT pending |
+| decided_by                           | UUID FK users.id ?                                                      |
+| decision_reason                      | TEXT ?, 10..2000 cuando presente                                        |
+| decided_at                           | TIMESTAMPTZ ?                                                           |
 
 CHECK: subtask_id y subtask_version_at_request ambos nulos o ambos presentes; propuesta distinta de anterior; pending sin datos de decision, terminal exige los tres y decided_at >= created_at; approved exige decided_by <> requested_by. UNIQUE parcial(task_id) WHERE status='pending' AND subtask_id IS NULL; UNIQUE parcial(subtask_id) WHERE status='pending' AND subtask_id IS NOT NULL. Indices (status, created_at, id), (task_id, created_at, id), (requested_by, created_at, id). Service valida hija pertenece a task, destino abierto/plan activo, permisos actuales y contencion. Propuesta es inmutable; solo decision terminal, protegida por trigger/privilegios. No borra solicitudes pendientes obsoletas: 409 al aprobar y requiere cancelar/rechazar. Orden de lock: config, usuarios, plan, objetivo, tarea, subtarea, solicitud. Alta/decision van a audit_events; aprobar ademas produce exactamente el evento de fecha correspondiente en task_history, en misma transaccion. Admin/gerente solicitan/deciden, lider solicita/cancela propia en departamento; sin autoaprobacion.
 
 ### release_history
 
-| Columna | Tipo / restriccion |
-| --- | --- |
-| id, M | UUID del intento, generado antes de conectar, convenciones comunes |
-| retry_of_id | UUID FK release_history.id ?, CHECK distinto de id |
-| application_version | VARCHAR(40), version del artefacto, no unica |
-| artifact_sha256, manifest_sha256 | CHAR(64), hexadecimal |
-| source_revision | VARCHAR(128) ?, null solo base virgen confirmada sin alembic_version |
-| target_revision | VARCHAR(128), head exacta del manifest |
-| operator_ref | VARCHAR(120), identidad operativa sanitizada, no credencial ni FK a usuario aun inexistente |
-| deployment_mode | VARCHAR(16), CHECK local/managed |
-| phase | VARCHAR(24), CHECK preflight/backup/migration/seeds/validation/reopening/complete |
-| status | VARCHAR(12), CHECK running/succeeded/failed/aborted, DEFAULT running |
-| backup_manifest_sha256 | CHAR(64) ?, sin ubicacion sensible ni claves |
-| backup_verified_at | TIMESTAMPTZ ?, evidencia de restore aislado |
-| finished_at | TIMESTAMPTZ ? |
-| result_code | VARCHAR(64) ?, catalogo sanitizado de resultado, sin stack ni DSN |
-| request_id | UUID UNIQUE, correlacion con bitacora externa |
+| Columna                          | Tipo / restriccion                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| id, M                            | UUID del intento, generado antes de conectar, convenciones comunes                          |
+| retry_of_id                      | UUID FK release_history.id ?, CHECK distinto de id                                          |
+| application_version              | VARCHAR(40), version del artefacto, no unica                                                |
+| artifact_sha256, manifest_sha256 | CHAR(64), hexadecimal                                                                       |
+| source_revision                  | VARCHAR(128) ?, null solo base virgen confirmada sin alembic_version                        |
+| target_revision                  | VARCHAR(128), head exacta del manifest                                                      |
+| operator_ref                     | VARCHAR(120), identidad operativa sanitizada, no credencial ni FK a usuario aun inexistente |
+| deployment_mode                  | VARCHAR(16), CHECK local/managed                                                            |
+| phase                            | VARCHAR(24), CHECK preflight/backup/migration/seeds/validation/reopening/complete           |
+| status                           | VARCHAR(12), CHECK running/succeeded/failed/aborted, DEFAULT running                        |
+| backup_manifest_sha256           | CHAR(64) ?, sin ubicacion sensible ni claves                                                |
+| backup_verified_at               | TIMESTAMPTZ ?, evidencia de restore aislado                                                 |
+| finished_at                      | TIMESTAMPTZ ?                                                                               |
+| result_code                      | VARCHAR(64) ?, catalogo sanitizado de resultado, sin stack ni DSN                           |
+| request_id                       | UUID UNIQUE, correlacion con bitacora externa                                               |
 
 Indices (created_at, id), (application_version, created_at), (retry_of_id); checks hex de hashes, finished_at >= created_at, status running sin finished_at/result_code y terminal con ambos; succeeded exige phase complete y backup_verified_at/hash para actualizacion de base existente. Una instalacion vacia registra BACKUP_NOT_APPLICABLE en bitacora, nunca backup inventado; el valor null de source_revision no se usa para saltarse copia de una base con datos. Backup_verified_at requiere hash y no es anterior a created_at. Identidad, hashes y revisiones quedan inmutables tras INSERT; version/locks protegen avances running, terminal inmutable. Reintento es fila nueva con retry_of_id, no borrar/fingir intento anterior.
 
@@ -493,7 +493,7 @@ ocoteApp/
     05-paquetizacion-instalacion-y-actualizaciones.md
 ```
 
-  No guardar binarios PostgreSQL, data, logs, evidencias, `.env`, `.venv` ni backups en Git. La convencion de desarrollo es database/ dentro del workspace pero ignorada: un clon no la reconstruye. Para produccion se recomienda almacenamiento fuera del checkout. La guia operativa define aprovisionamiento manual y restauracion sin sobrescribir data existente.
+No guardar binarios PostgreSQL, data, logs, evidencias, `.env`, `.venv` ni backups en Git. La convencion de desarrollo es database/ dentro del workspace pero ignorada: un clon no la reconstruye. Para produccion se recomienda almacenamiento fuera del checkout. La guia operativa define aprovisionamiento manual y restauracion sin sobrescribir data existente.
 
 ## 6. Despliegue local y PostgreSQL gestionado
 
@@ -507,7 +507,7 @@ flowchart TB
   Files --> Backup
 ```
 
-- Desarrollo comprobado: binarios Windows PostgreSQL 18.4 en database/postgres/bin, cluster 18 en database/data, logs en database/logs, endpoint 127.0.0.1:5432 y base ocoteAppDatabase vacia. La base previa ocote se conserva sin renombrar/copiar/borrar. Credenciales solo locales en guia operativa; no son las futuras credenciales productivas.
+- Desarrollo comprobado: binarios Windows PostgreSQL 18.4 en database/postgres/bin, cluster 18 en database/data, logs en database/logs, endpoint 127.0.0.1:5432 y base ocoteAppDatabase con solo alembic_version/release_history, revision 20261124_0001. Roles runtime/migrador separados; migracion/no-op y restores tecnicos probados en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local). La base previa ocote se conserva sin renombrar/copiar/borrar. Credenciales solo locales en guia operativa; no son las futuras credenciales productivas.
 - Arranque/verificacion: `bash scripts/init-dev.sh` y luego `bash scripts/init-dev.sh --check`. Delega en db-start.sh: valida pg_ctl status, pg_isready, version mayor y SHOW data_directory antes de consultar/crear ocoteAppDatabase con mayusculas exactas. Nunca hace initdb, migrations/seeds, reset, stop ni configuracion persistente. Solo al arrancar fija loopback/puerto; init-dev muestra estado de backend/.venv, backend/alembic y node_modules.
 - Produccion in-house (D06 pendiente): portable bajo usuario dedicado o contenedor con volumen persistente; FastAPI separado y proxy sirviendo `dist/ocote-app/browser` segun salida verificada del build. SPA fallback a index.html solo fuera de `/api`; errores API no devuelven HTML. Validar version minor soportada y parcheada antes de desplegar.
 - `initdb` solo para una instalacion nueva sin cluster, mediante decision explicita del operador; jamas para reparar una falla de arranque. Portable no significa copiar data mientras el servidor esta activo ni incluir la BD en Angular.
@@ -518,23 +518,23 @@ flowchart TB
 ### Modalidad gestionada remota
 
 - Mismo proxy/origen y servicios; solo cambia endpoint privado de BD. PostgreSQL 18 y btree_gist disponibles/verificados en proveedor; no prometer soporte de proveedor especifico. TLS sslmode=verify-full, CA confiable/rotacion y hostname, sin downgrade a require/prefer ni IP que rompa validacion. Firewall/VPN/allowlist de salida del backend; nada de 0.0.0.0/0 ni acceso del navegador.
-- Runtime: pool_size/max_overflow acotados, pool_timeout y statement/lock/idle-in-transaction timeouts definidos por carga/proveedor; suma de procesos*(pool_size+max_overflow) deja reserva para administracion/migracion. pool_pre_ping y recuperacion de conexiones probados. No fijar numeros de produccion sin capacidad acordada.
+- Runtime: pool_size/max_overflow acotados, pool_timeout y statement/lock/idle-in-transaction timeouts definidos por carga/proveedor; suma de procesos\*(pool_size+max_overflow) deja reserva para administracion/migracion. pool_pre_ping y recuperacion de conexiones probados. No fijar numeros de produccion sin capacidad acordada.
 - Migrador/lock de release/backup usan endpoint directo y conexion dedicada, no pool transaccional PgBouncer; probar psycopg/prepared statements si se introduce pooler. No pasar superusuario al backend; DBA instala/autoriza btree_gist si rol migrador no puede. DSN runtime y migracion separados y secretos fuera de tablas.
 - Backup automatico/PITR del proveedor complementa, no sustituye, el gate por release: pg_dump logico portable y restore aislado con evidencias incluidas. Copia de evidencias/CA/config y prueba de exportacion al abandonar proveedor. Region/residencia, mantenimiento/failover, cuotas/coste, retencion y RPO/RTO requieren aprobacion D05/D06. Fallo de conectividad mantiene mantenimiento, nunca apunta a otra BD para sortearlo.
 - No ejecutar init-dev ni comandos pg_ctl/SHOW data_directory del helper contra nube. Instalacion y checklist especificas en guia de entrega; F1/F7 deben probar ambas modalidades antes de anunciar soporte operativo.
 
 ### Operacion y recuperacion
 
-Objetivos propuestos pendientes de D06/F1: RPO <= 24 h y RTO <= 4 h, respaldos diarios y retencion de 30 dias, restauracion mensual y antes de cada migracion relevante. Responsable: TI/operaciones, con sustituto identificado. Dimensionar capacidad, ventana y cifrado antes de comprometer estos objetivos como SLA.
+Base D05/D06 aprobada el 2026-11-24: RPO <=24 h/RTO <=4 h son objetivos de diseno, respaldos diarios/por release con retencion minima 30 dias y restore mensual/por release. Responsable: LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion expresa sin suplente hasta 2026-12-24 solo F1/F2 local/sintetico, operaciones suspendidas si falta el responsable. Politica de privacidad, cuarentena/escaneo fail-closed antes de F5, cifrado/custodia y conservacion en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). No scheduler/escaneo/cifrado off-host implementados ni datos reales autorizados. Restore tecnico en mismo cluster no demuestra RPO/RTO productivos; dimensionar/probar host alterno, volumen y operacion antes de un SLA.
 
 Respaldar BD y evidencias como conjunto consistente: pausar escrituras durante la captura MVP, `pg_dump` y manifest de archivos/hash, claves/configuracion protegidas por separado. Restore en entorno aislado con comprobacion de FK, revision Alembic, conteos, archivos y login; conservar evidencia de duracion y resultado. Volumen persistente no equivale a backup y un backup sin prueba de restore no satisface DoD.
 
-Salud futura: GET `/api/v1/health/live` 200 si proceso disponible y GET `/api/v1/health/ready` 200/503 por conectividad/migracion/almacenamiento, sin detalles secretos; acceso ready restringido al monitor interno. Logs estructurados con request_id, duracion y codigo; metricas de errores, latencia, conexiones, espacio disponible, ultimo backup y vencimiento TLS. Alertas y accesos operativos deben tener responsable.
+Salud F1 implementada: GET `/api/v1/health/live` minimo sin BD; GET `/api/v1/health/ready` exige X-Health-Token (403 si falta/es incorrecto), 200 con base/head compatibles o 503 por fallo/revision/mantenimiento. Logs sanitizados con request_id, duracion y codigo. Almacenamiento/evidencia no existe todavia: su verificacion, metricas de errores/latencia/conexiones/espacio/ultimo backup/TLS y alertas con responsable quedan para fases correspondientes, no se afirman implementados.
 
 ## 7. Verificacion arquitectonica antes de produccion
 
 - Pruebas unitarias de formulas y politicas; integracion real PostgreSQL de constraints, transacciones, concurrencia, migraciones y restauracion. SQLite no reemplaza ARRAY, JSONB, GiST, bloqueos ni semantica de PostgreSQL.
 - Contratos OpenAPI para campos read-only, strict validation y errores; pruebas E2E por cada rol, incluidos accesos negativos a evidencia, metricas e historia.
-- Prototipo de compatibilidad Angular/Material/CDK, ngx-echarts/ECharts y vis-timeline con build produccion; no instalar o actualizar dependencias durante el cierre documental.
+- Prototipo de compatibilidad Angular/Material/CDK, ngx-echarts/ECharts y vis-timeline con build produccion ejecutados en F1 como fixture sintetica de pruebas; no UI funcional ni tema OCOTE homologados. Angular 18 sin soporte y 61 alertas npm bajo aceptaciones temporales separadas hasta 2026-12-24 solo local/sintetico; no sustituyen remediacion ni aprobacion productiva. Actualizaciones requieren autorizacion y nuevas pruebas.
 - Validacion visual y accesible de Material, Kanban, Timeline y ECharts con tokens de la SDD. Automatizacion de contraste no reemplaza evaluacion de foco, teclado ni lectores de pantalla.
 - Revision de amenazas: robo/reuso refresh, CSRF, XSS, IDOR, escalamiento, uploads, borrado de auditoria y perdida de volumen. D07 bloquea produccion sin resolver politica de soporte de Angular 18.

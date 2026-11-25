@@ -14,9 +14,9 @@ Leer [AGENTS.md](AGENTS.md), entrada comun para desarrolladores y agentes de IA,
 4. [docs/04-entorno-y-portabilidad.md](docs/04-entorno-y-portabilidad.md): PostgreSQL, credencial exclusivamente local, Git y otra computadora.
 5. [docs/05-paquetizacion-instalacion-y-actualizaciones.md](docs/05-paquetizacion-instalacion-y-actualizaciones.md): paquete cliente, instalaciones local/nube, bootstrap, exports/integraciones y protocolo central de release/contingencia.
 
-Estado al 2026-11-24 local: scaffold Angular sin modulos OCOTE; base tecnica F1 en [backend/README.md](backend/README.md), PostgreSQL 18.4 con solo alembic_version y release_history, roles runtime/migrador y respaldo/restauracion aislada probados. Base anterior conservada. F0 consolidado; F1 integral NO cerrado por puertas formales y homologaciones pendientes. Evidencia y siguiente paso en [roadmap, seccion 6](docs/03-estado-actual-y-roadmap.md#6-ejecucion-local-de-la-base-tecnica-f1). No implementar negocio sin nueva autorizacion y puertas de fase.
+Estado al 2026-11-24 local: scaffold Angular sin modulos OCOTE; base tecnica F1 en [backend/README.md](backend/README.md), PostgreSQL 18.4 con solo alembic_version y release_history, roles runtime/migrador y respaldo/restauracion aislada probados. Base anterior e historia preservadas. **F1 cerrado para desarrollo local con datos sinteticos**, no produccion/nube: excepciones expresas D06 sin suplente y D07 (Angular sin soporte y 61 alertas npm) hasta **2026-12-24**, responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Evidencia, limites y salida de excepciones en [acta F1](docs/03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local). F2 no iniciado ni autorizado.
 
-Fundacion documental 2.0: permisos por menu/ruta/accion/datos, 19 tablas objetivo, parametros/catalogos en BD y secretos fuera de ella, solicitudes de fecha auditables y exports internos JSON/CSV. Colaborador solo tareas asignadas, nunca agregados o evaluaciones. Son especificaciones, NO funcionalidades instaladas. API externas/SSO/ERP/mensajeria/IA/importadores fuera de MVP. Aprobaciones D01-D08 y compatibilidad D07 pendientes segun fase.
+Fundacion documental 2.0: permisos por menu/ruta/accion/datos, 19 tablas objetivo, parametros/catalogos en BD y secretos fuera de ella, solicitudes de fecha auditables y exports internos JSON/CSV. Colaborador solo tareas asignadas, nunca agregados o evaluaciones. Son especificaciones, NO funcionalidades instaladas. API externas/SSO/ERP/mensajeria/IA/importadores fuera de MVP. D01 oficial America/Mexico_City; D05/D06 aprobados como base/objetivos de diseno, D07 con compatibilidad probada y riesgo aceptado temporalmente. D02/D03/D04/D08 siguen sus puertas.
 
 Cliente objetivo: PostgreSQL 18 local portable/contenedor o gestionado remoto; guia 05 exige roles separados, TLS/red/pooling, paquete firmado, backup y restore ensayados. No hay proveedor/SO cliente homologado ni instalador/ocote-admin disponible; no usar helper de desarrollo para produccion o nube.
 
@@ -51,7 +51,7 @@ git diff --check
 
 Los tests del helper usan mocks y carpetas temporales, no el cluster real. Requieren Node 22.x/Bash en el entorno actual; no certifican otros SO, seguridad de produccion ni funcionalidad de negocio.
 
-El cierre documental previo comprobo referencias, ejemplos JSON, IDs, inventario/FK y coherencia de permisos/configuracion/entrega. La ejecucion F1 posterior verifico 31 pruebas backend, lint/dependencias, HTTP real y PostgreSQL real con roles, migracion/no-op y restauraciones aisladas. Los 16 mocks previos no se reejecutaron: sus helpers no cambiaron. Resultados y limites en el roadmap y README del backend.
+El cierre F1 verifico 33 pruebas backend (7 PostgreSQL), lint/pip check, backup/restore y dos nuevos no-op sin mutar historia; build produccion Angular y 6 pruebas ChromeHeadless, peers completos sin problemas. La auditoria npm reporto 61 alertas, no corregidas ni cubiertas por el build: aceptacion temporal separada en acta F1. Los 16 mocks previos no se reejecutaron: sus helpers no cambiaron. Comandos backend y resultados en el roadmap y README del backend.
 
 ## Frontend existente
 
@@ -62,8 +62,8 @@ npm ci
 npm start
 ```
 
-Servidor de desarrollo por defecto: http://localhost:4200/ (muestra el scaffold, no una aplicacion OCOTE implementada). Comandos disponibles: npm run build y npm test; Karma requiere navegador. Esta entrega no ejecuto build ni pruebas Angular.
+Servidor de desarrollo por defecto: http://localhost:4200/ (muestra el scaffold, no una aplicacion OCOTE implementada; no queda servidor iniciado). Comandos disponibles: npm run build y npm test; Karma requiere navegador. El cierre ejecuto build de produccion y `CHROME_BIN='<Chrome local>' npm test -- --watch=false --browsers=ChromeHeadless`: 6 passed. [Prototipo de compatibilidad](src/app/f1-compat.spec.ts) solo de pruebas, no pantalla ni feature productiva.
 
 ## Siguiente fase
 
-La autorizacion expresa F1 produjo unicamente la base tecnica local; no identidad ni negocio. Falta ratificar D01 (America/Mexico_City es supuesto), D05, D06 y D07 y satisfacer las puertas restantes de F1 antes de declarar su cierre integral. Siguiente paso hacia F2: registrar esas decisiones y aprobar D02/D04 y la custodia/bootstrap del primer admin; autorizar F2 para identidad, permisos y administracion con migraciones propias. No crear el resto de las 19 tablas ni componentes funcionales Angular por anticipado. DoD/gates y orden F0-F7 en roadmap.
+F1 local cerrado con las excepciones/limites del acta, sin identidad ni negocio. Antes de iniciar F2: aprobar D02/D04, nombre organizacional y custodia/bootstrap seguro del primer admin, y autorizar expresamente identidad, permisos y administracion con migraciones propias. Mantener zona D01 solo bootstrap RN-07. Resolver/remediar o revisar expresamente las excepciones antes del 2026-12-24; no renovacion automatica. No crear el resto de las 19 tablas ni componentes funcionales Angular por anticipado. DoD/gates y orden F0-F7 en roadmap.

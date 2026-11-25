@@ -805,9 +805,100 @@ def retry_verification(admin):
         admin.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
 
 
+def verify_existing_upgrade(admin, directory, migration_url):
+    baseline = snapshot(admin)
+    if baseline["tables"] != ["alembic_version", "release_history"]:
+        raise RuntimeError("Expected the F1 technical schema only")
+    if admin.execute("SELECT version_num FROM public.alembic_version").fetchall() != [(HEAD,)]:
+        raise RuntimeError("The current revision does not match the technical artifact")
+    backup = backup_and_restore(admin, directory, "closure", migration_url)
+    for label in ("closure_upgrade_noop", "closure_second_upgrade_noop"):
+        alembic_upgrade(directory, label)
+        if snapshot(admin) != baseline:
+            raise RuntimeError("Closure verification changed schema or historical release records")
+    journal(
+        directory,
+        "closure_noop_verified",
+        revision=HEAD,
+        both_invocations=True,
+        history_preserved=True,
+        snapshot_sha256=hashlib.sha256(canonical(baseline)).hexdigest(),
+    )
+    return backup
+
+
+def verify_existing(admin):
+    if MARKER.exists():
+        raise RuntimeError("Existing maintenance must be investigated before closure verification")
+    if not admin.execute("SELECT pg_try_advisory_lock(%s)", (LOCK_KEY,)).fetchone()[0]:
+        raise RuntimeError("Another operator holds the release lock")
+    try:
+        if admin.execute(
+            "SELECT count(*) FROM pg_stat_activity WHERE datname=%s AND pid<>pg_backend_pid()",
+            (DATABASE_NAME,),
+        ).fetchone()[0]:
+            raise RuntimeError("Drain other connections before closure verification")
+        private_directory(LOCAL)
+        verification, request_id = uuid4(), uuid4()
+        started = now()
+        directory = ROOT / "database" / "backups" / f"f1-closure-{verification}"
+        private_directory(directory)
+        write_private(directory / "events.jsonl", b"")
+        write_private(
+            MARKER, canonical({"verification": str(verification), "request_id": str(request_id)})
+        )
+        journal(
+            directory,
+            "closure_started",
+            verification=verification,
+            request_id=request_id,
+            verification_only=True,
+            release_history_mutation=False,
+        )
+        try:
+            original_catalog, original_legacy = catalog(admin), legacy_catalog(admin)
+            manifest, artifact_hash = artifact_manifest()
+            manifest.update(compatible_source_revisions=[HEAD], verification_only=True)
+            write_private(directory / "artifact-manifest.json", canonical(manifest))
+            migration_url = MigrationSettings().migration_database_url.get_secret_value()
+            backup = verify_existing_upgrade(admin, directory, migration_url)
+            if catalog(admin) != original_catalog or legacy_catalog(admin) != original_legacy:
+                raise RuntimeError("Existing database identity or legacy catalog changed")
+            journal(
+                directory,
+                "closure_succeeded",
+                verification=verification,
+                request_id=request_id,
+                revision=HEAD,
+                artifact_sha256=artifact_hash,
+                backup_sha256=backup["sha256"],
+                restore_seconds=backup["restore_seconds"],
+                elapsed_seconds=round((now() - started).total_seconds(), 3),
+                history_preserved=True,
+                source_and_legacy_preserved=True,
+            )
+            MARKER.unlink()
+            print(f"Private evidence directory: database/backups/{directory.name}", flush=True)
+        except Exception as error:
+            journal(
+                directory,
+                "closure_failed",
+                verification=verification,
+                error_type=type(error).__name__,
+                sqlstate=getattr(error, "sqlstate", None),
+                maintenance_retained=True,
+            )
+            raise
+    finally:
+        admin.execute("SELECT pg_advisory_unlock(%s)", (LOCK_KEY,))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["provision", "rehearse", "retry-verification"])
+    parser.add_argument(
+        "action",
+        choices=["provision", "rehearse", "retry-verification", "verify-existing"],
+    )
     parser.add_argument("--execute", action="store_true", required=True)
     arguments = parser.parse_args()
     try:
@@ -819,6 +910,8 @@ def main():
                 provision(admin)
             elif arguments.action == "retry-verification":
                 retry_verification(admin)
+            elif arguments.action == "verify-existing":
+                verify_existing(admin)
             else:
                 rehearse(admin)
             if catalog(admin) != previous or legacy_catalog(admin) != legacy:

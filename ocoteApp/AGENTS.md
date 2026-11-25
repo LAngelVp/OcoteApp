@@ -16,17 +16,19 @@ Los documentos de dominio gobiernan comportamiento; esta guia gobierna como trab
 ## Identidad y stack
 
 - OCOTE: gestion de planes con horizontes configurables (incluidos anuales), ejecucion operativa y evaluacion gerencial; constancia, claridad y trazabilidad. No es un ranking automatico de personas.
-- Monorepo sin Nx: Angular permanece en raiz; backend/ se creara dentro del mismo proyecto. docs/ contiene especificacion; scripts/ contiene utilidades de desarrollo.
+- Monorepo sin Nx: Angular permanece en raiz; backend/ tecnico ya existe dentro del mismo proyecto. docs/ contiene especificacion; scripts/ contiene utilidades de desarrollo.
 - Frontend: Angular 18.2 standalone, SPA sin SSR, SCSS, Material 3 custom, Animations, CDK drag-drop, ngx-echarts 18.x / Apache ECharts y vis-timeline. No actualizar versiones/lock automaticamente; compatibilidad y soporte son puerta D07.
-- Backend planeado: Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, psycopg 3 y Alembic; routers -> schemas/policies -> services transaccionales -> models/BD. Aun no existe backend/ ni hay migraciones.
-- BD real: PostgreSQL 18.4 portable Windows en database/postgres/bin; cluster mayor 18 en database/data; logs en database/logs; host 127.0.0.1, puerto 5432, base exacta ocoteAppDatabase vacia al corte 2026-11-24. La base anterior ocote se conserva sin renombrar/copiar/borrar. No instalar PostgreSQL 16 sobre este cluster ni editar PG_VERSION.
+- Backend tecnico existente: Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, psycopg 3 y Alembic; solo salud/configuracion/sesiones/errores y revision 20261124_0001. Capas de dominio futuras: routers -> schemas/policies -> services transaccionales -> models/BD. [Runbook](backend/README.md).
+- BD real: PostgreSQL 18.4 portable Windows en database/postgres/bin; cluster mayor 18 en database/data; logs en database/logs; host 127.0.0.1, puerto 5432, base exacta ocoteAppDatabase con solo alembic_version y release_history al corte 2026-11-24. La base anterior ocote se conserva sin renombrar/copiar/borrar. No instalar PostgreSQL 16 sobre este cluster ni editar PG_VERSION.
 - Planes/objetivos: start_date, due_date y horizon_type = annual/semiannual/quarterly/monthly/custom; rangos inclusivos elegidos por el responsable, incluidos cruces de anio y multiples planes simultaneos. annual_plans/annual_plan_id son nombres tecnicos estables, no un limite anual. Contencion plan -> objetivo -> fechas de tarea; cambio de periodo con motivo/version/audit_events, sin cascada ni alteracion de originales. Ver RN-01/RN-02/RN-06.
 
 ## Estado y alcance permitido
 
-F0 documental consolidado; helper local probado y base vacia disponible. F1 NO esta terminado: faltan backend, roles tecnicos, migraciones, compatibilidad del stack y restauracion probada. F2-F7 no iniciados. Las dependencias siguen F0 -> F1 -> F2 -> F3 -> F4 -> F5 -> F6 -> F7.
+F0 consolidado; **F1 cerrado solo para desarrollo local Windows x64/PG18.4 con datos sinteticos**, segun [acta F1](docs/03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local). Backend, roles separados, migracion/no-op, backup/restore y compatibilidad/build probados. F2-F7 no iniciados; F2 NO autorizado. Las dependencias siguen F0 -> F1 -> F2 -> F3 -> F4 -> F5 -> F6 -> F7.
 
-Este cierre solo autoriza documentacion/instrucciones; helpers de desarrollo previos se conservan sin cambios. NO autoriza codigo productivo, componentes funcionales Angular, routers/services FastAPI ni migraciones ejecutables de negocio. Antes de base tecnica F1 solicitar autorizacion y resolver D01/D05/D06/D07 aplicables. D06 desarrollo portable confirmado, no RPO/RTO/restore/produccion. No inventar aprobaciones, zona, SLA o resultados. Las 19 tablas del modelo son objetivo, no tablas existentes; F1 tecnica no crea todo el dominio por anticipado.
+D01 ratificada America/Mexico_City solo bootstrap RN-07. Politica D05 y objetivos de diseno D06 RPO <=24 h/RTO <=4 h aprobados; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Excepciones expresas hasta **2026-12-24**: D06 sin suplente (ausencia del responsable suspende migraciones/restores); D07 Angular 18 sin soporte y, aceptadas separadamente tras audit, 61 alertas npm (2 criticas/19 altas/33 moderadas/7 bajas). Solo F1/F2 local/sintetico sin exposicion/red compartida ni entradas/plantillas/archivos no confiables. No son remediacion ni aprobacion productiva. Antes de vencer: suplente independiente capacitado y migracion autorizada a Angular soportado/remediacion con audit/peers/prototipo/pruebas/build repetidos, o nueva decision expresa; no renovar automaticamente. Cambio de exposicion/nuevas alertas exige reevaluar.
+
+Este cierre NO autoriza F2, componentes funcionales Angular ni migraciones/endpoints de identidad o negocio; helpers previos y revision aplicada se conservan. Antes de F2 aprobar D02/D04, nombre organizacional y custodia/bootstrap del primer admin, y obtener autorizacion expresa. Firma/paquete cliente, almacenamiento/escaneo, cifrado/copia off-host, programacion de backups y nube/TLS/capacidad/recuperacion de host siguen pendientes segun fase; no SLA u homologaciones inventados. Las 19 tablas son modelo objetivo, no crear todo el dominio por anticipado.
 
 ## Permisos, parametros e integraciones
 
@@ -53,7 +55,7 @@ init-dev resuelve la raiz, delega validaciones en db-start.sh y muestra backend/
 
 Git NO incluye binarios ni cluster. Un fallo de check no autoriza initdb, restore, matar procesos o borrar data/postmaster.pid. El helper valida version/puerto/identidad, nunca resetea, migra, hace seeds ni detiene un servidor. No envolver errores con `|| true` para continuar hacia Alembic.
 
-La password conocida es SOLO local y no se reutiliza. Nunca subir .env, tokens, pgpass, datos, logs ni respaldos; no imprimir variables de entorno completas. El backend productivo no usa el superusuario postgres: F1 debe definir rol dedicado runtime y rol de migraciones. Verificar PG_VERSION, conectividad y base objetivo antes de cualquier migracion autorizada; nunca `create_all()` automatico en produccion.
+La password conocida es SOLO local y no se reutiliza. Nunca subir .env, tokens, pgpass, datos, logs ni respaldos; no imprimir variables de entorno completas. La API usa ocote_runtime, Alembic ocote_migrador, nunca postgres como runtime. Roles/configuracion ya existen: no repetir provision/rehearse sobre esta base ni regenerar secretos. Verificacion local autorizada de base tecnica existente: verify-existing del runbook, con backup/restore aislado y dos no-op sin mutar historia; no es actualizador cliente. Verificar PG_VERSION, conectividad y base objetivo antes de cualquier migracion autorizada; nunca `create_all()` automatico en produccion.
 
 Cliente local/contenedor o PG18 gestionado usa guia 05, nunca init-dev. Nube exige TLS verify-full/CA/hostname, red privada/firewall, btree_gist y roles aprobados, pools acotados y endpoint directo de migracion/lock. No adaptar helper a remoto ni afirmar soporte de proveedor/SO sin ensayo F1/F7. Binarios de desarrollo no son paquete cliente.
 
@@ -64,14 +66,14 @@ Toda release local/gestionada sigue [guia 05, seccion 7](docs/05-paquetizacion-i
 - Cambios de esquema/backfill solo en revisiones Git bajo backend/alembic/versions; no DDL manual, create_all, stamp head ni revision ya publicada modificada. Una sola head por artefacto inmutable; repetir alembic upgrade head debe ser no-op si ya se aplico.
 - Expand/backfill/validate/contract para NOT NULL, renombres y tipos; no truncar/borrar/reescribir task_history, audit_events, originales, solicitudes/releases terminales ni fotos. Seeds agregan faltantes por code/key, nunca pisan parametros/catalogos operativos, personas o credenciales.
 - Si falla: mantener mantenimiento y evidencia, revisar revision/estado parcial, preferir fix-forward. Downgrade solo reversible y probado con autorizacion; restore a destino aislado y switchover aprobado, nunca sobrescribir data/. Tras nuevas escrituras no prometer rollback sin perdida; reconciliar antes.
-- No existe aun actualizador de releases, backend o Alembic ejecutable. F1 debe implementarlos/probarlos y F7 homologarlos; no inventar migraciones ejecutadas o respaldos restaurados por haber pasado init-dev.
+- Existen backend/Alembic y ensayo tecnico local, no actualizador cliente, paquete firmado ni ocote-admin. F7 homologa instalaciones completas; no inventar migraciones ejecutadas o respaldos restaurados por haber pasado init-dev.
 
 ## Convenciones obligatorias
 
-- Mantener IDs RF-*, RN-*, D* y F*; no renumerar para acomodar cambios. Actualizar contratos y criterios primero, implementar lo minimo de la fase autorizada y dejar evidencia verificable.
+- Mantener IDs RF-_, RN-_, D* y F*; no renumerar para acomodar cambios. Actualizar contratos y criterios primero, implementar lo minimo de la fase autorizada y dejar evidencia verificable.
 - Nombres de API/BD snake_case, UUID, fechas civiles para compromisos y timestamps UTC. Conservar original_due_date inmutable, due_date vigente y completed_at del servidor. Etapa, avance y puntualidad son conceptos separados; formulas canonicas en RN-02/RN-03/RN-06.
 - Roles exactos admin, gerente, lider, colaborador; autorizacion por rol Y alcance en servidor, incluidas metricas, evidencia e historia. Mutacion e historial en una transaccion con control de version. No ocultar fallos de concurrencia.
-- Tema OCOTE: tokens canonicos --ocote-* de la SDD, no volver a escoger paleta. Primary #B85A1E, Bosque #2E5A44, acento/warning #D98A1C; success #2E7D5B, danger #B83227; colores/on-colors y demas tokens en SDD. Material 3 exige paletas tonales completas, no un hex ni APIs de otras versiones. Kanban/Timeline/ECharts comparten semantica, contraste AA y alternativas accesibles; tema aun no aplicado al scaffold.
+- Tema OCOTE: tokens canonicos --ocote-\* de la SDD, no volver a escoger paleta. Primary #B85A1E, Bosque #2E5A44, acento/warning #D98A1C; success #2E7D5B, danger #B83227; colores/on-colors y demas tokens en SDD. Material 3 exige paletas tonales completas, no un hex ni APIs de otras versiones. Kanban/Timeline/ECharts comparten semantica, contraste AA y alternativas accesibles; tema aun no aplicado al scaffold.
 - Reutilizar patrones locales y evitar dependencias, carpetas o abstracciones innecesarias. Sin cambios productivos solo para satisfacer un ejemplo documental. No mover Angular a otra carpeta.
 - Respetar cambios ajenos; no hacer reset/checkout destructivo, commits, cambios de rama, actualizaciones de dependencias ni operaciones destructivas de BD sin solicitud explicita. No editar binarios ni archivos internos de data/.
 - Tras un cambio, ejecutar primero la validacion enfocada. Para DB, usar mocks en tests y PostgreSQL real solo para comprobaciones autorizadas; no afirmar que SQLite valida constraints PostgreSQL. Mantener el estado actual al dia al finalizar.
@@ -82,9 +84,13 @@ Toda release local/gestionada sigue [guia 05, seccion 7](docs/05-paquetizacion-i
 bash -n scripts/init-dev.sh
 bash -n scripts/db-start.sh
 node --test scripts/db-start.test.cjs
+backend/.venv/Scripts/python -m pytest -q backend/tests
+backend/.venv/Scripts/python -m ruff check backend
+backend/.venv/Scripts/python -m pip check
+npm run build
 git diff --check
 ```
 
-La suite del helper usa temporales/mocks, no data real; si solo cambian documentos, validar enlaces/anclas, fences/JSON, IDs/modelo y coherencia de permisos/parametros/releases, sin reconectar BD ni rerun de mocks como prueba de negocio. Comandos Angular existentes: npm ci si necesario, npm start/build/test (Karma requiere navegador). No declarar build/E2E por pruebas del helper. Backend/Alembic/ocote-admin aun no tienen comandos ejecutables.
+La suite del helper usa temporales/mocks, no data real; si solo cambian documentos, validar enlaces/anclas, fences/JSON, IDs/modelo y coherencia de permisos/parametros/releases, sin reconectar BD ni rerun de mocks como prueba de negocio. Backend: OCOTE_RUN_PG_TESTS=1 activa 7 casos PostgreSQL autorizados con rollback, total 33. Angular: npm ci solo si necesario y revisado bajo D07, npm start/build/test (Karma requiere navegador); ChromeHeadless ejecuto 6 pruebas, 3 de fixture sintetica, no E2E de negocio. No declarar build/E2E por pruebas del helper ni remediacion por pasar build. Comandos backend/Alembic en runbook; ocote-admin no existe.
 
 Al cerrar una tarea indicar archivos cambiados, verificaciones y limites, estado de BD si se arranco y siguiente paso de la fase correspondiente. No dejar conocimiento esencial unicamente en el chat.

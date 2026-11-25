@@ -1,8 +1,8 @@
 # OCOTE: estado actual y roadmap
 
-Version documental: 2.0. Fecha de corte: 2026-11-24. Alcance de esta ampliacion: solo documentacion/instrucciones; permisos por ruta, parametros/catalogos, 19 tablas objetivo, integraciones y entrega local/nube. No implementa negocio, instaladores o migraciones.
+Version documental: 2.0 con acta de cierre F1 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. No implementa F2, negocio ni instalador cliente.
 
-Actualizacion de evidencia F1, 2026-11-24 local (2026-11-25 UTC): base tecnica expresamente autorizada y ejecutada, sin negocio. La [seccion 6](#6-ejecucion-local-de-la-base-tecnica-f1) contiene el estado vigente; las fotografias de estado y autorizacion de las secciones 1 y 5 corresponden al cierre documental anterior. Las reglas, puertas y DoD de las secciones 2 a 4 no se modifican ni se dan por aprobadas.
+Estado vigente: **F1 cerrado para desarrollo local con datos sinteticos y excepciones expresas hasta 2026-12-24**, segun [acta de seccion 7](#7-cierre-formal-f1-local). F2 no autorizado ni iniciado. La seccion 6 conserva la primera ejecucion y su fallo/reintento; secciones 1 y 5 son fotografias historicas F0, no inventario actual. Reglas y DoD se preservan; los limites y gates de entornos no homologados se explicitan, no se proclaman cumplidos.
 
 Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y datos](02-arquitectura.md), [entorno local](04-entorno-y-portabilidad.md), [entrega/actualizaciones](05-paquetizacion-instalacion-y-actualizaciones.md). RF-01..12 y RN-01..06 se conservan; se agregan RF-13..15 y RN-07 sin renumerar D01-D08/F0-F7.
 
@@ -10,25 +10,25 @@ Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y da
 
 ### Evidencia observada en el workspace
 
-| Area | Evidencia | Interpretacion |
-| --- | --- | --- |
-| Proyecto | [package.json](../package.json), nombre ocote-app, version 0.0.0 | Angular creado en raiz, no monorepo con herramientas adicionales |
-| Framework | Dependencias Angular ^18.2.x; CLI/build ^18.2.21; TypeScript ~5.5.2 | Linea 18.2 declarada, no certificacion de versiones resueltas ni build exitoso |
-| Render y estilos | [angular.json](../angular.json): builder application, browser src/main.ts, SCSS, sin opciones server/SSR | SPA sin SSR configurada |
-| Componente | [app.component.ts](../src/app/app.component.ts) y [app.component.html](../src/app/app.component.html) | Componente standalone con titulo ocoteApp y plantilla inicial de Angular; sin funcionalidad OCOTE |
-| Tema | [styles.scss](../src/styles.scss) | Material 3 define-theme con azure/blue y tipografia Roboto, no tema OCOTE aplicado |
-| Animaciones | [app.config.ts](../src/app/app.config.ts) | provideAnimationsAsync ya registrado |
-| Bibliotecas | Material/CDK/animations ^18.2.14, ngx-echarts ^18.0.0, echarts ^6.1.0, vis-timeline ^8.5.6 declarados | Instalacion/declaracion no prueba integracion ni compatibilidad efectiva |
-| Instalacion local | Existen node_modules/ y [package-lock.json](../package-lock.json) | No se modifican; reproducibilidad y peers se verificaran en F1 |
-| Backend | No hay backend/ | Python 3.12, FastAPI, SQLAlchemy 2.0 y Alembic siguen planeados; no hay migraciones ni tablas de negocio |
-| PostgreSQL local | Evidencia previa de database/postgres/bin, database/data/PG_VERSION=18 y database/logs | PostgreSQL 18.4 Windows activo en comprobacion anterior; proceso no consultado en este cierre |
-| Conexion | 127.0.0.1:5432; listen_addresses=127.0.0.1; reglas host locales SCRAM-SHA-256 | Base exacta ocoteAppDatabase creada vacia; base anterior ocote conservada; credencial exclusiva local en guia |
-| Retoma segura | [init-dev.sh](../scripts/init-dev.sh), [db-start.sh](../scripts/db-start.sh) y [pruebas](../scripts/db-start.test.cjs) | Suite de 16 escenarios; ejecucion repetida y --check real desde otra carpeta sin alterar bases previas |
-| Horizontes | RN-01/RN-02/RN-06 y esquema de planes/objetivos | start_date/due_date/horizon_type configurables; ya especificado, no implementado |
-| Actualizaciones cliente | Protocolo en arquitectura y guia operativa | Alembic, backup automatico y contingencia especificados; automatizacion y restore aun pendientes F1/F7 |
-| Modelo ampliado | 19 diccionarios de tablas en arquitectura; RN-07 y RF-13..15 en SDD | Configuracion, prioridades/horizontes, solicitudes de fecha y releases especificados, no creados |
-| Entrega local/nube | Guia 05: paquete, dos instalaciones, exports internos y actualizaciones | Ningun instalador, proveedor o restauracion certificado por redactar la guia |
-| Contexto portable | [AGENTS.md](../AGENTS.md), [.github/copilot-instructions.md](../.github/copilot-instructions.md), [README.md](../README.md) y cinco documentos docs/ | No requiere historial de chat; aprobaciones siguen siendo puertas |
+| Area                    | Evidencia                                                                                                                                            | Interpretacion                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Proyecto                | [package.json](../package.json), nombre ocote-app, version 0.0.0                                                                                     | Angular creado en raiz, no monorepo con herramientas adicionales                                              |
+| Framework               | Dependencias Angular ^18.2.x; CLI/build ^18.2.21; TypeScript ~5.5.2                                                                                  | Linea 18.2 declarada, no certificacion de versiones resueltas ni build exitoso                                |
+| Render y estilos        | [angular.json](../angular.json): builder application, browser src/main.ts, SCSS, sin opciones server/SSR                                             | SPA sin SSR configurada                                                                                       |
+| Componente              | [app.component.ts](../src/app/app.component.ts) y [app.component.html](../src/app/app.component.html)                                                | Componente standalone con titulo ocoteApp y plantilla inicial de Angular; sin funcionalidad OCOTE             |
+| Tema                    | [styles.scss](../src/styles.scss)                                                                                                                    | Material 3 define-theme con azure/blue y tipografia Roboto, no tema OCOTE aplicado                            |
+| Animaciones             | [app.config.ts](../src/app/app.config.ts)                                                                                                            | provideAnimationsAsync ya registrado                                                                          |
+| Bibliotecas             | Material/CDK/animations ^18.2.14, ngx-echarts ^18.0.0, echarts ^6.1.0, vis-timeline ^8.5.6 declarados                                                | Instalacion/declaracion no prueba integracion ni compatibilidad efectiva                                      |
+| Instalacion local       | Existen node_modules/ y [package-lock.json](../package-lock.json)                                                                                    | No se modifican; reproducibilidad y peers se verificaran en F1                                                |
+| Backend                 | No hay backend/                                                                                                                                      | Python 3.12, FastAPI, SQLAlchemy 2.0 y Alembic siguen planeados; no hay migraciones ni tablas de negocio      |
+| PostgreSQL local        | Evidencia previa de database/postgres/bin, database/data/PG_VERSION=18 y database/logs                                                               | PostgreSQL 18.4 Windows activo en comprobacion anterior; proceso no consultado en este cierre                 |
+| Conexion                | 127.0.0.1:5432; listen_addresses=127.0.0.1; reglas host locales SCRAM-SHA-256                                                                        | Base exacta ocoteAppDatabase creada vacia; base anterior ocote conservada; credencial exclusiva local en guia |
+| Retoma segura           | [init-dev.sh](../scripts/init-dev.sh), [db-start.sh](../scripts/db-start.sh) y [pruebas](../scripts/db-start.test.cjs)                               | Suite de 16 escenarios; ejecucion repetida y --check real desde otra carpeta sin alterar bases previas        |
+| Horizontes              | RN-01/RN-02/RN-06 y esquema de planes/objetivos                                                                                                      | start_date/due_date/horizon_type configurables; ya especificado, no implementado                              |
+| Actualizaciones cliente | Protocolo en arquitectura y guia operativa                                                                                                           | Alembic, backup automatico y contingencia especificados; automatizacion y restore aun pendientes F1/F7        |
+| Modelo ampliado         | 19 diccionarios de tablas en arquitectura; RN-07 y RF-13..15 en SDD                                                                                  | Configuracion, prioridades/horizontes, solicitudes de fecha y releases especificados, no creados              |
+| Entrega local/nube      | Guia 05: paquete, dos instalaciones, exports internos y actualizaciones                                                                              | Ningun instalador, proveedor o restauracion certificado por redactar la guia                                  |
+| Contexto portable       | [AGENTS.md](../AGENTS.md), [.github/copilot-instructions.md](../.github/copilot-instructions.md), [README.md](../README.md) y cinco documentos docs/ | No requiere historial de chat; aprobaciones siguen siendo puertas                                             |
 
 No hay login/tablas/endpoints/tableros OCOTE implementados. En la entrega anterior de helpers se creo solo ocoteAppDatabase vacia, se preservaron OIDs/catalogo legacy, pasaron 16 mocks y retoma real; backend/.venv y backend/alembic ausentes, node_modules presente. Es evidencia previa, no pruebas reejecutadas ahora ni garantia del estado actual del proceso.
 
@@ -40,16 +40,16 @@ Resultado del chequeo estructural 2.0: 8 archivos, 70 referencias locales con an
 
 Completitud significa especificacion lista para revision, no aprobacion formal ni implementacion.
 
-| Archivo | Cobertura consolidada | Pendiente fuera de este cierre |
-| --- | --- | --- |
-| [SDD](01-spec-driven-development.md) | Matriz rol/menu/ruta/accion/datos, RN-01..07, RF-01..15, API y tokens | Ratificar D01..D05/D08 y ejecutar aceptacion por fase |
-| [Arquitectura](02-arquitectura.md) | Capas/seguridad, ER y 19 diccionarios, settings/catalogos/locks y topologia local/nube | SQLAlchemy/Alembic, pruebas PostgreSQL y homologacion D06/D07 |
-| Este roadmap | Evidencia previa separada, trazabilidad F0..F7 y puertas/DoD ampliadas | Autorizacion y evidencia real de cada fase |
-| [Entorno](04-entorno-y-portabilidad.md) | Retoma local, credencial publica limitada y enlace al protocolo central | Restore ensayado; no extrapolar helper a cliente/nube |
-| [Entrega](05-paquetizacion-instalacion-y-actualizaciones.md) | Paquete/firma, instalaciones A/B, bootstrap, integraciones/exports y contingencia | Herramientas, proveedor/SO, backup automatico y pruebas operativas |
-| [AGENTS.md](../AGENTS.md) | Lectura, autoridad, limites/permisos/parametros y continuidad sin chat | Cumplimiento en cada implementacion; no otorga autorizacion |
-| [Adaptador Copilot](../.github/copilot-instructions.md) | Entrada del editor y guardrails criticos enlazados a fuente comun | No sustituye AGENTS/SDD ni certifica ejecucion |
-| [README](../README.md) | Entrada, comandos existentes, estado y siguiente paso | No anuncia funcionalidades/instalador como disponibles |
+| Archivo                                                      | Cobertura consolidada                                                                  | Pendiente fuera de este cierre                                     |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [SDD](01-spec-driven-development.md)                         | Matriz rol/menu/ruta/accion/datos, RN-01..07, RF-01..15, API y tokens                  | Ratificar D01..D05/D08 y ejecutar aceptacion por fase              |
+| [Arquitectura](02-arquitectura.md)                           | Capas/seguridad, ER y 19 diccionarios, settings/catalogos/locks y topologia local/nube | SQLAlchemy/Alembic, pruebas PostgreSQL y homologacion D06/D07      |
+| Este roadmap                                                 | Evidencia previa separada, trazabilidad F0..F7 y puertas/DoD ampliadas                 | Autorizacion y evidencia real de cada fase                         |
+| [Entorno](04-entorno-y-portabilidad.md)                      | Retoma local, credencial publica limitada y enlace al protocolo central                | Restore ensayado; no extrapolar helper a cliente/nube              |
+| [Entrega](05-paquetizacion-instalacion-y-actualizaciones.md) | Paquete/firma, instalaciones A/B, bootstrap, integraciones/exports y contingencia      | Herramientas, proveedor/SO, backup automatico y pruebas operativas |
+| [AGENTS.md](../AGENTS.md)                                    | Lectura, autoridad, limites/permisos/parametros y continuidad sin chat                 | Cumplimiento en cada implementacion; no otorga autorizacion        |
+| [Adaptador Copilot](../.github/copilot-instructions.md)      | Entrada del editor y guardrails criticos enlazados a fuente comun                      | No sustituye AGENTS/SDD ni certifica ejecucion                     |
+| [README](../README.md)                                       | Entrada, comandos existentes, estado y siguiente paso                                  | No anuncia funcionalidades/instalador como disponibles             |
 
 ### Decisiones consolidadas
 
@@ -155,40 +155,40 @@ Riesgo principal: una demo funcional se confunda con operacion lista. Mitigacion
 
 ## 3. Trazabilidad de implementacion y pruebas
 
-| Requisito | Reglas principales | Fase que lo entrega | Evidencia minima |
-| --- | --- | --- | --- |
-| RF-01 | RN-01, RN-04, RN-05 | F2 API, F4 UI | Roles, unicidad, desactivacion y workflow valido |
-| RF-02 | Seguridad arquitectura | F2, integracion F4 | Rotacion/reuso, CSRF, revocacion y acceso cruzado |
-| RF-03 | RN-01, RN-02 | F3 API, F4 UI | Horizontes/rangos, cruce de anio, contencion y cambios de periodo auditados |
-| RF-04 | RN-02, RN-03 | F3 API, F4 UI | 0/1/N subtareas y carrera cierre/alta |
-| RF-05 | RN-02, RN-05 | F3 | Original/vigente, medianoche y auditoria |
-| RF-06 | RN-04, RN-05 | F5 | Motivo/evidencia, alcance y fallos de archivo |
-| RF-07 | RN-03, RN-04 | F5 | Carriles, menu/drag, filtros y conflicto |
-| RF-08 | RN-02 | F5 | Barras, baseline/cierre y permisos |
-| RF-09 | RN-03, RN-06 | F6 | Fixture de denominadores, sin datos y alcance |
-| RF-10 | RN-06 | F6 | Foto sellada, cohorte y solapamientos |
-| RF-11 | RN-05 | F3 y extensiones F5/F6 | Atomicidad, before/after y acceso a historia |
-| RF-12 | Seccion 5 SDD | F4-F6; gate F7 | Teclado, contraste, lector y responsive |
-| RF-13 | RN-07, RN-05 | F2 API, F3 proteccion zona, F4 UI | Tipo/limites, dos procesos, FK/inactivos, seeds no destructivos |
-| RF-14 | RN-02, RN-05 | F3 API, F4 UI | Pending unica, decision distinta, carrera/rollback y original intacta |
-| RF-15 | RN-05, RN-06, guia 05 | F6; gate F7 | Alcance, CSV seguro, limite/corte y fallos auditados |
+| Requisito | Reglas principales     | Fase que lo entrega               | Evidencia minima                                                            |
+| --------- | ---------------------- | --------------------------------- | --------------------------------------------------------------------------- |
+| RF-01     | RN-01, RN-04, RN-05    | F2 API, F4 UI                     | Roles, unicidad, desactivacion y workflow valido                            |
+| RF-02     | Seguridad arquitectura | F2, integracion F4                | Rotacion/reuso, CSRF, revocacion y acceso cruzado                           |
+| RF-03     | RN-01, RN-02           | F3 API, F4 UI                     | Horizontes/rangos, cruce de anio, contencion y cambios de periodo auditados |
+| RF-04     | RN-02, RN-03           | F3 API, F4 UI                     | 0/1/N subtareas y carrera cierre/alta                                       |
+| RF-05     | RN-02, RN-05           | F3                                | Original/vigente, medianoche y auditoria                                    |
+| RF-06     | RN-04, RN-05           | F5                                | Motivo/evidencia, alcance y fallos de archivo                               |
+| RF-07     | RN-03, RN-04           | F5                                | Carriles, menu/drag, filtros y conflicto                                    |
+| RF-08     | RN-02                  | F5                                | Barras, baseline/cierre y permisos                                          |
+| RF-09     | RN-03, RN-06           | F6                                | Fixture de denominadores, sin datos y alcance                               |
+| RF-10     | RN-06                  | F6                                | Foto sellada, cohorte y solapamientos                                       |
+| RF-11     | RN-05                  | F3 y extensiones F5/F6            | Atomicidad, before/after y acceso a historia                                |
+| RF-12     | Seccion 5 SDD          | F4-F6; gate F7                    | Teclado, contraste, lector y responsive                                     |
+| RF-13     | RN-07, RN-05           | F2 API, F3 proteccion zona, F4 UI | Tipo/limites, dos procesos, FK/inactivos, seeds no destructivos             |
+| RF-14     | RN-02, RN-05           | F3 API, F4 UI                     | Pending unica, decision distinta, carrera/rollback y original intacta       |
+| RF-15     | RN-05, RN-06, guia 05  | F6; gate F7                       | Alcance, CSV seguro, limite/corte y fallos auditados                        |
 
 ## 4. Riesgos y decisiones pendientes de confirmacion
 
-| Riesgo / decision | Responsable propuesto | Puerta y mitigacion |
-| --- | --- | --- |
-| D01 Zona y horizontes configurables, sin ciclo anual rigido | Gerencia + TI | Flexibilidad adoptada; F1 confirma zona IANA; F3 valida ejemplos, contencion y cruces de anio |
-| D02 Un departamento/rol por usuario no cubra organigrama | Gerencia + seguridad | F2; aprobar matriz o especificar memberships antes de migrar |
-| D03 Pesos iguales sin criterio de calidad | Gerencia | F3; aceptar metricas separadas, no prometer score de productividad |
-| D04 Etapas/cierre y catalogos iniciales | Administrador de proceso | F2 aprueba etapas/prioridades/horizontes y RF-13; F3 ratifica cierre/solicitudes, sin reglas arbitrarias |
-| D05 Datos personales, evidencia y retencion | Seguridad + legal + TI | F1 politica; F5 escaneo/compensaciones; minimizar datos y proteger descargas |
-| D06 Desarrollo portable confirmado; A/B productivos pendientes | TI/operaciones | F1 SO/proveedor/region, roles/extension/TLS/red/pool, RPO/RTO y restore; F7 paquete/instalacion/upgrade/contingencia homologados |
-| D07 Soporte Angular 18 y compatibilidad ECharts 6 / ngx-echarts 18 | Lider tecnico + seguridad | F1 y F7; Angular 18 es version historica al corte; verificar soporte oficial, no asumir parches vigentes; upgrade solo con aprobacion |
-| D08 Evaluacion al snapshot_at y no reconstruccion al cierre | Gerencia | F3; aprobar periodo, cohorte y fecha real de corte; validar de nuevo F6 |
-| Capacidad sin medicion | Lider tecnico + operaciones | F1 dimensionar; F7 acordar usuarios concurrentes, tareas/anio, evidencia y p95 antes de prueba de carga |
-| Respaldo incompleto o auditoria manipulable por operador | Operaciones + seguridad | F7; backup conjunto cifrado, restore probado y acceso privilegiado auditado |
+| Riesgo / decision                                                  | Responsable propuesto       | Puerta y mitigacion                                                                                                                   |
+| ------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| D01 Zona y horizontes configurables, sin ciclo anual rigido        | Gerencia + TI               | Flexibilidad adoptada; F1 confirma zona IANA; F3 valida ejemplos, contencion y cruces de anio                                         |
+| D02 Un departamento/rol por usuario no cubra organigrama           | Gerencia + seguridad        | F2; aprobar matriz o especificar memberships antes de migrar                                                                          |
+| D03 Pesos iguales sin criterio de calidad                          | Gerencia                    | F3; aceptar metricas separadas, no prometer score de productividad                                                                    |
+| D04 Etapas/cierre y catalogos iniciales                            | Administrador de proceso    | F2 aprueba etapas/prioridades/horizontes y RF-13; F3 ratifica cierre/solicitudes, sin reglas arbitrarias                              |
+| D05 Datos personales, evidencia y retencion                        | Seguridad + legal + TI      | F1 politica; F5 escaneo/compensaciones; minimizar datos y proteger descargas                                                          |
+| D06 Desarrollo portable confirmado; A/B productivos pendientes     | TI/operaciones              | F1 SO/proveedor/region, roles/extension/TLS/red/pool, RPO/RTO y restore; F7 paquete/instalacion/upgrade/contingencia homologados      |
+| D07 Soporte Angular 18 y compatibilidad ECharts 6 / ngx-echarts 18 | Lider tecnico + seguridad   | F1 y F7; Angular 18 es version historica al corte; verificar soporte oficial, no asumir parches vigentes; upgrade solo con aprobacion |
+| D08 Evaluacion al snapshot_at y no reconstruccion al cierre        | Gerencia                    | F3; aprobar periodo, cohorte y fecha real de corte; validar de nuevo F6                                                               |
+| Capacidad sin medicion                                             | Lider tecnico + operaciones | F1 dimensionar; F7 acordar usuarios concurrentes, tareas/anio, evidencia y p95 antes de prueba de carga                               |
+| Respaldo incompleto o auditoria manipulable por operador           | Operaciones + seguridad     | F7; backup conjunto cifrado, restore probado y acceso privilegiado auditado                                                           |
 
-No hay estimaciones de tiempo ni SLA de rendimiento inventados. La duracion por fase se acuerda despues de aprobar alcance y disponibilidad del equipo. RPO/RTO propuestos no se convierten en compromisos sin prueba y aprobacion.
+No hay estimaciones de tiempo ni SLA de rendimiento inventados. La duracion por fase se acuerda despues de aprobar alcance y disponibilidad del equipo. RPO/RTO son ahora objetivos de diseno aprobados segun seccion 7, no SLA de produccion ni tiempos de recuperacion de un host demostrados.
 
 ## 5. Resumen ejecutivo y siguiente paso exacto
 
@@ -198,7 +198,7 @@ Siguiente paso al cierre documental anterior (historico; sustituido por la evide
 
 ## 6. Ejecucion local de la base tecnica F1
 
-### Alcance y estado vigente
+### Alcance y estado del primer incremento (historico)
 
 Autorizacion expresa del usuario para esta sesion: construir solo backend/ tecnico, roles separados, salud/revision y ensayo controlado de respaldo, upgrade, no-op y restauracion aislada. No autoriza F2 ni negocio. F1 tecnico local entregado; F1 integral permanece abierto por las puertas y comprobaciones ajenas a este alcance. SDD, reglas RN/RF, modelo objetivo y DoD anteriores permanecen intactos.
 
@@ -213,21 +213,21 @@ Autorizacion expresa del usuario para esta sesion: construir solo backend/ tecni
 
 Comandos desde raiz en Git Bash; credencial administrativa solo temporal en entorno, nunca en los archivos nuevos. Los comandos de provision/ensayo no deben repetirse a ciegas sobre esta base ya inicializada.
 
-| Comprobacion | Ejecucion / resultado |
-| --- | --- |
-| Cluster antes/despues | `bash scripts/init-dev.sh --check` -> exit 0, PostgreSQL 18.4, base exacta; servidor ya activo, no se arranco ni detuvo |
-| Entorno Python | `py -3.12 -m venv backend/.venv`; instalacion pip-tools 7.5.2; `python -m piptools compile --extra dev --generate-hashes --strip-extras --output-file backend/requirements.lock backend/pyproject.toml`; `python -m pip install --require-hashes -r backend/requirements.lock` -> exitosos |
-| Roles | `backend/.venv/Scripts/python backend/tools/f1_local.py provision --execute` -> conexiones independientes verificadas y atributos elevados todos false |
-| Salud sin esquema | GET /api/v1/health/ready con token de monitor -> 503 antes de la revision |
-| Ensayo inicial | `backend/.venv/Scripts/python backend/tools/f1_local.py rehearse --execute` -> backup previo/restore, upgrade y no-op exitosos; cierre bloqueado en comparacion de CHECK posterior, sin revertir esquema ni ocultar fallo |
-| Respaldo | pg_dump -w -h 127.0.0.1 -p 5432 -U postgres -d ocoteAppDatabase --format=custom --file=destino-unico -> exit 0; cabecera PGDMP, tamano y SHA-256; pg_restore --list exit 0 |
-| Alembic | Desde backend/: `python -m alembic upgrade head` inicial y segunda invocacion -> exit 0; revision 20261124_0001 y snapshot identico en segunda invocacion |
-| Reintento controlado | `backend/.venv/Scripts/python backend/tools/f1_local.py retry-verification --execute` -> exit 0; nuevo backup/restore bloqueante, dos upgrades no-op, backup/restore posterior y limpieza |
-| Restauracion | pg_restore -w -h 127.0.0.1 -p 5432 -U ocote_migrador -d base-temporal-unica --exit-on-error --no-owner --no-acl archivo.dump -> exit 0; verificacion de filas/revision, columnas, indices, restricciones/FK, triggers y funcion; fixtures invalidas revertidas |
-| Suite final real | `OCOTE_RUN_PG_TESTS=1 backend/.venv/Scripts/python -m pytest -q backend/tests` -> 31 passed; incluye 7 casos PostgreSQL y negativas de runtime; una advertencia de deprecacion TestClient/httpx, sin error |
-| Herramientas | `python -m ruff check backend` y `python -m pip check` -> sin errores/incompatibilidades declaradas; editor sin errores |
-| Revision final | `python -m alembic -c backend/alembic.ini current` y `heads` -> 20261124_0001 (head), una sola head |
-| HTTP real | Uvicorn temporal en 127.0.0.1:8000: live 200, ready sin token 403, ready con token 200, request_id en cada respuesta; proceso API detenido despues del smoke |
+| Comprobacion          | Ejecucion / resultado                                                                                                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Cluster antes/despues | `bash scripts/init-dev.sh --check` -> exit 0, PostgreSQL 18.4, base exacta; servidor ya activo, no se arranco ni detuvo                                                                                                                                                                    |
+| Entorno Python        | `py -3.12 -m venv backend/.venv`; instalacion pip-tools 7.5.2; `python -m piptools compile --extra dev --generate-hashes --strip-extras --output-file backend/requirements.lock backend/pyproject.toml`; `python -m pip install --require-hashes -r backend/requirements.lock` -> exitosos |
+| Roles                 | `backend/.venv/Scripts/python backend/tools/f1_local.py provision --execute` -> conexiones independientes verificadas y atributos elevados todos false                                                                                                                                     |
+| Salud sin esquema     | GET /api/v1/health/ready con token de monitor -> 503 antes de la revision                                                                                                                                                                                                                  |
+| Ensayo inicial        | `backend/.venv/Scripts/python backend/tools/f1_local.py rehearse --execute` -> backup previo/restore, upgrade y no-op exitosos; cierre bloqueado en comparacion de CHECK posterior, sin revertir esquema ni ocultar fallo                                                                  |
+| Respaldo              | pg_dump -w -h 127.0.0.1 -p 5432 -U postgres -d ocoteAppDatabase --format=custom --file=destino-unico -> exit 0; cabecera PGDMP, tamano y SHA-256; pg_restore --list exit 0                                                                                                                 |
+| Alembic               | Desde backend/: `python -m alembic upgrade head` inicial y segunda invocacion -> exit 0; revision 20261124_0001 y snapshot identico en segunda invocacion                                                                                                                                  |
+| Reintento controlado  | `backend/.venv/Scripts/python backend/tools/f1_local.py retry-verification --execute` -> exit 0; nuevo backup/restore bloqueante, dos upgrades no-op, backup/restore posterior y limpieza                                                                                                  |
+| Restauracion          | pg_restore -w -h 127.0.0.1 -p 5432 -U ocote_migrador -d base-temporal-unica --exit-on-error --no-owner --no-acl archivo.dump -> exit 0; verificacion de filas/revision, columnas, indices, restricciones/FK, triggers y funcion; fixtures invalidas revertidas                             |
+| Suite final real      | `OCOTE_RUN_PG_TESTS=1 backend/.venv/Scripts/python -m pytest -q backend/tests` -> 31 passed; incluye 7 casos PostgreSQL y negativas de runtime; una advertencia de deprecacion TestClient/httpx, sin error                                                                                 |
+| Herramientas          | `python -m ruff check backend` y `python -m pip check` -> sin errores/incompatibilidades declaradas; editor sin errores                                                                                                                                                                    |
+| Revision final        | `python -m alembic -c backend/alembic.ini current` y `heads` -> 20261124_0001 (head), una sola head                                                                                                                                                                                        |
+| HTTP real             | Uvicorn temporal en 127.0.0.1:8000: live 200, ready sin token 403, ready con token 200, request_id en cada respuesta; proceso API detenido despues del smoke                                                                                                                               |
 
 Las invocaciones Python de instalacion/Alembic de la tabla utilizaron el ejecutable de backend/.venv; el runbook contiene rutas completas. No se ejecutaron los mocks de helpers ni build/tests Angular, porque esos archivos no se modificaron.
 
@@ -243,11 +243,73 @@ Los manifests describen la instantanea de cada ensayo local, no un paquete firma
 
 ### Puertas y siguiente paso exacto
 
-| Puerta | Estado real y limite |
-| --- | --- |
-| D01 | America/Mexico_City es supuesto explicitamente autorizado para configuracion/salud F1, pendiente de ratificacion gerencial; no se creo system_settings ni override runtime de datos operativos |
-| D05 | Privacidad, retencion, almacenamiento, cifrado/copia fuera del host y antimalware siguen pendientes; respaldos del ensayo local solo con ACL, no cifrados ni homologados para datos reales |
-| D06 | Roles, conexion exacta y recuperacion logica en otra base del mismo cluster Windows probados; no segundo host/cluster, proveedor, TLS/CA real, pool bajo carga, fallo de host, RPO/RTO o responsable formal aprobados. No homologacion de release/instalador/firma/PITR; Python 3.12.0 local no certifica politica de parches productivos |
-| D07 | Angular 18 y compatibilidad Material/CDK/ECharts/vis-timeline no reevaluados ni actualizados, sin build/prototipo por exclusion expresa de esta sesion; no se aprueba soporte de seguridad |
+| Puerta | Estado real y limite                                                                                                                                                                                                                                                                                                                      |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D01    | America/Mexico_City es supuesto explicitamente autorizado para configuracion/salud F1, pendiente de ratificacion gerencial; no se creo system_settings ni override runtime de datos operativos                                                                                                                                            |
+| D05    | Privacidad, retencion, almacenamiento, cifrado/copia fuera del host y antimalware siguen pendientes; respaldos del ensayo local solo con ACL, no cifrados ni homologados para datos reales                                                                                                                                                |
+| D06    | Roles, conexion exacta y recuperacion logica en otra base del mismo cluster Windows probados; no segundo host/cluster, proveedor, TLS/CA real, pool bajo carga, fallo de host, RPO/RTO o responsable formal aprobados. No homologacion de release/instalador/firma/PITR; Python 3.12.0 local no certifica politica de parches productivos |
+| D07    | Angular 18 y compatibilidad Material/CDK/ECharts/vis-timeline no reevaluados ni actualizados, sin build/prototipo por exclusion expresa de esta sesion; no se aprueba soporte de seguridad                                                                                                                                                |
 
 Preparacion hacia F2: ratificar D01/D05/D06/D07 y cerrar/aceptar formalmente las puertas F1 restantes; despues aprobar D02, D04 y custodia/bootstrap seguro del primer admin, y autorizar expresamente F2. Primer incremento F2: migracion propia para identidad/administracion (departments/users/audit_events/refresh_sessions, settings/catalogos/workflow), seeds conservadores, JWT/Argon2id/CSRF y politicas segun SDD; no planes, tareas o evaluaciones. Esta sesion no implementa ni autoriza ese incremento.
+
+## 7. Cierre formal F1 local
+
+Acta del 2026-11-24 local. Titular y responsable operativo: **LUIS ANGEL VALLEJO - DESARROLLADOR**. El usuario autorizo completar F1, ratifico decisiones y acepto expresamente los riesgos delimitados abajo. **F1 queda cerrado en Windows x64, PostgreSQL portable 18.4/loopback y datos sinteticos; no es una liberacion productiva ni homologacion nube/F7.** Secciones 1, 5 y 6 conservan evidencia historica; esta seccion gobierna el estado actual. No hubo cambios de dependencias, helpers previos, endpoints de negocio ni pantallas funcionales.
+
+### Decisiones y excepciones expresas
+
+| Decision | Estado y condicion de cierre |
+| -------- | --------------------------- |
+| D01 | America/Mexico_City ratificada como zona IANA oficial. ORGANIZATION_TIMEZONE sigue siendo solo bootstrap; no se creo system_settings ni override runtime. Ejemplos temporales de F3 pendientes. |
+| D05 | Base de privacidad, minimizacion, almacenamiento privado, cuarentena/escaneo fail-closed, conservacion y backup aprobada en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Es diseno normativo, no implementacion F5 ni visto bueno legal/productivo. |
+| D06 | RPO <=24 h/RTO <=4 h como objetivos de diseno; backup diario/por release, minimo 30 dias, restore mensual/por release. Responsable identificado. Excepcion expresa **sin sustituto hasta 2026-12-24**: si no esta disponible, se suspenden migraciones/restores. Designar/capacitar suplente independiente antes de vencer o de datos reales/produccion. |
+| D07 soporte | Angular 18 esta fuera de soporte, confirmado en [releases oficiales](https://angular.dev/reference/releases) y [compatibilidad historica](https://angular.dev/reference/versions). Excepcion expresa hasta **2026-12-24**, solo F1/F2 local y datos sinteticos, sin exposicion productiva ni red compartida. No afirmar soporte de seguridad vigente. |
+| D07 alertas | Tras informar el resultado npm, el titular acepto **separadamente** 61 alertas (2 criticas, 19 altas, 33 moderadas, 7 bajas) bajo la misma fecha/alcance local. Criticas transitivas: piscina y tar en herramientas CLI/build; hay altas directas en Angular. Sin entradas/plantillas/archivos no confiables, sin exposicion de dev servers ni instalacion de paquetes/artefactos no revisados. No se demostro explotabilidad ni se descarto exposicion; un build exitoso no remedia las alertas. |
+
+Luis Angel es responsable del riesgo, seguimiento y salida de ambas excepciones. Antes del 2026-12-24 debe autorizarse/ejecutarse una migracion a Angular soportado con dependencias compatibles, tratar las alertas y repetir audit, peers, prototipo, pruebas y build; designar/capacitar suplente. La version destino se evalua en esa tarea, no se actualiza automaticamente ahora. Al vencer se bloquea continuar F1/F2 bajo estas excepciones hasta resolverlas o una nueva decision expresa; nunca habilitan datos reales/produccion. Vulnerabilidades nuevas o cambio de exposicion requieren reevaluacion, no quedan aceptados por anticipado. D02/D03/D04/D08 no se aprobaron con este acto.
+
+### Entregables y Definition of Done
+
+| Entregable / criterio F1 | Resultado verificable y limite |
+| ----------------------- | ------------------------------ |
+| Backend reproducible | Confirmado: Python 3.12.0 Windows x64, pyproject/lock con hashes, FastAPI/SQLAlchemy/psycopg/Alembic; pip check limpio. Otros SO y nivel de parche productivo no homologados. |
+| Conexion, roles y sesiones | Confirmado: base exacta, runtime/migrador separados sin elevacion; pool local 3+0 por proceso, timeouts, unidad transaccional y cierre/rollback. Sin prueba de capacidad productiva. |
+| Health/revision/errores | Confirmado: live minimo, ready 403 sin token y 503 ante revision/BD/mantenimiento incompatibles; request_id y errores sanitizados. HTTP real de seccion 6 y pruebas actuales; no autenticacion RF-02. |
+| Revision tecnica desde cero / no-op | Confirmado historicamente desde vacio en seccion 6; current=head=20261124_0001. Dos no-op adicionales del cierre compararon snapshot completo sin alterar esquema ni las dos filas terminales. No se reescribio ni reaplico desde cero la revision sobre origen. |
+| Backup previo bloqueante | Confirmado: fallo de backup impide Alembic en pruebas; dump real con tamano/cabecera/hash/listado y restore validado antes de dos no-op. No copia off-host/cifrado/programacion implementados; prohibidos datos reales. |
+| Restore medido e invariantes | Confirmado: destino temporal unico en el mismo cluster, revision/filas/catalogo/triggers y 17 inserts invalidos/transiciones protegidas con rollback; restore+verificacion 0.482 s. No demuestra recuperacion de host ni SLA/RPO de operacion. |
+| Fallo/reintento/ledger | Confirmado: fallo inicial conservado failed, retry enlazado succeeded, version 2 ambos; journals externos durables. Cierre nuevo solo de verificacion, **sin mutar release_history**. Historia restaurada ya incluye ambos estados terminales. |
+| Protocolo/herramienta/manifest | Preparacion confirmada: herramienta local explicita, lock advisory persistente, mantenimiento, hash/manifest y bitacora. Protocolo cliente/firma definidos en guia 05; manifest del ensayo NO firmado, sin paquete distribuible ni ocote-admin. Firma/SBOM, actualizador cliente e instalaciones integrales pendientes F7; no se certifican como implementados. |
+| Build/prototipo/peers | Confirmado: build produccion dentro de budgets, 6 pruebas ChromeHeadless, npm ls --all sin problemas. Fixture solo de pruebas: Material/CDK, ECharts real por ngx-echarts y Timeline con CSS; no tema OCOTE, accesibilidad/responsive ni UI F4-F6 homologados. Soporte/alertas bajo excepciones D07, no aprobacion de seguridad. |
+| D01/D05/D06 | Confirmadas decisiones de diseno y responsable; continuidad bajo excepcion. No hay configuracion de negocio ni evidencia privada real creada. No prometer retencion/escaneo/cifrado operativos por documentarlos. |
+| TLS/CA, btree_gist y entorno gestionado | Gate **abierto para nube/produccion**, no aplicable a la unica modalidad local aprobada: no proveedor/instancia autorizada. Perfil managed valida contrato verify-full/CA, no conexion TLS real. btree_gist 1.8 disponible, no instalado ni GiST de negocio probado; probar con fase/entorno autorizados. No rebajar controles de guia 05. |
+
+### Comandos y evidencia del cierre
+
+Desde raiz en Git Bash, sin regenerar locks ni repetir provision/rehearse sobre la base existente:
+
+| Comando | Resultado |
+| ------- | --------- |
+| `bash scripts/init-dev.sh --check` | Exit 0; PostgreSQL 18.4 y base exacta, servidor ya activo. |
+| `OCOTE_RUN_PG_TESTS=1 backend/.venv/Scripts/python -m pytest -q backend/tests` | 33 passed, incluidos 7 casos PostgreSQL; warning TestClient/httpx conocido, no fallo. |
+| `backend/.venv/Scripts/python -m ruff check backend` / `-m pip check` | Sin errores/incompatibilidades declaradas. |
+| `backend/.venv/Scripts/python backend/tools/f1_local.py verify-existing --execute` | Exit 0, credencial administrativa solo en entorno privado. Backup/restore bloqueante, dos no-op, historia y catalogo legacy preservados, mantenimiento retirado solo por exito. |
+| `backend/.venv/Scripts/python -m alembic -c backend/alembic.ini current` / `heads` | 20261124_0001 (head), una sola head. |
+| `npm run build` | Exit 0; inicial 302.19 kB, transferencia estimada 75.31 kB, sin superar budgets. Solo scaffold productivo; fixture no incluida en app servida. |
+| `CHROME_BIN='<Chrome local>' npm test -- --watch=false --browsers=ChromeHeadless` | 6 passed en Chrome 158: 3 scaffold + 3 prototipo; canvas ECharts no vacio, resize/dispose, Material/CDK y Timeline seleccion/ventana/CSS. Drag/drop probado por evento CDK, no gesto E2E humano. |
+| `npm ls --all --json` | Cero problemas de peers/dependencias; Node 22.21.1/npm 10.9.4. |
+| `npm audit --json` | 61 alertas; inventario/advisories consultados, sin audit fix ni cambios del lock. Excepcion expresa adicional D07, no remediacion. |
+
+Versiones resueltas del prototipo: Angular core/Material/CDK 18.2.14, CLI 18.2.21, TypeScript 5.5.4, RxJS 7.8.2, ngx-echarts 18.0.0, ECharts 6.1.0, vis-timeline 8.5.6 y vis-data 8.0.6. ngx-echarts declara echarts >=5.0.0; la integracion real con ECharts 6 paso. package-lock.json se conserva con SHA-256 ed33229e23b14cbf548c7e53c7622f3483b8dee926426008fac5a06e023786e2. No se ejecutaron npm ci ni upgrades como parte del cierre. Los mocks de helpers anteriores no se reejecutaron porque sus implementaciones no cambiaron; no son prueba de negocio.
+
+Verificacion de cierre **642b1122-bb0d-483e-8fd7-4ff309d09241**, request_id **188f86e8-9c68-4e74-9a8f-5ae5c60de18b**, final UTC **2026-11-25T02:31:01.661156Z**, total **5.085 s**. Evidencia privada ignorada: database/backups/f1-closure-642b1122-bb0d-483e-8fd7-4ff309d09241/ (journal, manifest y dump). closure.dump: **11307 bytes**, SHA-256 **c33d425c8017fae2e51539b3aef7ea210647f3e1b8df4675fb8cb39929ac1008**, snapshot estructurado **f87bcece0d5e9f63ee51627daa041e97ef24a987b4aa26f28512e881c53d5021**. artifact_sha256 **3caf35a1b74f2f85e9c7846f3f215f174419765e833220520866fcadd44bb03c** es el hash del inventario canonico de archivos del manifest, no del JSON completo, del checkout final ni de una release de cliente; sin firma.
+
+Revision aplicada preservada byte a byte: SHA-256 **9ae3e2a4e570b89aa5296844949805001289dbb4889073b0f409ed26c8080bb6**. Comprobacion documental del cierre: 9 archivos, 114 referencias locales/anclas y 9 bloques JSON validos, fences balanceados e IDs conservados; git diff --check limpio y sin diagnosticos del editor en archivos tocados. Es validacion estructural, no prueba de diagramas renderizados ni cumplimiento semantico exhaustivo. Git no rastrea data/binarios/logs/dumps/.env/.venv; cambios ajenos preexistentes preservados, incluido scripts/db-start.test.cjs.
+
+El destino ocote_f1_restore_ed913a74b9f4443696af67b0c708ab6c fue eliminado sin FORCE; cero temporales restantes. OIDs ocote=16384/ocoteAppDatabase=16389 y catalogo legacy preservados, sin leer filas de negocio legacy. En origen siguen solo alembic_version/release_history y las dos filas terminales de seccion 6; no se borraron ni reconciliaron de nuevo. PostgreSQL queda activo; no Uvicorn/dev server persistente. No initdb, reset, restore sobre origen, edicion de data/, seeds, nueva revision ni cambio de endpoints.
+
+### Puerta de entrada F2
+
+**Base lista para solicitar F2, no autorizacion de F2.** Antes de iniciarla: aprobar D02 (matriz de permisos/organigrama y responsables), D04 (catalogos y flujo inicial), definir identidad/custodio, entrega segura y recuperacion del primer admin sin credenciales por defecto, ratificar nombre organizacional y conservar zona D01 conforme RN-07; obtener autorizacion expresa F2 dentro de los limites temporales anteriores. D03/D08 y ejemplos temporales siguen sus puertas F3/F6.
+
+Primer trabajo tras esas aprobaciones: especificar y crear revisiones F2 propias para identidad/administracion (departments/users/audit_events/refresh_sessions, system_settings/priorities/horizon_types y workflow), seeds conservadores y bootstrap de uso unico; despues sesion JWT/Argon2id/CSRF y politicas positivas/negativas. No editar la revision aplicada, crear todas las tablas objetivo ni iniciar planes/tareas/evaluaciones o pantallas funcionales por anticipado.
