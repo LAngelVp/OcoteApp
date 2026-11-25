@@ -17,7 +17,19 @@ export interface Field {
   requiredWhen?: { key: string; values: string[] };
 }
 export interface EditData { title: string; fields: Field[]; message?: string; confirm?: string; validate?: (values: Row) => string | null; submit: (values: Row) => Promise<unknown>; }
-export function reason(): Field { return { key: 'reason', label: 'Motivo', type: 'textarea', required: true, min: 10, max: 2000 }; }
+export function reason(): Field { return { key: 'reason', label: 'Motivo', type: 'textarea', required: true, min: 10, max: 2000, hint: 'Justificacion de la operacion actual.' }; }
+export function textValidator(field: Field): ValidatorFn {
+  return control => {
+    if (typeof control.value !== 'string') return null;
+    const value = control.value.trim();
+    if (!value) return field.required ? { required: true } : null;
+    if (field.min !== undefined && value.length < field.min) return { minlength: true };
+    if (field.max !== undefined && value.length > field.max) return { maxlength: true };
+    if (field.pattern && !new RegExp(field.pattern).test(value)) return { pattern: true };
+    if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { email: true };
+    return null;
+  };
+}
 export function options(rows: Row[], label = 'name', value = 'id'): Option[] {
   return rows.map(row => ({ value: String(row[value] ?? ''), label: String(row[label] ?? row[value] ?? '') }));
 }
@@ -71,19 +83,17 @@ export class Editor {
         validators.push(integerValidator);
         if (field.min !== undefined) validators.push(Validators.min(field.min));
         if (field.max !== undefined) validators.push(Validators.max(field.max));
-      } else {
+      } else if (field.type === 'password') {
         if (field.min !== undefined) validators.push(Validators.minLength(field.min));
         if (field.max !== undefined) validators.push(Validators.maxLength(field.max));
-      }
-      if (field.type === 'email') validators.push(Validators.email);
-      if (field.pattern) validators.push(Validators.pattern(field.pattern));
+      } else validators.push(textValidator(field));
       if (field.type === 'date') validators.push(control => {
         const value = control.value;
         if (!value) return null;
         const timestamp = Date.parse(value + 'T00:00:00Z');
         return /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= '0001-01-01' && Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0,10) === value ? null : { civilDate: true };
       });
-      const value = field.value ?? (field.type === 'check' ? false : field.type === 'multi' ? [] : null);
+      const value = field.key === 'reason' ? null : field.value ?? (field.type === 'check' ? false : field.type === 'multi' ? [] : null);
       this.form.addControl(field.key, new FormControl(field.type === 'number' ? integerValue(value) : value, validators));
     }
     this.form.addValidators(group => {
@@ -107,7 +117,11 @@ export class Editor {
     this.busy.set(true); this.issue.set(null); this.ref.disableClose = true;
     try {
       const values = this.form.getRawValue();
-      for (const field of this.data.fields) if (field.type === 'number') values[field.key] = integerValue(values[field.key]);
+      for (const field of this.data.fields) {
+        const value = values[field.key];
+        if (field.type === 'number') values[field.key] = integerValue(value);
+        else if (typeof value === 'string' && field.type !== 'password' && field.type !== 'date') values[field.key] = value.trim();
+      }
       await this.data.submit(values); this.ref.close(true);
     }
     catch (error) { this.issue.set(problem(error)); }

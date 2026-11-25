@@ -12,7 +12,17 @@ from pydantic import ValidationError
 
 from app.core.errors import CommandError
 from app.core.security import PASSWORDS, AuthSettings, Tokens, check_origin, now, verify_password
-from app.schemas.identity import SettingCreate, UserCreate
+from app.schemas.identity import (
+    CatalogCreate,
+    CatalogUpdate,
+    ChangePassword,
+    Login,
+    PasswordReset,
+    ReorderEntry,
+    SettingCreate,
+    UserCreate,
+)
+from app.services.administration import validate_graph, validate_workflow
 
 
 @pytest.fixture
@@ -177,6 +187,101 @@ def test_argon2id_and_strict_commands():
             reason="synthetic reason",
             token_version=123,
         )
+
+
+def test_catalog_position_matches_postgresql_integer_range():
+    bodies = [
+        (
+            CatalogCreate,
+            {"code": "fixture", "name": "Synthetic", "reason": "Current justification"},
+        ),
+        (
+            CatalogUpdate,
+            {
+                "name": "Synthetic", "is_active": True, "expected_version": 1,
+                "reason": "Current justification",
+            },
+        ),
+        (ReorderEntry, {"id": uuid4(), "expected_version": 1}),
+    ]
+    for schema, body in bodies:
+        for value in (0, 2147483647):
+            assert schema(**body, position=value).position == value
+        for value in (-1, 2147483648, "1", True, 1.5):
+            with pytest.raises(ValidationError):
+                schema(**body, position=value)
+
+
+@pytest.mark.parametrize(
+    "command,field,extra,minimum",
+    [
+        (UserCreate, "password", {
+            "email": "exact@example.invalid", "display_name": "Synthetic", "role": "admin",
+            "reason": "Explicit user creation",
+        }, 12),
+        (Login, "password", {"email": "exact@example.invalid"}, 1),
+        (PasswordReset, "new_password", {
+            "expected_version": 1, "reason": "Explicit password reset",
+        }, 12),
+        (ChangePassword, "current_password", {"new_password": "Synthetic-new-123!"}, 1),
+        (ChangePassword, "new_password", {"current_password": "Synthetic-old-123!"}, 12),
+    ],
+)
+def test_secret_commands_preserve_exact_values_and_lengths(command, field, extra, minimum):
+    password = "  Synthetic exact 123!  "
+    parsed = command(**{**extra, field: password})
+    assert getattr(parsed, field).get_secret_value() == password
+    assert password not in repr(parsed)
+    for invalid in ("x" * (minimum - 1), "x" * 129, 123, True):
+        with pytest.raises(ValidationError):
+            command(**{**extra, field: invalid})
+    assert len(getattr(command(**{**extra, field: "x" * 128}), field).get_secret_value()) == 128
+
+
+def test_workflow_construction_keeps_local_rules_and_requires_completion_for_operation():
+    initial = SimpleNamespace(
+        id="open", kind="open", is_initial=True, is_active=True,
+        requires_evidence=False, requires_reason=False,
+    )
+    terminal = SimpleNamespace(
+        id="done", kind="completed", is_initial=False, is_active=True,
+        requires_evidence=False, requires_reason=False,
+    )
+    edge = SimpleNamespace(
+        from_stage_id="open", to_stage_id="done", is_active=True, allowed_roles=["admin"],
+    )
+    validate_graph([initial], [], allow_incomplete=True)
+    with pytest.raises(CommandError, match="WORKFLOW_INCOMPLETE"):
+        validate_graph([initial], [])
+    validate_graph([initial, terminal], [], allow_incomplete=True)
+    with pytest.raises(CommandError, match="WORKFLOW_HAS_NO_TERMINAL_PATH"):
+        validate_graph([initial, terminal], [])
+    validate_graph([initial, terminal], [edge])
+    duplicate = SimpleNamespace(**{**vars(initial), "id": "duplicate"})
+    with pytest.raises(CommandError, match="WORKFLOW_INCOMPLETE"):
+        validate_graph([initial, duplicate], [], allow_incomplete=True)
+    initial.requires_evidence = True
+    with pytest.raises(CommandError, match="INVALID_INITIAL_STAGE"):
+        validate_graph([initial], [], allow_incomplete=True)
+    initial.requires_evidence = False
+    edge.allowed_roles = ["gerente"]
+    with pytest.raises(CommandError, match="INVALID_TRANSITION_ROLES"):
+        validate_graph([initial, terminal], [edge], allow_incomplete=True)
+
+
+@pytest.mark.parametrize("used_table", ["tasks", "evaluations"])
+def test_workflow_construction_cannot_leave_an_incomplete_graph_after_use(monkeypatch, used_table):
+    initial = SimpleNamespace(
+        id="open", kind="open", is_initial=True, is_active=True,
+        requires_evidence=False, requires_reason=False,
+    )
+    results = iter([[initial], []])
+    db = SimpleNamespace(flush=lambda: None, scalars=lambda statement: next(results))
+    monkeypatch.setattr(
+        "app.services.administration.has_rows", lambda db, table: table == used_table,
+    )
+    with pytest.raises(CommandError, match="WORKFLOW_INCOMPLETE"):
+        validate_workflow(db, allow_incomplete=True)
 
 
 def test_jwt_claims_algorithm_type_and_csrf(tokens):
@@ -425,6 +530,141 @@ def workflow_body():
     }
 
 
+def test_real_initial_graph_and_dependency_safe_deactivation(api):
+    client, _ = api
+    authenticated(client)
+    stages = []
+    for body in workflow_body()["stages"]:
+        response = client.post("/api/v1/workflow-stages", json=body)
+        assert response.status_code == 201, response.text
+        stages.append(response.json())
+        assert client.get("/api/v1/configuration-status").json()["workflow_valid"] is False
+        assert client.get("/api/v1/workflow-transitions").json()["items"] == []
+    initial, terminal = stages
+    invalid = {**workflow_body()["stages"][0], "code": "invalid", "position": 30}
+    rejected = client.post(
+        "/api/v1/workflow-stages", json={**invalid, "requires_evidence": True},
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()["code"] == "INVALID_INITIAL_STAGE"
+    assert rejected.json()["request_id"] == rejected.headers["x-request-id"]
+    assert client.post("/api/v1/workflow-stages", json=invalid).status_code == 409
+    assert len(client.get("/api/v1/workflow-stages").json()["items"]) == 2
+    edge = client.post(
+        "/api/v1/workflow-transitions",
+        json={
+            "from_stage_id": initial["id"], "to_stage_id": terminal["id"],
+            "allowed_roles": ["admin"], "is_active": True,
+            "reason": "Explicit separate transition",
+        },
+    )
+    assert edge.status_code == 201, edge.text
+    edge_path = "/api/v1/workflow-transitions/" + edge.json()["id"]
+    assert client.get("/api/v1/configuration-status").json()["workflow_valid"] is True
+    assert len(client.get("/api/v1/catalogs/workflow").json()["stages"]) == 2
+    change = {
+        "allowed_roles": ["admin"], "is_active": False, "expected_version": 1,
+        "reason": "Current transition deactivation",
+    }
+    assert client.patch(edge_path, json=change).status_code == 200
+    assert client.get("/api/v1/configuration-status").json()["workflow_valid"] is False
+    assert client.patch(edge_path, json=change).status_code == 409
+    assert client.get(edge_path).json()["version"] == 2
+    assert client.patch(
+        edge_path, json={**change, "is_active": True, "expected_version": 2},
+    ).status_code == 200
+    assert client.get("/api/v1/configuration-status").json()["workflow_valid"] is True
+    department = create_department(client, "dependent")
+    person = create_person(client, department=department)
+    update = {
+        "name": "Synthetic dependent", "is_active": False, "expected_version": 1,
+        "reason": "Current dependency change",
+    }
+    blocked = client.patch("/api/v1/departments/" + department, json=update)
+    assert blocked.status_code == 409
+    assert blocked.headers["content-type"] == "application/problem+json"
+    assert blocked.json()["request_id"] == blocked.headers["x-request-id"]
+    assert blocked.json()["code"] == "DEPARTMENT_HAS_ACTIVE_USERS"
+    assert client.get("/api/v1/departments/" + department).json()["version"] == 1
+    inactive = client.patch(
+        "/api/v1/users/" + person["id"],
+        json={
+            "display_name": person["display_name"], "role": person["role"],
+            "department_id": department, "is_active": False, "expected_version": 1,
+            "reason": "Current user deactivation",
+        },
+    )
+    assert inactive.status_code == 200, inactive.text
+    assert client.patch("/api/v1/departments/" + department, json=update).status_code == 200
+    current = client.get("/api/v1/departments/" + department).json()
+    assert current["is_active"] is False and current["version"] == 2
+    assert client.get("/api/v1/users/" + person["id"]).json()["department_id"] == department
+    for path in ("/departments/" + department, "/users/" + person["id"]):
+        assert client.delete("/api/v1" + path).status_code == 405
+    overflow = client.post(
+        "/api/v1/priorities",
+        json={"code": "huge", "name": "Synthetic", "position": 2147483648,
+              "reason": "Current numeric validation"},
+    )
+    assert overflow.status_code == 422
+    assert overflow.headers["content-type"] == "application/problem+json"
+    assert overflow.json()["request_id"] == overflow.headers["x-request-id"]
+    events = client.get("/api/v1/audit-events", params={"limit": 100}).json()["items"]
+    reasons = {
+        event["after_data"].get("reason") for event in events
+        if event["entity_id"] == department and event["after_data"]
+    }
+    assert {"Synthetic department creation", "Current dependency change"} <= reasons
+
+
+def test_real_user_password_bytes_survive_create_edit_and_reset(api):
+    from fastapi.testclient import TestClient
+
+    client, _ = api
+    authenticated(client)
+    password = "  Synthetic secret 123!  "
+    response = client.post(
+        "/api/v1/users",
+        json={
+            "email": "exact@example.invalid", "display_name": "Synthetic exact password",
+            "password": password, "role": "gerente", "is_active": True,
+            "reason": "Explicit password creation",
+        },
+    )
+    assert response.status_code == 201, response.text
+    identity = response.json()["id"]
+    with TestClient(client.app, base_url=str(client.base_url)) as peer:
+        peer.headers["origin"] = client.headers["origin"]
+        credentials = {"email": "exact@example.invalid", "password": password}
+        assert peer.post("/api/v1/auth/login", json=credentials).status_code == 200
+        updated = client.patch(
+            "/api/v1/users/" + identity,
+            json={
+                "display_name": "Synthetic renamed", "role": "gerente", "is_active": True,
+                "department_id": None, "expected_version": 1,
+                "reason": "Current ordinary user edit",
+            },
+        )
+        assert updated.status_code == 200, updated.text
+        assert peer.post("/api/v1/auth/login", json=credentials).status_code == 200
+        new_password = "  New synthetic secret 456!  "
+        reset = client.post(
+            "/api/v1/users/" + identity + "/reset-password",
+            json={
+                "new_password": new_password, "expected_version": 2,
+                "reason": "Current exact password reset",
+            },
+        )
+        assert reset.status_code == 204, reset.text
+        credentials["password"] = new_password
+        assert peer.post("/api/v1/auth/login", json=credentials).status_code == 200
+        credentials["password"] = new_password.strip()
+        assert peer.post("/api/v1/auth/login", json=credentials).status_code == 401
+    audit_payload = client.get("/api/v1/audit-events").text
+    assert password not in audit_payload and new_password not in audit_payload
+    assert "password_hash" not in audit_payload
+
+
 def test_real_workflow_and_explicit_configuration(api):
     client, _ = api
     authenticated(client)
@@ -486,6 +726,28 @@ def test_real_workflow_and_explicit_configuration(api):
     )
     assert normal.status_code == 201, normal.text
     assert client.get("/api/v1/configuration-status").json()["complete"] is True
+    edge = client.get("/api/v1/workflow-transitions").json()["items"][0]
+    change = {
+        "allowed_roles": edge["allowed_roles"], "is_active": False, "expected_version": 1,
+        "reason": "Explicit configuration construction",
+    }
+    edge_path = "/api/v1/workflow-transitions/" + edge["id"]
+    assert client.patch(edge_path, json=change).status_code == 200
+    status = client.get("/api/v1/configuration-status").json()
+    assert status["complete"] is False and status["workflow_valid"] is False
+    plan = {
+        "title": "Synthetic gated plan", "horizon_type": "custom",
+        "start_date": "2027-01-01", "due_date": "2027-12-31",
+    }
+    blocked = client.post("/api/v1/annual-plans", json=plan)
+    assert blocked.status_code == 409
+    assert blocked.json()["code"] == "WORKFLOW_HAS_NO_TERMINAL_PATH"
+    assert client.get("/api/v1/annual-plans").json()["items"] == []
+    assert client.patch(
+        edge_path, json={**change, "is_active": True, "expected_version": 2},
+    ).status_code == 200
+    assert client.get("/api/v1/configuration-status").json()["complete"] is True
+    assert client.post("/api/v1/annual-plans", json=plan).status_code == 201
     assert (
         client.patch(
             "/api/v1/priorities/" + normal.json()["id"],

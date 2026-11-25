@@ -18,7 +18,7 @@ import { instant, label } from '../shared/presentation';
   template: `<header class="page-heading"><div><p class="eyebrow">COMPROMISOS</p><h1>Solicitudes de fecha</h1></div><button mat-icon-button aria-label="Recargar solicitudes" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando solicitudes...</p> }
     @if (record(); as row) {
-      <section class="detail-section"><h2>{{ context()?.['title'] }}</h2><dl class="facts"><div><dt>Estado</dt><dd>{{ label(row['status']) }}</dd></div>
+      <section class="detail-section"><h2>{{ context()?.['title'] || 'Solicitud de cambio de fecha' }}</h2><dl class="facts"><div><dt>Estado</dt><dd>{{ label(row['status']) }}</dd></div>
         <div><dt>Compromiso anterior</dt><dd>{{ row['previous_due_date'] }}</dd></div><div><dt>Fecha propuesta</dt><dd>{{ row['proposed_due_date'] }}</dd></div>
         <div><dt>Solicitante</dt><dd class="code">{{ row['requested_by'] }}</dd></div><div><dt>Registrada</dt><dd>{{ instant(row['created_at']) }}</dd></div>
         <div><dt>Version de tarea al solicitar</dt><dd>{{ row['task_version_at_request'] }}</dd></div>@if (row['subtask_id']) { <div><dt>Version de subtarea al solicitar</dt><dd>{{ row['subtask_version_at_request'] }}</dd></div> }
@@ -73,9 +73,11 @@ export class RequestsPage implements OnInit {
     try {
       if (this.identity) {
         const row = await this.api.get('/due-date-requests/' + encodeURIComponent(this.identity));
+        if (epoch !== this.epoch) return;
+        this.record.set(row);
         const task = await this.api.get('/tasks/' + text(row,'task_id'));
         const context = row['subtask_id'] ? await this.api.get('/subtasks/' + text(row,'subtask_id')) : task;
-        if (epoch === this.epoch) { this.record.set(row); this.context.set(context); this.task = task; }
+        if (epoch === this.epoch) { this.context.set(context); this.task = task; }
       } else {
         const page = await this.api.get<Page>('/due-date-requests', { limit:'50',...(cursor ? { cursor } : {}),...(this.status ? { status:this.status } : {}) });
         if (epoch === this.epoch) { this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); }

@@ -1,4 +1,3 @@
-import { JsonPipe } from '@angular/common';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -14,12 +13,13 @@ import { problem, Problem } from '../core/problem';
 import { Editor, Field, options, reason } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
 import { instant, label, nested, progress } from '../shared/presentation';
+import { RecordDetails } from '../shared/record-details';
 import { dateField, descriptionField, titleField } from './tasks.page';
 import { Evidence } from './evidence';
 import { Transition } from './transition';
 
 @Component({
-  standalone: true, imports: [JsonPipe, RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails],
   template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ task()?.['title'] ?? 'Tarea' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>arrow_back</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar tarea" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando tarea...</p> }
     @if (task(); as row) {
@@ -59,10 +59,11 @@ import { Transition } from './transition';
         @if (historyBusy()) { <p role="status">Cargando historial...</p> }
         @if (historyLoaded() && !history().length) { <p class="muted">Sin eventos disponibles.</p> }
         @for (event of history(); track event['id']) { <article class="detail-section"><h3>{{ event['event_type'] }}</h3><p>{{ instant(event['created_at']) }} · Actor {{ event['actor_id'] }}</p><p>{{ event['reason'] }}</p><small>Referencia: {{ event['request_id'] }}</small>
-          <details><summary>Antes y despues</summary><h4>Antes</h4><pre>{{ event['before_data'] | json }}</pre><h4>Despues</h4><pre>{{ event['after_data'] | json }}</pre></details></article> }
+          <details><summary>Antes y despues</summary><div class="history-snapshots"><section><h4>Antes</h4><ocote-record-details [record]="nested(event, 'before_data')" /></section><section><h4>Despues</h4><ocote-record-details [record]="nested(event, 'after_data')" /></section></div></details></article> }
         @if (historyNext()) { <button mat-stroked-button [disabled]="historyBusy()" (click)="loadHistory(historyNext()!)">Mas eventos</button> }
       </section>
     }`,
+  styles: [`.history-snapshots { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding-top:20px; } .history-snapshots > section { min-width:0; } .history-snapshots h4 { margin:0; color:var(--ocote-secondary); } @media (max-width:760px) { .history-snapshots { grid-template-columns:minmax(0,1fr); } }`],
 })
 export class TaskDetailPage implements OnInit {
   private readonly api = inject(Api);

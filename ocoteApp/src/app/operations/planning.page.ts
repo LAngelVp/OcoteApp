@@ -87,7 +87,10 @@ export class PlanningPage implements OnInit {
     finally { if (epoch === this.epoch) this.loading.set(false); }
   }
   private async periods(row?: Row): Promise<Field[]> {
-    return [{ key: 'horizon_type', label: 'Horizonte', type: 'select', required: true, options: options(await this.api.all('/catalogs/horizons'), 'name', 'code'), value: row?.['horizon_type'] },
+    const horizons = options(await this.api.all('/catalogs/horizons'), 'name', 'code');
+    const current = row ? text(row,'horizon_type') : '';
+    if (current && !horizons.some(option => option.value === current)) horizons.push({ value:current,label:label(current) });
+    return [{ key: 'horizon_type', label: 'Horizonte', type: 'select', required: true, options: horizons, value: row?.['horizon_type'] },
       { key: 'start_date', label: 'Inicio inclusivo', type: 'date', required: true, value: row?.['start_date'] },
       { key: 'due_date', label: 'Fin inclusivo', type: 'date', required: true, value: row?.['due_date'] }];
   }

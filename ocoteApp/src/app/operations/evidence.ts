@@ -44,11 +44,12 @@ export class Evidence implements OnInit {
   async load(cursor = ''): Promise<void> {
     if (this.busy()) return;
     this.busy.set(true);
+    if (!this.issue()?.conflict) this.issue.set(null);
     try {
       const page = await this.api.get<Page & { upload_limit_bytes: number; uploads_configured: boolean }>('/tasks/' + text(this.task(), 'id') + '/evidence', { limit: '50', ...(cursor ? { cursor } : {}) });
       this.rows.set(cursor ? [...this.rows(), ...page.items] : page.items); this.next.set(page.next_cursor ?? null);
       this.limit.set(page.upload_limit_bytes); this.configured.set(page.uploads_configured);
-    } catch (error) { this.issue.set(problem(error)); } finally { this.busy.set(false); }
+    } catch (error) { if (!this.issue()?.conflict) this.issue.set(problem(error)); } finally { this.busy.set(false); }
   }
   choose(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -70,11 +71,12 @@ export class Evidence implements OnInit {
   async download(row: Row): Promise<void> {
     if (this.busy()) return;
     this.busy.set(true);
+    if (!this.issue()?.conflict) this.issue.set(null);
     try {
       const blob = await this.api.download(text(row, 'id'));
       const url = URL.createObjectURL(blob), anchor = document.createElement('a');
       try { anchor.href = url; anchor.download = text(row, 'original_name'); anchor.click(); }
       finally { URL.revokeObjectURL(url); }
-    } catch (error) { this.issue.set(problem(error)); } finally { this.busy.set(false); }
+    } catch (error) { if (!this.issue()?.conflict) this.issue.set(problem(error)); } finally { this.busy.set(false); }
   }
 }

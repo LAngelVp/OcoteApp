@@ -125,7 +125,93 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     fixture.componentInstance.addStage(); expect(fixture.componentInstance.stages.at(0).get('code')?.value).toBe('');
     expect(fixture.componentInstance.stages.at(0).get('kind')?.value).toBe(''); expect(api.writes).toEqual([]);
   });
-  for (const [key,type,value] of [['organization_name','text','Synthetic organization'],['organization_timezone','text','Pacific/Auckland'],['evidence_max_bytes','number',1024],['export_max_rows','number',50]] as const) {
+  for (const stages of [[],[{ id:'open',kind:'open',is_initial:true,is_active:true }]]) it('creates only a stage without transition fields or complete graph validation, existing count ' + stages.length, async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'etapas' });
+    api.response = path => ({ items:path === '/workflow-stages' ? stages : [] });
+    const open = spyOn(fixture.debugElement.injector.get(MatDialog),'open').and.returnValue({ afterClosed:() => of(false) } as MatDialogRef<unknown>);
+    await fixture.componentInstance.edit();
+    expect(open.calls.mostRecent().args[0]).toBe(Editor);
+    const data = open.calls.mostRecent().args[1]?.data as EditData;
+    expect(data.fields.map(field => field.key)).toEqual(['code','name','position','is_active','kind','is_initial','requires_reason','requires_evidence','reason']);
+    expect(api.reads).not.toContain('/workflow-transitions'); expect(api.writes).toEqual([]);
+    const values = { code:'open',name:'Open',position:0,kind:'open',is_initial:true,is_active:true,requires_reason:false,requires_evidence:false,reason:'Explicit initial creation' };
+    expect(data.validate?.(values)).toBeNull(); await data.submit(values);
+    expect(api.writes).toEqual([{ path:'/workflow-stages',method:'POST',body:values }]);
+    expect(fixture.nativeElement.textContent).not.toContain('Editar grafo');
+    await fixture.componentInstance.workflow(); expect(open).toHaveBeenCalledTimes(1);
+  });
+  it('queries current admin detail and preserves request references when it is unavailable', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'departamentos' });
+    api.response = () => ({ id:'department',name:'Current',version:3 });
+    await fixture.componentInstance.inspect({ id:'department',name:'Old',version:1 });
+    expect(api.reads).toContain('/departments/department'); expect(fixture.componentInstance.selected()?.['version']).toBe(3);
+    spyOn(api,'get').and.rejectWith(new HttpErrorResponse({ status:404,error:{ code:'RESOURCE_NOT_FOUND',request_id:'missing-detail' } }));
+    await fixture.componentInstance.inspect({ id:'missing' });
+    expect(fixture.componentInstance.selected()).toBeNull(); expect(fixture.componentInstance.issue()?.requestId).toBe('missing-detail');
+  });
+  for (const [section,row,expected] of [
+    ['departamentos',{ id:'department',name:'Current department',code:'department',is_active:true,version:3 },'Current department'],
+    ['usuarios',{ id:'user',display_name:'Current user',role:'lider',department_id:null,is_active:false },'L\u00edder'],
+    ['etapas',{ id:'stage',name:'Initial stage',kind:'open',is_initial:true,is_active:true,requires_evidence:false },'Inicial'],
+    ['transiciones',{ id:'edge',from_stage_id:'open',to_stage_id:'done',allowed_roles:['admin','lider'],is_active:true },'Roles permitidos'],
+    ['prioridades',{ id:'priority',name:'Normal',position:0,is_active:true },'Posici\u00f3n'],
+    ['horizontes',{ id:'horizon',name:'Annual',code:'annual',position:0,is_active:true },'Annual'],
+    ['parametros',{ key:'organization_timezone',value:'America/Mexico_City',version:3 },'Zona horaria'],
+    ['auditoria',{ id:'audit',event_type:'administration_changed',before_data:{ is_active:false },after_data:{ is_active:true } },'Estado anterior'],
+    ['releases',{ id:'release',application_version:'1.0',status:'succeeded',result_code:'VERIFIED' },'Correcta'],
+  ] as [string,Row,string][]) {
+    it('opens and closes readable read-only details repeatedly for ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section });
+      api.response = () => row;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await fixture.componentInstance.inspect(row); fixture.detectChanges();
+        const panel = fixture.nativeElement.querySelector('[aria-labelledby="record-detail-title"]') as HTMLElement;
+        expect(panel).not.toBeNull(); expect(panel.textContent).toContain(expected);
+        expect(panel.querySelector('ocote-record-details')).not.toBeNull(); expect(panel.querySelector('pre')).toBeNull();
+        expect(panel.textContent).not.toContain('[object Object]');
+        (panel.querySelector('[aria-label="Cerrar detalle"]') as HTMLButtonElement).click(); fixture.detectChanges();
+        expect(fixture.componentInstance.selected()).toBeNull(); expect(fixture.nativeElement.querySelector('ocote-record-details')).toBeNull();
+      }
+      expect(api.writes).toEqual([]);
+    });
+  }
+  it('renders task history snapshots as structured readonly information with no JSON blocks', async () => {
+    const fixture = await setup(TaskDetailPage,'admin',{ id:'synthetic-task' });
+    const original = api.response;
+    api.response = path => path.endsWith('/history') ? { items:[{ id:'event',event_type:'task_updated',created_at:'2026-11-25T02:00:00Z',reason:'Current reason',before_data:{ title:'Previous title',due_date:'2028-02-28' },after_data:{ title:'Updated title',due_date:'2028-02-29',priority:{ name:'Normal' } } }],next_cursor:null } : original(path);
+    await fixture.componentInstance.loadHistory(); fixture.detectChanges();
+    const details = fixture.nativeElement.querySelector('details') as HTMLDetailsElement;
+    (details.querySelector('summary') as HTMLElement).click(); fixture.detectChanges(); expect(details.open).toBeTrue();
+    expect(details.querySelectorAll('ocote-record-details').length).toBe(2); expect(details.querySelector('pre')).toBeNull();
+    expect(details.textContent).toContain('Previous title'); expect(details.textContent).toContain('Updated title');
+    expect(details.textContent).toContain('29 de febrero de 2028'); expect(details.textContent).not.toContain('[object Object]');
+    (details.querySelector('summary') as HTMLElement).click(); expect(details.open).toBeFalse(); expect(api.writes).toEqual([]);
+  });
+  for (const [section,row,body] of [
+    ['departamentos',{ id:'department',name:'Department',is_active:true,version:2 },{ name:'Department' }],
+    ['usuarios',{ id:'user',display_name:'User',role:'lider',department_id:'department',is_active:true,version:2 },{ display_name:'User',role:'lider',department_id:'department' }],
+    ['prioridades',{ id:'priority',code:'urgent',name:'Priority',position:1,is_active:true,version:2 },{ name:'Priority',position:1 }],
+    ['horizontes',{ id:'horizon',code:'annual',name:'Annual',position:1,is_active:true,version:2 },{ name:'Annual',position:1 }],
+    ['etapas',{ id:'stage',code:'blocked',name:'Blocked',position:1,kind:'blocked',requires_reason:true,requires_evidence:false,is_active:true,version:2 },{ name:'Blocked',position:1,requires_reason:true,requires_evidence:false }],
+    ['transiciones',{ id:'edge',allowed_roles:['admin'],is_active:true,version:2 },{ allowed_roles:['admin'] }],
+  ] as [string,Row,Row][]) {
+    it('uses a confirmed versioned non-destructive command for ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section }), dialog = dialogData(fixture);
+      fixture.componentInstance.changeActivity(row);
+      expect(api.writes).toEqual([]); expect(dialog.data().fields.map(field => field.key)).toEqual(['reason']);
+      expect(dialog.data().message).toContain('historial');
+      await dialog.data().submit({ reason:'Current deactivation reason' });
+      expect(api.writes[0].method).toBe('PATCH'); expect(api.writes[0].body).toEqual({ ...body,is_active:false,expected_version:2,reason:'Current deactivation reason' });
+      expect(api.writes[0].body['code']).toBeUndefined();
+    });
+  }
+  for (const [section,row] of [['prioridades',{ code:'normal' }],['horizontes',{ code:'custom' }],['etapas',{ is_initial:true }],['etapas',{ kind:'completed' }]] as [string,Row][]) {
+    it('does not expose deactivation of a protected entry in ' + section + JSON.stringify(row), async () => {
+      const fixture = await setup(AdminPage,'admin',{ section });
+      expect(fixture.componentInstance.canChangeActivity({ ...row,is_active:true })).toBeFalse(); expect(api.writes).toEqual([]);
+    });
+  }
+  for (const [key,type,value] of [['organization_name','text','Synthetic organization'],['organization_timezone','text','America/Mexico_City'],['evidence_max_bytes','number',1024],['export_max_rows','number',50]] as const) {
     it('opens a typed empty setting and edits its current value for ' + key, async () => {
       const fixture = await setup(AdminPage,'admin',{ section:'parametros' }), dialog = dialogData(fixture);
       fixture.componentInstance.settingKey = key; await fixture.componentInstance.edit();
@@ -142,7 +228,7 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
       }
     });
   }
-  for (const section of ['departamentos','usuarios','prioridades','horizontes','etapas','transiciones','parametros']) {
+  for (const section of ['departamentos','usuarios','etapas','prioridades','horizontes','transiciones','parametros']) {
     it('reopens a complete independent Material dialog after cancel/save/conflict for ' + section, async () => {
       const fixture = await setup(AdminPage,'admin',{ section }), page = fixture.componentInstance, dialog = TestBed.inject(MatDialog);
       page.settingKey = 'organization_name';
@@ -175,6 +261,46 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
       fresh.close(false); fixture.detectChanges(); await fixture.whenStable();
     });
   }
+  for (const [section,code] of [['prioridades','normal'],['horizontes','custom']]) {
+    it('requires the protected code active without inserting or selecting it by default in ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section }), dialog = dialogData(fixture);
+      await fixture.componentInstance.edit();
+      expect(dialog.data().fields.find(field => field.key === 'code')?.value).toBeUndefined();
+      expect(dialog.data().validate?.({ code,is_active:false })).toContain('activ');
+      expect(dialog.data().validate?.({ code,is_active:true })).toBeNull();
+      await fixture.componentInstance.edit({ id:'protected',code,name:'Current',position:0,is_active:true,version:3,reason:'Old reason' });
+      expect(dialog.data().fields.find(field => field.key === 'reason')?.value).toBeUndefined();
+      expect(dialog.data().validate?.({ is_active:false })).toContain('activ');
+      expect(api.writes).toEqual([]);
+    });
+    it('does not open a misleading reorder command for an empty ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section });
+      const open = spyOn(fixture.debugElement.injector.get(MatDialog),'open');
+      await fixture.componentInstance.reorder(); expect(open).not.toHaveBeenCalled(); expect(api.writes).toEqual([]);
+      const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Ordenar'));
+      expect(button?.disabled).toBeTrue();
+    });
+  }
+  it('requires the user department by role and preserves the exact password including surrounding spaces', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'usuarios' }), dialog = TestBed.inject(MatDialog);
+    await fixture.componentInstance.edit(); fixture.detectChanges(); await fixture.whenStable();
+    const editor = dialog.openDialogs[0].componentInstance as Editor;
+    const password = '  Synthetic secret 123!  ';
+    editor.form.patchValue({ email:'  SYNTHETIC@example.invalid  ',display_name:'  Synthetic user  ',password,role:'lider',department_id:null,is_active:true,reason:'  Current user creation  ' });
+    expect(editor.form.controls['department_id'].invalid).toBeTrue(); expect(editor.form.invalid).toBeTrue();
+    editor.form.controls['role'].setValue('admin'); expect(editor.form.valid).toBeTrue();
+    await editor.save(); fixture.detectChanges(); await fixture.whenStable();
+    expect(api.writes[0].body['password']).toBe(password);
+    expect(api.writes[0].body['email']).toBe('SYNTHETIC@example.invalid'); expect(api.writes[0].body['reason']).toBe('Current user creation');
+    expect(api.writes[0].body['display_name']).toBe('Synthetic user');
+    const captured = dialogData(fixture);
+    await fixture.componentInstance.edit({ id:'user',display_name:'Current',email:'synthetic@example.invalid',role:'admin',department_id:null,is_active:true,version:3,reason:'Old creation' });
+    expect(captured.data().fields.some(field => field.type === 'password')).toBeFalse();
+    expect(captured.data().fields.find(field => field.key === 'reason')?.value).toBeUndefined();
+    fixture.componentInstance.resetPassword({ id:'user',display_name:'Current',version:3 });
+    expect(captured.data().fields.find(field => field.key === 'new_password')?.type).toBe('password');
+    expect(captured.data().fields.find(field => field.key === 'new_password')?.value).toBeUndefined();
+  });
   it('validates stage semantics and transition rules before calling the API', () => {
     const stages = [{ id:'open',code:'open',name:'Open',position:0,kind:'open',is_initial:true,is_active:true },{ id:'done',code:'done',name:'Done',position:1,kind:'completed',is_active:true }];
     expect(stageProblem({ ...stages[0],requires_evidence:true })).not.toBeNull();
@@ -192,6 +318,57 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     expect(workflowProblem([...stages,{ code:'blocked',position:2,kind:'blocked',is_active:true }],[transition])).toContain('camino');
     expect(workflowProblem(stages,[{ ...transition,is_active:false }])).toContain('camino');
   });
+  it('saves an actual first initial stage form without requiring a terminal or transition', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'etapas' });
+    await fixture.componentInstance.edit(); fixture.detectChanges(); await fixture.whenStable();
+    const editor = TestBed.inject(MatDialog).openDialogs[0].componentInstance as Editor;
+    editor.form.patchValue({ code:'first',name:'Initial',position:0,kind:'open',is_initial:true,is_active:true,requires_evidence:false,requires_reason:false,reason:'Explicit initial creation' });
+    expect(editor.form.valid).toBeTrue();
+    for (const field of ['requires_evidence','requires_reason']) {
+      editor.form.controls[field].setValue(true); expect(editor.form.invalid).toBeTrue();
+      editor.form.controls[field].setValue(false); expect(editor.form.valid).toBeTrue();
+    }
+    expect(document.querySelector('mat-dialog-content')?.textContent).not.toContain('Transiciones');
+    await editor.save(); fixture.detectChanges(); await fixture.whenStable();
+    expect(api.writes.length).toBe(1); expect(api.writes[0].path).toBe('/workflow-stages');
+    expect(api.writes[0].body['is_initial']).toBeTrue(); expect(api.writes[0].body['transitions']).toBeUndefined();
+  });
+  it('opens only transition fields and reads existing stages rather than creating stage rows', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'transiciones' }), dialog = dialogData(fixture);
+    await fixture.componentInstance.edit();
+    expect(dialog.data().fields.map(field => field.key)).toEqual(['from_stage_id','to_stage_id','allowed_roles','is_active','reason']);
+    expect(api.reads).toContain('/workflow-stages'); expect(api.writes).toEqual([]);
+    expect(fixture.nativeElement.textContent).not.toContain('Editar grafo');
+  });
+  for (const section of ['etapas','prioridades','horizontes']) {
+    it('uses a visible integer input with exact PostgreSQL boundaries in ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section }), dialog = TestBed.inject(MatDialog);
+      await fixture.componentInstance.edit(); fixture.detectChanges(); await fixture.whenStable();
+      const editor = dialog.openDialogs[0].componentInstance as Editor;
+      const field = editor.form.controls['position'];
+      const input = document.querySelector('mat-dialog-content input[type="number"]') as HTMLInputElement;
+      expect(input).not.toBeNull(); expect(input.min).toBe('0'); expect(input.max).toBe('2147483647'); expect(input.step).toBe('1');
+      for (const invalid of [-1,1.5,2147483648,'1,000','']) { field.setValue(invalid); expect(field.invalid).withContext(String(invalid)).toBeTrue(); }
+      for (const valid of [0,2147483647]) { field.setValue(valid); expect(field.valid).toBeTrue(); }
+      if (section === 'horizontes') expect(editor.data.fields.find(item => item.key === 'code')?.options?.map(option => option.value)).toEqual(['annual','semiannual','quarterly','monthly','custom']);
+      dialog.openDialogs[0].close(false); fixture.detectChanges(); await fixture.whenStable();
+    });
+  }
+  for (const [key,type,maximum,value] of [['organization_name','text',160,'Synthetic'],['organization_timezone','text',100,'America/Mexico_City'],['evidence_max_bytes','number',10485760,1024],['export_max_rows','number',10000,100]] as const) {
+    it('renders the exact required input and limits for ' + key, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section:'parametros' }), dialog = TestBed.inject(MatDialog);
+      fixture.componentInstance.settingKey = key; await fixture.componentInstance.edit(); fixture.detectChanges(); await fixture.whenStable();
+      const editor = dialog.openDialogs[0].componentInstance as Editor, control = editor.form.controls['value'];
+      const input = document.querySelector('mat-dialog-content input') as HTMLInputElement;
+      expect(input.type).toBe(type); expect(editor.data.fields[0].key).toBe('value'); expect(input.required).toBeTrue();
+      input.value = String(value); input.dispatchEvent(new Event('input')); fixture.detectChanges(); expect(control.value).toBe(value);
+      control.setValue(''); expect(control.invalid).toBeTrue();
+      control.setValue(type === 'number' ? maximum + 1 : 'x'.repeat(maximum + 1)); expect(control.invalid).toBeTrue();
+      if (type === 'number') { for (const invalid of [0,-1,1.5]) { control.setValue(invalid); expect(control.invalid).toBeTrue(); } control.setValue(maximum); expect(control.valid).toBeTrue(); }
+      control.setValue(value); editor.form.controls['reason'].setValue('Current typed configuration'); expect(editor.form.valid).toBeTrue();
+      expect(api.writes).toEqual([]); dialog.openDialogs[0].close(false); fixture.detectChanges(); await fixture.whenStable();
+    });
+  }
   it('submits a complete graph with integer positions and preserves immutable fields/versions', async () => {
     const fixture = await setup(WorkflowEditor), editor = fixture.componentInstance;
     editor.addStage({ code:'open',name:'Open',position:'0',kind:'open',is_initial:true,is_active:true,version:4 });
@@ -206,8 +383,20 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     expect(stages[0]['position']).toBe(2); expect(stages[0]['expected_version']).toBe(4); expect(stages[0]['is_initial']).toBeTrue();
     expect(transitions[0]['expected_version']).toBe(3);
   });
+  it('validates graph text, fresh reason and PostgreSQL integer limits without implicit selections', async () => {
+    const fixture = await setup(WorkflowEditor), editor = fixture.componentInstance;
+    editor.addStage({ code:' open ',name:'   ',position:2147483648,kind:'open',is_initial:true,is_active:true });
+    editor.addStage({ code:'done',name:'Done',position:1,kind:'completed',is_active:true });
+    editor.addTransition({ from_code:'open',to_code:'done',allowed_roles:['admin'],is_active:true });
+    editor.form.controls.reason.setValue('           '); expect(editor.form.invalid).toBeTrue();
+    editor.stages.at(0).patchValue({ name:' Open ',position:0 }); editor.form.controls.reason.setValue('  Initial graph justification  ');
+    expect(editor.form.valid).toBeTrue(); await editor.save();
+    const body = api.writes[0].body; expect(body['reason']).toBe('Initial graph justification');
+    expect((body['stages'] as Row[])[0]['code']).toBe('open');
+    expect((body['stages'] as Row[])[0]['name']).toBe('Open');
+  });
   it('reopens the graph from current data without cancelled rows, old errors or busy state', async () => {
-    const fixture = await setup(AdminPage,'admin',{ section:'etapas' }), dialog = TestBed.inject(MatDialog);
+    const fixture = await setup(AdminPage,'admin',{ section:'configuracion' }), dialog = TestBed.inject(MatDialog);
     api.response = path => ({ items:path === '/workflow-stages' ? [
       { id:'open',code:'open',name:'Open',position:0,kind:'open',is_initial:true,is_active:true,version:4 },
       { id:'done',code:'done',name:'Done',position:1,kind:'completed',is_active:true,version:2 },
@@ -276,6 +465,48 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     await dialog.data().submit({ horizon_type:'custom',start_date:'2027-11-15',due_date:'2028-02-20',reason:'Periodo explicitamente ampliado' });
     expect(api.writes[0].path).toBe('/annual-plans/synthetic-plan/period-changes'); expect(api.writes[0].body['expected_version']).toBe(4);
   });
+  it('keeps the existing inactive horizon visible without offering invented catalog values for creation', async () => {
+    const fixture = await setup(PlanningPage,'gerente',{ id:'synthetic-plan' },{ kind:'plans' }), dialog = dialogData(fixture);
+    await fixture.componentInstance.period({ id:'synthetic-plan',version:4,horizon_type:'annual',start_date:'2027-01-01',due_date:'2027-12-31' });
+    const horizon = dialog.data().fields.find(field => field.key === 'horizon_type');
+    expect(horizon?.value).toBe('annual'); expect(horizon?.options?.map(option => option.value)).toEqual(['annual']);
+    expect(dialog.data().fields.find(field => field.key === 'reason')?.value).toBeUndefined();
+  });
+  it('refreshes plan detail after a confirmed edit and keeps the original version in its command', async () => {
+    const fixture = await setup(PlanningPage,'gerente',{ id:'synthetic-plan' },{ kind:'plans' });
+    spyOn(fixture.debugElement.injector.get(MatDialog),'open').and.returnValue({ afterClosed:() => of(true) } as MatDialogRef<unknown>);
+    const refresh = spyOn(fixture.componentInstance,'load').and.resolveTo();
+    await fixture.componentInstance.edit({ id:'synthetic-plan',version:4,title:'Current' }); expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('refreshes task, child and history context after a confirmed command', async () => {
+    const fixture = await setup(TaskDetailPage,'admin',{ id:'synthetic-task' });
+    spyOn(fixture.debugElement.injector.get(MatDialog),'open').and.returnValue({ afterClosed:() => of(true) } as MatDialogRef<unknown>);
+    const refresh = spyOn(fixture.componentInstance,'load').and.resolveTo();
+    await fixture.componentInstance.editChild(syntheticTask,{ id:'child',title:'Current child',version:2 }); expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('refreshes a request after cancellation without prefilling the prior reason', async () => {
+    const fixture = await setup(RequestsPage,'gerente',{ id:'synthetic-request' });
+    const open = spyOn(fixture.debugElement.injector.get(MatDialog),'open').and.returnValue({ afterClosed:() => of(true) } as MatDialogRef<unknown>);
+    const refresh = spyOn(fixture.componentInstance,'load').and.resolveTo();
+    fixture.componentInstance.decide({ ...syntheticRequest,reason:'Previous request reason' },'cancel');
+    const data = open.calls.mostRecent().args[1]?.data as EditData;
+    expect(data.fields[0].value).toBeUndefined(); await data.submit({ reason:'Current cancellation reason' });
+    expect(api.writes[0].body).toEqual({ expected_version:2,reason:'Current cancellation reason' }); expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('shows dependency problems and request ID while retaining a deactivation form on 409', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'departamentos' });
+    fixture.componentInstance.changeActivity({ id:'department',name:'Current',version:2,is_active:true });
+    fixture.detectChanges(); await fixture.whenStable();
+    const dialog = TestBed.inject(MatDialog), editor = dialog.openDialogs[0].componentInstance as Editor;
+    editor.form.patchValue({ reason:'Current deactivation reason' });
+    const command = spyOn(api,'command').and.rejectWith(new HttpErrorResponse({ status:409,error:{ code:'DEPARTMENT_HAS_ACTIVE_USERS',request_id:'dependency-conflict',detail:'SECRET SQL' } }));
+    await editor.save(); fixture.detectChanges();
+    expect(editor.form.controls['reason'].value).toBe('Current deactivation reason');
+    expect(document.querySelector('mat-dialog-content')?.textContent).toContain('dependency-conflict');
+    expect(document.querySelector('mat-dialog-content')?.textContent).not.toContain('SECRET SQL');
+    await editor.save(); expect(command).toHaveBeenCalledTimes(1);
+    dialog.openDialogs[0].close(false); fixture.detectChanges(); await fixture.whenStable();
+  });
   it('does not offer self approval and preserves the reject/cancel alternatives', async () => {
     const fixture = await setup(RequestsPage,'gerente',{ id:'synthetic-request' });
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).map(button => button.textContent);
@@ -292,6 +523,19 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     const fixture = await setup(RequestsPage,'gerente',{ id:'synthetic-request' }); const dialog = dialogData(fixture);
     fixture.componentInstance.decide(syntheticRequest,'reject'); await dialog.data().submit({ reason:'Rechazo explicitamente motivado' });
     expect(api.writes[0]).toEqual({ path:'/due-date-requests/synthetic-request/reject',method:'POST',body:{ reason:'Rechazo explicitamente motivado',expected_version:2 } });
+  });
+  it('keeps an authorized request visible if its task context fails and does not enable approval', async () => {
+    const fixture = await setup(RequestsPage,'gerente',{ id:'synthetic-request' });
+    api.response = path => {
+      if (path === '/due-date-requests/synthetic-request') return { ...syntheticRequest,requested_by:'other',reason:'Previous request reason' };
+      throw new HttpErrorResponse({ status:503,error:{ request_id:'context-unavailable',detail:'SECRET SQL' } });
+    };
+    await fixture.componentInstance.load(); fixture.detectChanges();
+    expect(fixture.componentInstance.record()?.['id']).toBe('synthetic-request'); expect(fixture.componentInstance.context()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Previous request reason'); expect(fixture.nativeElement.textContent).toContain('context-unavailable');
+    expect(fixture.nativeElement.textContent).not.toContain('SECRET SQL');
+    const approve = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Aprobar'));
+    expect(approve?.disabled).toBeTrue(); expect(api.writes).toEqual([]);
   });
   it('F5 preserves active empty Kanban columns without writes', async () => {
     const fixture = await setup(ExecutionPage,'admin',{}, { view:'kanban' });
@@ -323,7 +567,7 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
   it('F5 uses required evidence IDs and the captured version in the shared transition', async () => {
     await setup(ExecutionPage,'admin',{}, { view:'kanban' });
     api.response = path => path === '/catalogs/workflow' ? {
-      stages:[{ id:'done',name:'Terminada',is_active:true,requires_evidence:true,requires_reason:true }],
+      stages:[{ id:'done',name:'Terminada',requires_evidence:true,requires_reason:true }],
       transitions:[{ from_stage_id:'synthetic-open',to_stage_id:'done' }],
     } : { items:[{ id:'file',original_name:'synthetic.pdf' }] };
     const open = spyOn(TestBed.inject(MatDialog),'open').and.returnValue({ afterClosed:() => of(false) } as MatDialogRef<unknown>);
@@ -359,6 +603,21 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     (api as unknown as { upload:unknown }).upload = upload;
     await component.upload(); await component.upload(); expect(upload).toHaveBeenCalledTimes(1); expect(component.file()).not.toBeNull();
     const reload = spyOn(component.refresh,'emit'); component.discard(); expect(component.file()).toBeNull(); expect(reload).toHaveBeenCalled();
+  });
+  it('clears a transient evidence query problem after a successful reload', async () => {
+    const fixture = await setup(Evidence), component = fixture.componentInstance;
+    const read = spyOn(api,'get').and.rejectWith(new HttpErrorResponse({ status:503,error:{ request_id:'evidence-unavailable' } }));
+    await component.load(); expect(component.issue()?.requestId).toBe('evidence-unavailable');
+    read.and.callThrough(); await component.load(); expect(component.issue()).toBeNull(); expect(api.writes).toEqual([]);
+  });
+  it('keeps the evidence conflict through successful or failed reloads and download failures', async () => {
+    const fixture = await setup(Evidence), component = fixture.componentInstance;
+    const conflict = { message:'Current conflict',conflict:true,requestId:'evidence-conflict' };
+    component.issue.set(conflict); await component.load(); expect(component.issue()).toBe(conflict);
+    spyOn(api,'get').and.rejectWith(new HttpErrorResponse({ status:503 }));
+    await component.load(); expect(component.issue()).toBe(conflict);
+    (api as unknown as { download:unknown }).download = jasmine.createSpy().and.rejectWith(new HttpErrorResponse({ status:503 }));
+    await component.download({ id:'synthetic-file' }); expect(component.issue()).toBe(conflict); expect(api.writes).toEqual([]);
   });
   it('F5 keeps civil dates inclusive across year/leap boundaries', () => {
     const date = civilDate('2028-02-29'); expect([date.getFullYear(),date.getMonth(),date.getDate(),date.getHours()]).toEqual([2028,1,29,0]);

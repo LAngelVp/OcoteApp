@@ -11,7 +11,7 @@ export class Transition {
   async open(row: Row, destination = ''): Promise<boolean | 'reload' | undefined> {
     const workflow = await this.api.get<{ stages: Row[]; transitions: Row[] }>('/catalogs/workflow');
     const destinations = new Set(workflow.transitions.filter(edge => edge['from_stage_id'] === row['stage_id']).map(edge => edge['to_stage_id']));
-    const stages = workflow.stages.filter(stage => stage['is_active'] && destinations.has(stage['id']));
+    const stages = workflow.stages.filter(stage => stage['is_active'] !== false && destinations.has(stage['id']));
     let target = stages.find(stage => stage['id'] === destination);
     if (destination && !target) throw new Error('Transition unavailable');
     if (!target) {

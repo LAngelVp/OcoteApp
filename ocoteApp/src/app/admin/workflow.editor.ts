@@ -8,7 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Api, Row, text } from '../core/api';
 import { Feedback } from '../shared/feedback';
-import { integerValidator, integerValue } from '../shared/editor';
+import { integerValidator, integerValue, reason, textValidator } from '../shared/editor';
 import { problem, Problem } from '../core/problem';
 
 export function stageProblem(row: Row): string | null {
@@ -26,6 +26,7 @@ export function transitionProblem(row: Row, stages: Row[], from = 'from_stage_id
   return null;
 }
 export function workflowProblem(stages: Row[], transitions: Row[]): string | null {
+  stages = stages.map(stage => ({ ...stage,code:text(stage,'code').trim() }));
   if (stages.length < 2 || stages.length > 100 || transitions.length < 1 || transitions.length > 1000) return 'El grafo requiere entre 2 y 100 etapas y entre 1 y 1000 transiciones.';
   if (new Set(stages.map(stage => stage['code'])).size !== stages.length) return 'Los codigos de las etapas deben ser unicos.';
   if (new Set(stages.map(stage => integerValue(stage['position']))).size !== stages.length) return 'Las posiciones de las etapas deben ser unicas.';
@@ -57,7 +58,7 @@ export function workflowProblem(stages: Row[], transitions: Row[]): string | nul
         <mat-form-field><mat-label>Codigo</mat-label><input matInput formControlName="code" required><mat-error>Codigo requerido: minusculas y guion bajo.</mat-error></mat-form-field>
         <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="name" required><mat-error>Nombre requerido.</mat-error></mat-form-field>
         <mat-form-field><mat-label>Clase</mat-label><mat-select formControlName="kind" required><mat-option value="open">Abierta</mat-option><mat-option value="blocked">Bloqueada</mat-option><mat-option value="completed">Completada</mat-option></mat-select><mat-error>Selecciona una clase.</mat-error></mat-form-field>
-        <mat-form-field><mat-label>Posicion</mat-label><input matInput formControlName="position" type="number" min="0" required><mat-error>Entero no negativo.</mat-error></mat-form-field>
+        <mat-form-field><mat-label>Posicion</mat-label><input matInput formControlName="position" type="number" min="0" max="2147483647" step="1" required><mat-error>Entero entre 0 y 2147483647.</mat-error></mat-form-field>
         <mat-checkbox formControlName="is_active">Activa</mat-checkbox><mat-checkbox formControlName="is_initial">Inicial</mat-checkbox>
         <mat-checkbox formControlName="requires_reason">Requiere motivo</mat-checkbox><mat-checkbox formControlName="requires_evidence">Requiere evidencia</mat-checkbox>
       </div>@if (!group.get('expected_version')?.value) { <button mat-button type="button" (click)="stages.removeAt(index)"><mat-icon>close</mat-icon>Quitar fila</button> }</section>
@@ -84,7 +85,7 @@ export class WorkflowEditor {
   readonly roles = ['admin', 'lider', 'colaborador'];
   readonly stages = new FormArray<FormGroup>([]);
   readonly transitions = new FormArray<FormGroup>([]);
-  readonly form = new FormGroup({ stages: this.stages, transitions: this.transitions, reason: new FormControl('', [Validators.required, Validators.minLength(10), Validators.maxLength(2000)]) });
+  readonly form = new FormGroup({ stages: this.stages, transitions: this.transitions, reason: new FormControl('', [Validators.required, textValidator(reason())]) });
   readonly busy = signal(false);
   readonly issue = signal<Problem | null>(null);
   constructor() {
@@ -99,14 +100,14 @@ export class WorkflowEditor {
     });
     this.form.updateValueAndValidity({ emitEvent: false });
   }
-  codes(): string[] { return [...new Set(this.stages.getRawValue().map((row: Row) => text(row, 'code')).filter(Boolean))]; }
+  codes(): string[] { return [...new Set(this.stages.getRawValue().map((row: Row) => text(row, 'code').trim()).filter(Boolean))]; }
   addStage(row: Row = {}): void {
     const existing = !!row['version'];
     this.stages.push(new FormGroup({
-      code: new FormControl({ value: text(row, 'code'), disabled: existing }, [Validators.required, Validators.pattern('^[a-z][a-z0-9_]*$'), Validators.maxLength(40)]),
-      name: new FormControl(text(row, 'name'), [Validators.required, Validators.maxLength(120)]),
+      code: new FormControl({ value: text(row, 'code'), disabled: existing }, [Validators.required, textValidator({ key:'code',label:'Codigo',required:true,pattern:'^[a-z][a-z0-9_]*$',max:40 })]),
+      name: new FormControl(text(row, 'name'), [Validators.required, textValidator({ key:'name',label:'Nombre',required:true,max:120 })]),
       kind: new FormControl({ value: text(row, 'kind'), disabled: existing }, Validators.required),
-      position: new FormControl(integerValue(row['position'] ?? null), [Validators.required, Validators.min(0), integerValidator]),
+      position: new FormControl(integerValue(row['position'] ?? null), [Validators.required, Validators.min(0), Validators.max(2147483647), integerValidator]),
       is_active: new FormControl(!!row['is_active']), is_initial: new FormControl({ value: !!row['is_initial'], disabled: existing }),
       requires_reason: new FormControl(!!row['requires_reason']), requires_evidence: new FormControl(!!row['requires_evidence']),
       expected_version: new FormControl(row['version'] ?? null),
@@ -125,7 +126,8 @@ export class WorkflowEditor {
     this.busy.set(true); this.issue.set(null); this.ref.disableClose = true;
     const values = this.form.getRawValue();
     try {
-      await this.api.command('/workflow', { stages: values.stages.map((row: Row) => ({ ...row, position: integerValue(row['position']), reason: values.reason })), transitions: values.transitions, reason: values.reason });
+      const currentReason = values.reason!.trim();
+      await this.api.command('/workflow', { stages: values.stages.map((row: Row) => ({ ...row, code:text(row,'code').trim(),name:text(row,'name').trim(),position: integerValue(row['position']), reason: currentReason })), transitions: values.transitions, reason: currentReason });
       this.ref.close(true);
     } catch (error) { this.issue.set(problem(error)); }
     finally { this.busy.set(false); this.ref.disableClose = false; }

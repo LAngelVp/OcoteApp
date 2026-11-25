@@ -112,15 +112,19 @@ def check_roles(roles, active):
         raise CommandError(422, "INVALID_TRANSITION_ROLES")
 
 
-def validate_graph(stages, edges, *, allow_empty=False):
+def validate_graph(stages, edges, *, allow_empty=False, allow_incomplete=False):
     active = {stage.id: stage for stage in stages if stage.is_active}
     if not active and allow_empty:
         return
     initial = [stage for stage in active.values() if stage.is_initial]
     terminal = [stage for stage in active.values() if stage.kind == "completed"]
-    if len(initial) != 1 or len(terminal) != 1:
+    if len(initial) > 1 or len(terminal) > 1 or (
+        not allow_incomplete and (len(initial) != 1 or len(terminal) != 1)
+    ):
         raise CommandError(409, "WORKFLOW_INCOMPLETE")
-    if initial[0].kind != "open" or initial[0].requires_evidence or initial[0].requires_reason:
+    if initial and (
+        initial[0].kind != "open" or initial[0].requires_evidence or initial[0].requires_reason
+    ):
         raise CommandError(422, "INVALID_INITIAL_STAGE")
     parents = {identity: set() for identity in active}
     all_stages = {stage.id: stage for stage in stages}
@@ -134,6 +138,8 @@ def validate_graph(stages, edges, *, allow_empty=False):
             if edge.from_stage_id not in active or edge.to_stage_id not in active:
                 raise CommandError(409, "INACTIVE_STAGE")
             parents[edge.to_stage_id].add(edge.from_stage_id)
+    if allow_incomplete:
+        return
     reachable, pending = {terminal[0].id}, [terminal[0].id]
     while pending:
         for parent in parents[pending.pop()]:
@@ -144,12 +150,15 @@ def validate_graph(stages, edges, *, allow_empty=False):
         raise CommandError(409, "WORKFLOW_HAS_NO_TERMINAL_PATH")
 
 
-def validate_workflow(db, *, allow_empty=False):
+def validate_workflow(db, *, allow_empty=False, allow_incomplete=False):
     db.flush()
     validate_graph(
         list(db.scalars(select(WorkflowStage))),
         list(db.scalars(select(WorkflowTransition))),
         allow_empty=allow_empty,
+        allow_incomplete=allow_incomplete
+        and not has_rows(db, "tasks")
+        and not has_rows(db, "evaluations"),
     )
 
 
@@ -220,7 +229,7 @@ def create_record(db, model, body, actor, request):
     db.add(record)
     db.flush()
     if model in {WorkflowStage, WorkflowTransition}:
-        validate_workflow(db, allow_empty=True)
+        validate_workflow(db, allow_empty=True, allow_incomplete=True)
     audit_change(db, request, actor, record, {}, body.reason)
     return project(record)
 
@@ -279,7 +288,7 @@ def update_record(db, model, identity, body, actor, request):
         revoke(db, user_id=record.id)
     db.flush()
     if model in {WorkflowStage, WorkflowTransition}:
-        validate_workflow(db, allow_empty=True)
+        validate_workflow(db, allow_empty=True, allow_incomplete=True)
     audit_change(db, request, actor, record, before, body.reason)
     return project(record)
 

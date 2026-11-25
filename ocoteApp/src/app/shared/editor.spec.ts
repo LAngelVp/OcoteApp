@@ -15,6 +15,22 @@ describe('F4 command editor and sanitized errors', () => {
     const submit = jasmine.createSpy().and.resolveTo({}); const { editor } = setup({ title:'Nuevo',fields:[{ key:'name',label:'Nombre',required:true }],submit });
     expect(editor.form.getRawValue()).toEqual({ name:null }); expect(editor.form.invalid).toBeTrue(); expect(submit).not.toHaveBeenCalled();
   });
+  it('loads current data but never copies an old reason into a new modification', async () => {
+    const submit = jasmine.createSpy().and.resolveTo({});
+    const { editor } = setup({ title:'Editar',fields:[{ key:'name',label:'Nombre',required:true,value:'Actual' },{ ...reason(),value:'Previous creation reason' }],submit });
+    expect(editor.form.controls['name'].value).toBe('Actual'); expect(editor.form.controls['reason'].value).toBeNull();
+    editor.form.patchValue({ reason:'          ' }); expect(editor.form.invalid).toBeTrue();
+    editor.form.patchValue({ reason:' short     ' }); expect(editor.form.invalid).toBeTrue();
+    editor.form.patchValue({ name:'  Nuevo  ',reason:'  Current modification reason  ' });
+    await editor.save(); expect(submit).toHaveBeenCalledOnceWith({ name:'Nuevo',reason:'Current modification reason' });
+  });
+  it('rejects whitespace-only text and validates trimmed codes and email without trimming passwords', async () => {
+    const submit = jasmine.createSpy().and.resolveTo({});
+    const { editor } = setup({ title:'Alta',fields:[{ key:'name',label:'Nombre',required:true,max:120 },{ key:'code',label:'Codigo',required:true,pattern:'^[a-z][a-z0-9_]*$' },{ key:'email',label:'Correo',type:'email',required:true },{ key:'password',label:'Contrasena',type:'password',required:true,min:12 }],submit });
+    editor.form.patchValue({ name:'   ',code:'bad-code',email:'a@localhost',password:'  Secret password  ' }); expect(editor.form.invalid).toBeTrue();
+    editor.form.patchValue({ name:' Synthetic ',code:' valid_code ',email:' synthetic@example.test ' }); expect(editor.form.valid).toBeTrue();
+    await editor.save(); expect(submit).toHaveBeenCalledOnceWith({ name:'Synthetic',code:'valid_code',email:'synthetic@example.test',password:'  Secret password  ' });
+  });
   it('keeps user input and blocks re-sending a stale version after 409', async () => {
     const submit = jasmine.createSpy().and.rejectWith(new HttpErrorResponse({ status:409,error:{ code:'VERSION_CONFLICT' } }));
     const { editor,close } = setup({ title:'Editar',fields:[{ key:'title',label:'Titulo',value:'Edicion propia' }],submit });
@@ -74,8 +90,12 @@ describe('F4 command editor and sanitized errors', () => {
     editor.form.patchValue({ due_date:'2028-02-29T00:00:00Z' }); expect(editor.form.invalid).toBeTrue();
   });
   it('shows a sanitized request reference and does not close on 422', async () => {
-    const { editor,fixture,close } = setup({ title:'Editar',fields:[],submit:async () => { throw new HttpErrorResponse({ status:422,error:{ code:'VALIDATION_ERROR',detail:'SECRET',request_id:'synthetic-request' } }); } });
+    let reject = true;
+    const { editor,fixture,close } = setup({ title:'Editar',fields:[{ key:'name',label:'Nombre',required:true,value:'Current name' },reason()],submit:async () => { if (reject) throw new HttpErrorResponse({ status:422,error:{ code:'VALIDATION_ERROR',detail:'SECRET',request_id:'synthetic-request' } }); return {}; } });
+    editor.form.controls['reason'].setValue('Current modification reason');
     await editor.save(); fixture.detectChanges(); expect(close).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('synthetic-request'); expect(fixture.nativeElement.textContent).not.toContain('SECRET');
+    expect(editor.form.getRawValue()).toEqual({ name:'Current name',reason:'Current modification reason' }); expect(editor.issue()?.conflict).toBeFalse();
+    reject = false; editor.form.controls['name'].setValue('Corrected name'); await editor.save(); expect(close).toHaveBeenCalledOnceWith(true);
   });
 });

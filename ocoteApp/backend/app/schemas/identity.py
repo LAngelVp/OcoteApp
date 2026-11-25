@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     SecretStr,
@@ -12,12 +13,19 @@ from pydantic import (
     field_validator,
 )
 
+
+def exact_secret(value):
+    return SecretStr(value) if isinstance(value, str) else value
+
+
+ExactSecret = Annotated[SecretStr, BeforeValidator(exact_secret)]
 Role = Literal["admin", "gerente", "lider", "colaborador"]
 Code = Annotated[str, Field(min_length=1, max_length=40, pattern=r"^[a-z][a-z0-9_]*$")]
 Name = Annotated[str, Field(min_length=1, max_length=120)]
 Version = Annotated[StrictInt, Field(ge=1)]
+Position = Annotated[StrictInt, Field(ge=0, le=2147483647)]
 Reason = Annotated[str, Field(min_length=10, max_length=2000)]
-Password = Annotated[SecretStr, Field(min_length=12, max_length=128)]
+Password = Annotated[ExactSecret, Field(min_length=12, max_length=128)]
 Email = Annotated[str, Field(max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
 
 
@@ -27,7 +35,7 @@ class Command(BaseModel):
 
 class Login(Command):
     email: Email
-    password: Annotated[SecretStr, Field(min_length=1, max_length=128)]
+    password: Annotated[ExactSecret, Field(min_length=1, max_length=128)]
 
     @field_validator("email")
     @classmethod
@@ -36,7 +44,7 @@ class Login(Command):
 
 
 class ChangePassword(Command):
-    current_password: Annotated[SecretStr, Field(min_length=1, max_length=128)]
+    current_password: Annotated[ExactSecret, Field(min_length=1, max_length=128)]
     new_password: Password
 
 
@@ -85,16 +93,16 @@ class PasswordReset(Command):
 
 
 class CatalogCreate(DepartmentCreate):
-    position: Annotated[StrictInt, Field(ge=0)]
+    position: Position
 
 
 class CatalogUpdate(DepartmentUpdate):
-    position: Annotated[StrictInt, Field(ge=0)]
+    position: Position
 
 
 class ReorderEntry(Command):
     id: UUID
-    position: Annotated[StrictInt, Field(ge=0)]
+    position: Position
     expected_version: Version
 
 

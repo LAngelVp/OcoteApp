@@ -506,3 +506,99 @@ Correccion autorizada exclusivamente Angular/pruebas/documentacion tras F4/F5; n
 | Alcance | git diff --check limpio; diff de backend/scripts/package-lock/database vacio. Sin limpieza manual de .angular/cache necesaria |
 
 Navegador con API interceptada, datos sinteticos y sin escrituras a la API real; no demuestra aceptacion/E2E contra configuracion del operador. Rutas mock e identidad sintetica retiradas, pagina devuelta a https://localhost:8443/login. No se conecto/arranco/verifico BD por esta tarea frontend. No se repiten ni se atribuyen pruebas backend a este incremento. La siguiente puerta operativa F5 sigue siendo la de seccion11, sin autorizacion F6/F7 implicita.
+
+## 13. Estabilizacion CRUD y consultas F1-F5 2026-11-25
+
+Incremento autorizado full-stack sobre las operaciones disponibles; no inicia F6/F7 ni cambia las decisiones de retencion. Se conserva la seccion12 como evidencia historica independiente. Sin seeds/defaults/configuracion de negocio en origen, nuevas dependencias, migraciones de origen ni cambios a revisiones0001..0004, scripts, helpers f1_local..f3_local, lockfile o database. El unico ajuste de produccion backend es validacion de entrada, sin DDL ni cambio de roles.
+
+### Hallazgos y cambios
+
+- El consumidor de transiciones descartaba las etapas de `/catalogs/workflow` porque exigia `is_active`, campo no devuelto por esa proyeccion ya filtrada. Ahora acepta ausencia del indicador y sigue descartando un falso explicito; conserva aristas autorizadas, requisitos y version.
+- El editor compartido impide precargar `reason`, valida texto tras trim y envia el motivo actual (10..2000), sin tocar contrasenas ni convertir fechas invalidas. Datos vigentes permanecen al editar. Pruebas distinguen motivo de creacion, modificacion y decision; 409 conserva contenido y bloquea reenvio.
+- Administracion incorpora consulta de detalle fresco para recursos mutables y activacion/desactivacion explicita, confirmada y motivada con PATCH/version. Solo envia campos admitidos por cada DTO. Filas protegidas no ofrecen esa accion; dependencias y concurrencia siguen resolviendose en servidor, sin bajas en cascada.
+- Crear una etapa abre el grafo atomico, tanto con instalacion vacia como existente. No inventa inicial/terminal/aristas/roles ni permite persistir una inicial activa aislada. Codigos/nombres/motivo se normalizan; semanticas existentes/versiones se conservan. La edicion individual permitida sigue disponible.
+- `position` se acota a INTEGER PostgreSQL 0..2147483647 en DTO compartido, editor de catalogos, reordenamiento y grafo; evita overflow500 y devuelve422. Se rechazan enteros ambiguos, posiciones repetidas segun comando y grafo invalido, sin migracion.
+- Cambios de periodo conservan visible el horizonte actual aunque este inactivo, sin ofrecerlo como default de alta. Una solicitud autorizada permanece visible si falla la consulta secundaria de tarea/subtarea; aprobar sigue bloqueado sin contexto. Evidencias limpian errores transitorios al reconsultar, pero conservan el bloqueo409 incluso si falla una descarga/recarga posterior.
+
+### Matriz de acciones disponibles
+
+| Recurso | Alta y consulta | Modificacion y motivo | Baja segura / limites |
+| --- | --- | --- | --- |
+| Departamentos / usuarios | Alta explicita, listado, detalle actualizado | PATCH con datos vigentes, motivo nuevo y expected_version; password por endpoint especifico | Desactivar/reactivar con confirmacion; usuarios activos/objetivos/tareas abiertas y ultimo admin protegidos por servidor |
+| Etapas / transiciones | Grafo atomico sin precarga; listado/detalle | Campos permitidos o grafo completo versionado; motivo actual | Desactivar solo si grafo/dependencias lo permiten; inicial/terminal/etapa ocupada protegidas, sin omitir filas existentes |
+| Prioridades / horizontes | Alta explicita y consulta; solo cinco codes de horizonte | Nombre/orden/actividad con motivo/version; reordenamiento atomico | Desactivar/reactivar, nunca normal/custom ni renombrar code; referencias previas conservadas |
+| Parametros | Cuatro claves explicitas tipadas, listado/detalle | Valor y motivo actual/version; zona bloqueada tras uso | Sin DELETE ni desactivacion; sin secretos/claves libres |
+| Planes / objetivos | Crear/listar/detalle segun rol y alcance | Datos ordinarios segun DTO; periodos con motivo/version, fechas contenidas y originales preservados | Plan cierra por comando validado; sin DELETE de plan/objetivo ni cascada |
+| Tareas / subtareas | Alta, listado/detalle e historia segun alcance | Edicion, programacion, reasignacion, fechas, etapa/cierre segun contrato; motivo solo cuando el comando lo admite/requiere | Sin DELETE; completadas de solo lectura. Confirmar comando recarga detalle/contexto; historia se vuelve a consultar explicitamente |
+| Solicitudes de fecha | Alta desde recurso, listado/detalle, motivo original readonly | Aprobar/rechazar/cancelar con motivo nuevo/version; no autoaprobacion | Cancelacion conserva solicitud y decision; estados terminales inmutables |
+| Evidencia | Consulta/descarga privada y carga solo con almacenamiento/antivirus configurados | Version y reglas del servidor; IDs de la misma tarea | Sin DELETE de publicado; 409 exige descartar archivo y recargar tarea |
+| Historia / auditoria / releases | Consultas y proyecciones permitidas por alcance | Solo lectura, sin editar motivos pasados | Sin baja ni purga por UI/API |
+
+### Archivos y evidencia reproducible
+
+Backend: [DTO](../backend/app/schemas/identity.py) y [pruebas de identidad](../backend/tests/test_identity.py). Frontend: [administracion](../src/app/admin/admin.page.ts), [grafo](../src/app/admin/workflow.editor.ts), [editor](../src/app/shared/editor.ts), [planificacion](../src/app/operations/planning.page.ts), [solicitudes](../src/app/operations/requests.page.ts), [evidencias](../src/app/operations/evidence.ts), [transicion](../src/app/operations/transition.ts), [pruebas de vistas](../src/app/f4.spec.ts) y [pruebas del editor](../src/app/shared/editor.spec.ts). Contrato aclarado en [SDD](01-spec-driven-development.md).
+
+| Comprobacion ejecutada | Resultado |
+| --- | --- |
+| `bash scripts/init-dev.sh --check` | PG18.4 ya en ejecucion, identidad/base exacta verificadas; no se arranco/detuvo ni migro origen |
+| `npm run build` | AOT correcto,392.40kB inicial/98.05kB transferencia estimada; admin lazy27.38kB. Sin cambios de budgets/dependencias |
+| ChromeHeadless suite completa | **103/103 passed**;71 vistas/13 editor y resto de sesion/configuracion. Incluye payloads, refrescos, grafo vacio/existente, motivo nuevo, dependencias409 y consultas fallidas |
+| `pytest -q backend/tests` sin opt-in | **57 passed / 50 skipped**,5.20s; no conexion PG |
+| PostgreSQL opt-in test_identity/test_operations/test_execution | **62 passed**,144.70s, bases UUID aisladas eliminadas por fixtures. No se repitieron los siete casos tecnicos F1 de test_postgres sobre origen ni se atribuye suite completa PG a esta tarea |
+| Caso API nuevo focal | Inicial activa aislada409/ninguna fila; grafo completo201; dependencia de departamento409 con problem+json/request_id/version intacta; baja logica tras desactivar usuario; FK conservada, DELETE405, overflow422 y motivos separados en auditoria |
+| Ruff / pip check | Limpios, sin instalar/actualizar paquetes; un warning TestClient/httpx conocido en pytest, sin remediacion de dependencias implicita |
+| Navegador sintetico | Grafo sin filas/motivo y guardado bloqueado; detalle fresco; desactivacion409 con mensaje seguro/request_id, motivo conservado y reenvio bloqueado. Capturas escritorio y360px CSS, modal sin desbordamiento; API totalmente interceptada, sin escrituras de negocio reales |
+
+Validacion documental: enlaces/anclas locales, fences, JSON normativo, IDs y preservacion del contenido historico; `git diff --check` limpio y paths protegidos sin diff. El visor al150% requirio medir `innerWidth` para verificar360px CSS; excepcion temporal del certificado autofirmado solo en la pagina de prueba loopback, sin cambios a TLS/AUTH_ORIGIN/Secure. Pagina temporal cerrada, sin identidad ni rutas sinteticas persistentes. Los avisos HMR del visor no se presentan como prueba de E2E.
+
+Origen no migrado ni recontado por este incremento: ultima observacion de head0004/18 tablas/cinco releases/bootstrap en seccion11, no cifras recertificadas. Pruebas aisladas/mocks no sustituyen aceptacion con sesion/configuracion del operador, permisos productivos, antivirus real ni homologacion integral. Se mantienen pendientes la aceptacion/configuracion F4/F5 y ensayo privado de almacenamiento/ClamAV/restore. F6 requiere autorizacion nueva/D03/D08; D06/D07 y vencimiento2026-12-24 no cambian.
+
+## 14. Separacion de etapas y transiciones y secretos exactos 2026-11-25
+
+Nueva correccion autorizada tras revision del titular en https://localhost:8443. **Sustituye el encaminamiento de altas de etapas a grafo atomico descrito en seccion13**, no reescribe sus resultados historicos. Se separan construccion administrativa y validez operativa sin semillas ni DDL. Continuan bloqueados F6-F7, aceptacion operativa F4/F5 y almacenamiento/ClamAV real pendientes; no cambia D01 ni excepciones D06/D07.
+
+### Causas raiz y correcciones
+
+1. **Acoplamiento UI:** Crear en Etapas llamaba a `workflow()` y abria WorkflowEditor con etapas/aristas juntas. Se retira esa derivacion: Editor recibe solo campos de StageCreate y envia POST `/workflow-stages`. Transiciones conserva su Editor y endpoint propios; el boton/editor atomico queda exclusivamente en Configuracion, tambien protegido ante llamada directa desde otro apartado.
+2. **Validacion global durante construccion:** create_record/update_record exigian terminal y caminos en cada fila. Era imposible crear la inicial sola y despues completar el flujo sin el modal mezclado. La validacion administrativa permite incompletitud solo mientras no existen tareas/evaluaciones; conserva reglas locales, unicidad/FK y restricciones inicial/terminal. La inicial debe ser open/activa/sin motivo ni evidencia exigidos. Estado/operacion y POST `/workflow` siguen estrictos; tras uso tampoco se permite dejar un grafo invalido. No se habilita negocio con catalogo parcial.
+3. **Secretos recortados por backend:** Command.str_strip_whitespace afectaba SecretStr. El caso real detecto que una password sin sus espacios extremos tambien autenticaba. ExactSecret envuelve el valor antes de esa normalizacion, reutilizado en alta/login/password actual/nueva/reset; conserva longitudes y tipos. Repetir el caso demuestra que solo autentica el secreto exacto. No se alteran hashes existentes, bootstrap, claves ni sesiones por una migracion.
+4. **Validaciones administrativas tardias:** el checkbox podia enviar normal/custom inactivos y provocar409 evitable; ahora el formulario muestra la regla y bloquea ese envio, manteniendo proteccion del servidor. Ordenar un catalogo vacio abria un comando sin posiciones que no podia cumplir el DTO: boton deshabilitado y metodo sin apertura/POST en ese caso. Sin defaults activos ni filas automaticas.
+
+### Revision por modulo
+
+| Modulo | Resultado y cobertura |
+| --- | --- |
+| Departamentos | Conserva alta explicita, consulta fresca, PATCH/version/motivo y baja logica; pruebas de reapertura/cancelacion/guardado/conflicto y dependencia con usuario activo. Sin nueva regla de dominio |
+| Usuarios | Departamento requerido L/C, nombre/correo normalizados y password intacta; alta/login/edicion/reset reales en UUID. Edicion ordinaria no presenta password ni motivo pasado; reset vacio y separado; revocacion/ultimo admin siguen protegidos |
+| Etapas | Alta individual sin transiciones, inicial aislada201, sin requisitos inconsistentes. Grafo incompleto se guarda antes del uso y no habilita operaciones; lectura/edicion/baja mantienen versiones y retencion |
+| Transiciones | Solo origen/destino/roles/activo/motivo; consulta etapas ya existentes. Aristas distintas, sin salida terminal, roles validos con admin en activa, extremos activos. Alta201, baja/reactivacion antes del uso, desfase409 y configuracion actualizada |
+| Prioridades | Posicion numerica estricta0..2147483647, normal activa exigida local/servidor, sin reordenar vacio; se conservan detalle/PATCH/baja no protegida |
+| Horizontes | Mismo rango entero; opciones exactas annual/semiannual/quarterly/monthly/custom, custom activa; sin precarga/renombrar codes y sin reordenar vacio |
+| Parametros/configuracion | Inputs visibles y obligatorios: nombre1..160, IANA1..100 con America/Mexico_City oficial, evidencia1..10485760 y exportacion1..10000 enteros. Entrada DOM real y limites comprobados; cuatro claves explicitas, sin valores por defecto ni cambio de zona BD |
+
+Motivo de cada comando permanece vacio al abrir edicion/reset/decision; datos vigentes se conservan e historia es readonly. 422 conserva formulario y permite correccion/reintento; 409 conserva contenido y exige descarte/recarga antes de reenviar. Mensajes sanitizados con request_id, sin SQL/passwords. No DELETE de dominio, cascadas ni modificacion de historia.
+
+### Archivos del incremento
+
+Produccion: [administracion UI](../src/app/admin/admin.page.ts), [DTO/secretos](../backend/app/schemas/identity.py), [validacion administrativa](../backend/app/services/administration.py). Pruebas: [vistas/componentes](../src/app/f4.spec.ts), [editor](../src/app/shared/editor.spec.ts), [identidad/API](../backend/tests/test_identity.py). Contratos/runbook: [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [backend](../backend/README.md) y esta adenda. Cambios del incremento anterior se preservan sin limpieza ajena.
+
+### Verificaciones ejecutadas
+
+| Gate / caso | Resultado |
+| --- | --- |
+| `bash scripts/init-dev.sh --check` | PG18.4 ya activo,127.0.0.1:5432/ocoteAppDatabase exacta; sin arranque/reset/migracion/seeds |
+| `npm run build` | AOT correcto,392.40kB inicial/98.05kB transferencia estimada; admin lazy27.66kB. Sin dependencias ni budgets modificados |
+| ChromeHeadless completo | **118/118 passed**;86 vistas/13 editor y19 restantes;15 casos mas que seccion13. Incluye siete reaperturas reales, primera inicial sin aristas, limites/campos, password exacta y422/409 |
+| Backend completo sin opt-in | **65 passed/51 skipped**,5.41s; sin conexion PG |
+| PostgreSQL opt-in test_identity/test_operations/test_execution | **71 passed**,126.73s; UUID aislados eliminados por fixtures. No se ejecutan siete casos F1 tecnicos sobre origen ni se atribuye suite completa PG |
+| API incremental | Inicial/terminal individuales201 con transiciones vacias y workflow_valid=false; inicial con evidencia422, duplicado409 sin nuevas filas; arista201 completa el grafo; baja/reactivacion/version obsoleta cubiertas |
+| Barrera operativa | Con cuatro settings/cinco horizontes/normal ya completos, arista desactivada deja complete/workflow_valid=false y alta de plan409 sin fila; reactivar permite201. Unit tests verifican estrictez despues de tareas y de evaluaciones |
+| Secretos | Cinco campos DTO conservan espacios/tipos/limites y repr oculta; API alta/login/edicion/reset autentica valor exacto y rechaza variante recortada; auditoria sin passwords/hashes |
+| Ruff / pip check | Correctos, sin instalar paquetes. Un warning TestClient/httpx conocido en pytest. Diagnostico Jasmine del proyecto inferido del editor no se confunde con fallo del runner real; no cambios a tsconfig ni dependencias |
+| Navegador | API interceptada, identidad sintetica solo en memoria: POST de inicial individual con position numero0/sin aristas, lista recargada y nuevo modal completo/vacio; Transiciones solo sus propios campos. Capturas1440x1000/360x800 CSS, sin desbordamiento de pagina/modal, scroll contenido |
+
+API de desarrollo reiniciada con autorizacion expresa del titular tras identificar listener Uvicorn exacto: PID anterior13884/nuevo14696, solo127.0.0.1:8000, comando del runbook sin access-log. Salud publica devuelve alive; config/claves/origen/Secure y datos se conservan. No se detuvo PostgreSQL ni se ejecutaron scripts de migracion/backup/restores sobre origen. Cambios de desarrollo no equivalen a release cliente homologada: guia05 seccion7 y aprobacion operativa siguen obligatorias para entrega.
+
+Rutas de navegador retiradas e identidad sintetica descartada mediante navegacion completa a about:blank; excepcion temporal del certificado autofirmado desactivada. No se usaron credenciales del operador ni se crearon fixtures en origen. Lecturas publicas health/live no validan por si mismas la configuracion de negocio; pruebas API reales fueron exclusivamente aisladas. Avisos HMR del visor y limite de certificado local no implican alterar TLS ni validar todos los navegadores/AA.
+
+Listo para probar con sesion propia en https://localhost:8443: Etapas -> crear inicial open/activa sin requisitos -> crear terminal/otras etapas -> Transiciones -> conectar caminos -> Configuracion -> verificar estado completo tras completar catalogos/ajustes explicitos. Si ya hay tareas/evaluaciones, cambios que rompan el grafo siguen rechazados y deben prepararse completos desde Configuracion. Hashes historicos ya recortados no son recuperables automaticamente; solo usar valor efectivo/restablecimiento autorizado. Cierre operativo F5/ClamAV real y aceptacion siguen pendientes; F6-F7 no autorizados.

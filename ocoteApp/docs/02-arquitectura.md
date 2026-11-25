@@ -178,7 +178,7 @@ Service valida cambios de periodo bajo bloqueo del plan y sus hijos: ningun obje
 | requires_evidence, requires_reason | BOOLEAN DEFAULT false                     |
 | is_active                          | BOOLEAN DEFAULT true                      |
 
-CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND NOT requires_reason)); CHECK(kind <> 'completed' OR is_active). Indices unicos parciales sobre constante para `WHERE is_initial` y `WHERE kind='completed'` garantizan como maximo una inicial y una terminal. Instalacion vacia permitida sin seed; admin configura inicial, terminal y aristas atomicamente mediante POST /workflow. Una configuracion activa exige camino a terminal para cada etapa activa y no permite quitar inicial/terminal. Reordenamiento en una transaccion con unicidad diferible de position, sin estados intermedios visibles. Code/kind/is_initial no se cambian en PATCH F2; no se omiten controles por falta de tareas.
+CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND NOT requires_reason)); CHECK(kind <> 'completed' OR is_active). Indices unicos parciales sobre constante para `WHERE is_initial` y `WHERE kind='completed'` garantizan como maximo una inicial y una terminal. Instalacion vacia permitida sin seed. Antes de tareas/evaluaciones, admin puede construir etapas por `/workflow-stages` y aristas por `/workflow-transitions` en transacciones separadas: configuracion incompleta no es operacion habilitada. La inicial puede crearse sola, siempre abierta/activa/sin requisitos; unicidad y reglas locales siguen vigentes. `configuration-status` y comandos operativos validan el grafo completo con camino a terminal para cada etapa activa. Tras el primer uso las mutaciones no pueden dejar un grafo invalido; POST `/workflow` sigue disponible en Configuracion para cambios completos atomicos/versionados. Reordenamiento en una transaccion con unicidad diferible de position, sin estados intermedios visibles. Code/kind/is_initial no se cambian en PATCH F2; nunca se quitan las restricciones de BD.
 
 ### workflow_transitions
 
@@ -189,7 +189,7 @@ CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND
 | allowed_roles              | ARRAY VARCHAR(20), no vacio, subconjunto de admin/lider/colaborador |
 | is_active                  | BOOLEAN DEFAULT true                                                |
 
-UNIQUE(from_stage_id, to_stage_id), CHECK(from_stage_id <> to_stage_id). Sin rol gerente porque su rol es de lectura operativa. Service impide origen completed, destino inactivo, roles duplicados y grafos sin salida a completed. `admin` debe incluirse en toda arista habilitada; aun admin respeta reglas de negocio y no salta aristas. Indice `(from_stage_id, is_active)`.
+UNIQUE(from_stage_id, to_stage_id), CHECK(from_stage_id <> to_stage_id). Sin rol gerente porque su rol es de lectura operativa. Service impide origen completed, extremos inactivos en arista activa y roles duplicados incluso durante construccion. El requisito de caminos a completed se aplica al estado operativo y a mutaciones tras uso; antes del uso se permite guardar una construccion parcial sin habilitar negocio. `admin` debe incluirse en toda arista habilitada; aun admin respeta reglas de negocio y no salta aristas. Indice `(from_stage_id, is_active)`.
 
 ### objectives
 
