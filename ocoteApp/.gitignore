@@ -40,3 +40,32 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Local configuration and Python environments
+.env
+.env.*
+!.env.example
+!.env.*.example
+.pgpass
+*.pgpass
+pgpass.conf
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+/backend/.local/
+/backend/build/
+/backend/*.egg-info/
+
+# Portable PostgreSQL: obtain binaries separately; never commit live data
+/database/postgres/
+/database/data/
+/database/logs/
+/database/backups/
+/database/exports/
+/database/.ocote-start.lock/
