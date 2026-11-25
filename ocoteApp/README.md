@@ -10,15 +10,25 @@ Leer [AGENTS.md](AGENTS.md), entrada comun para desarrolladores y agentes de IA,
 
 1. [docs/01-spec-driven-development.md](docs/01-spec-driven-development.md): alcance, reglas, contratos, aceptacion e identidad visual OCOTE.
 2. [docs/02-arquitectura.md](docs/02-arquitectura.md): arquitectura, seguridad y modelo de datos.
-3. [docs/03-estado-actual-y-roadmap.md](docs/03-estado-actual-y-roadmap.md): evidencia, decisiones abiertas y fases F0-F7.
+3. [docs/03-estado-actual-y-roadmap.md](docs/03-estado-actual-y-roadmap.md): evidencia F0-F6, F7 bloqueada y fases empresariales F8..F12 propuestas.
 4. [docs/04-entorno-y-portabilidad.md](docs/04-entorno-y-portabilidad.md): PostgreSQL, credencial exclusivamente local, Git y otra computadora.
 5. [docs/05-paquetizacion-instalacion-y-actualizaciones.md](docs/05-paquetizacion-instalacion-y-actualizaciones.md): paquete cliente, instalaciones local/nube, bootstrap, exports/integraciones y protocolo central de release/contingencia.
 
 Estado al 2026-11-25 local: **F6 autorizada, implementada y migrada local/sintetico**, [evidencia y limites](docs/03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). Analitica, evaluacion departamental y exports internos JSON/CSV;30 pruebas backend F6 y164 ChromeHeadless correctas. Head20261125_0005,19 tablas de dominio/20 contando Alembic y seis releases terminales; datos previos/bootstrap/configuracion conservados. Sin seeds ni datos sinteticos insertados en origen. Cierre operativo F5 y aceptacion del operador pendientes; almacenamiento/ClamAV reales pospuestos, cargas cerradas. Excepciones D06 sin suplente y D07 soporte Angular/61 alertas extendidas a F6 hasta **2026-12-24**, responsable LUIS ANGEL VALLEJO - DESARROLLADOR; solo Windows/PG18.4 local/loopback/sintetico. F7 bloqueado; no produccion/nube.
 
-Fundacion documental 2.0 con incrementos F2-F6:19 tablas de dominio implementadas y permisos por rol/alcance. D03/D08 y RN-06 ratificados: pesos iguales, cohorte por original_due_date, calendario manual, sin ranking ni nota compuesta; finales inmutables al corte real. Colaborador sin analitica/evaluaciones/exports; lider solo departamento y finales propias. Integraciones externas fuera de MVP. America/Mexico_City solo bootstrap; D05/D06 son base/objetivos de diseno, no SLA ni aprobacion productiva.
+Base documental2.1:19 tablas de dominio implementadas y permisos por rol/alcance. D03/D08 y RN-06 ratificados: pesos iguales, cohorte por original_due_date, calendario manual, sin ranking ni nota compuesta; finales inmutables al corte real. Colaborador sin analitica/evaluaciones/exports; lider solo departamento y finales propias. Integraciones externas fuera de MVP. America/Mexico_City solo bootstrap; D05/D06 son base/objetivos de diseno, no SLA ni aprobacion productiva.
 
 Cliente objetivo: PostgreSQL 18 local portable/contenedor o gestionado remoto; guia 05 exige roles separados, TLS/red/pooling, paquete firmado, backup y restore ensayados. No hay proveedor/SO cliente homologado ni instalador/ocote-admin disponible; no usar helper de desarrollo para produccion o nube.
+
+## Evolucion empresarial documentada
+
+Solo especificacion futura: RF-16..35, RN-08..20, D09..16 y47 tablas nuevas proyectadas, ninguna creada. [Contratos y formularios](docs/01-spec-driven-development.md#8-evolucion-empresarial-propuesta), [modelo/grants](docs/02-arquitectura.md#8-arquitectura-empresarial-proyectada) y [fases/DoD](docs/03-estado-actual-y-roadmap.md#18-evolucion-empresarial-documental) son la fuente normativa; no paridad de mercado ni funcionalidades anunciadas como disponibles.
+
+Configuracion Total en PostgreSQL tras conectar: politicas/limites/flags/branding, storage/antivirus, correo/chat, SSO e integraciones versionados desde UI. Boveda AES-256-GCM y secretos write-only, nunca GET en claro. Unica excepcion inevitable: bootstrap minimo de conexion/CA inicial/credenciales por rol y raiz MASTER_ENCRYPTION_KEY generada por instalador, sellados en almacen SO fuera de BD. Cero archivos operativos editables, no cero archivos fisicos. El .env/CLI actual permanece intacto hasta migracion F7 autorizada; no existe todavia el [wizard cliente](docs/05-paquetizacion-instalacion-y-actualizaciones.md#9-entrega-empresarial-sin-archivos-operativos).
+
+Orden recomendado: **F7** endurecimiento, instalador y PG flexible -> **F8** configuracion ampliada/branding/storage -> **F9** calendarios/dependencias/plantillas/campos/colaboracion/busqueda -> **F10** notificaciones/correo/chat/feeds -> **F11** SSO/DevOps/API scopes/webhooks/calendarios externos -> **F12** importacion dry-run/reportes/consola avanzada. Cada fase requiere autorizacion propia, seguridad/aceptacion y evidencia nueva; F7 sigue bloqueada. Retencion no habilita borrar historia/evidencia/fotos y ninguna integracion altera RN-03/RN-06.
+
+Esta ampliacion no ejecuta BD/servidores/proveedores ni modifica codigo, scripts, lock, utilidades F1-F6 o cinco migraciones aplicadas incluida0005. [Portabilidad futura](docs/04-entorno-y-portabilidad.md#9-portabilidad-empresarial-proyectada) exige restauracion aislada con objetos y claves; no copiar cluster/secretos del desarrollador ni usar credencial publica para cliente.
 
 ## Base de datos local
 

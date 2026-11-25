@@ -1,6 +1,6 @@
 # OCOTE: entorno local y portabilidad
 
-Version documental: 2.0 con F6 local,2026-11-25. Retoma local; entrega en [guia05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado/excepciones extendidas en [F6](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25).
+Version documental: 2.1 con F6 local,2026-11-25. Secciones1..8 describen desarrollo/retoma y referencias historicas, no instalador cliente; seccion9 especifica portabilidad empresarial futura, sin ejecucion autorizada. Entrega en [guia05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado/excepciones en [F6](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25).
 
 ## 1. Estado real y limites
 
@@ -160,7 +160,7 @@ Las rutas no deben depender de C:/Users de un desarrollador; el helper las deriv
 
 ## 6. Backup y restauracion portables
 
-F1-F3/F5 ejecutaron backup/restores aislados, evidencia vigente/hashes en roadmap11. Comandos F1-F3 son historicos: **no usarlos en origen F5**, ni provision/rehearse/verify-existing. apply0002/0003/0004 ya ejecutados; no repetir ni editar revisiones. f5_local check-migration solo UUID aislado autorizado. Fragmento siguiente es entrenamiento, no gate de release. Ensayo F5 sin archivos publicados no prueba backup integral BD/evidencia; volumen no equivale a backup.
+F1-F3/F5/F6 ejecutaron backups/restores aislados; evidencia vigente/hashes en [acta17](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). Comandos F1-F3/F5 son historicos: no usarlos en origen F6 ni repetir provision/rehearse/verify-existing/apply. Revisiones0001..0005 y herramientas f1_local..f6_local/f6_visual inmutables. Ensayo F6 UUID solo con autorizacion PG; no se ejecuta por docs. Fragmento siguiente es entrenamiento historico, no gate de release ni instrucciones cliente. Dumps sin archivos publicados no prueban backup integral BD/evidencia; volumen no equivale a backup.
 
 Con credencial exportada temporalmente o PGPASSFILE, y desde raiz:
 
@@ -212,4 +212,49 @@ npm start -- --host 127.0.0.1 --port 8443 --ssl --no-open
 
 Abrir https://localhost:8443/login: AUTH_ORIGIN observado es exactamente https://localhost:8443, no https://127.0.0.1:8443 ni HTTP:4200. Angular escuchaIPv4 para evitar el listenerIPv6 localhost inaccesible observado; conserva Host/Origin localhost en navegador. Proxy /api a loopback8000 con changeOrigin=false, sin logs de cuerpos/cabeceras. Certificado ng serve autofirmado requiere aceptacion/confianza local del operador; la automatizacion solo lo acepto en su sesion, sin instalar CA ni configurar TLS productivo. Si puerto ajeno ocupado, no matar proceso ni cambiar origen auth: coordinar puerto/certificado con operador. Web Locks requieren navegador compatible/contexto seguro; ausencia falla cerrada. Sin cookies/token por storage, sin bajar Secure ni CORS permisivo.
 
-Siguiente paso: operador confirma custodia/bootstrap sin overwrite y completa configuracion explicita, almacenamiento privado externo/ClamAV mantenido y ensayos reales D05, acepta recorridos F4/F5 con su sesion antes del cierre operativo. F6 exige autorizacion nueva/D03/D08. Mensaje heredado del helper sobre F1 no sustituye estado vigente. PostgreSQL queda activo/head0004; API F5 en8000 tras parada confirmada del operador, Angular HTTPS8443/origen intacto; sin seeds/cargas de negocio ni restore sobre origen.
+Siguiente paso instalado: operador confirma custodia/bootstrap sin overwrite y acepta recorridos F4-F6; cierre operativo F5/almacenamiento privado/ClamAV reales y ensayos D05 siguen pendientes. D03/D08 ya ratificados para F6; F7 requiere autorizacion nueva. Head instalado0005 segun acta17, Angular conserva origen8443; procesos no se consultan ni arrancan por esta tarea documental. Mensaje heredado del helper sobre F1 no sustituye ese estado. Sin seeds/cargas de prueba ni restore sobre origen.
+
+## 9. Portabilidad empresarial proyectada
+
+Solo RF-16..35/D09..16, pendiente F7..F12. El flujo completo de instalacion/actualizacion es fuente unica en [guia05,seccion9](05-paquetizacion-instalacion-y-actualizaciones.md#9-entrega-empresarial-sin-archivos-operativos) y conserva [protocolo de release](05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). Esta seccion define frontera de portabilidad/diagnostico, no nuevos comandos ni reemplazo de herramientas historicas. No tocar .env actuales, roles, directorios de BD o utilidades para implementar el ejemplo.
+
+### Tres conjuntos persistentes
+
+| Conjunto | Autoridad/ubicacion futura | Como trasladar sin archivos editables |
+| --- | --- | --- |
+| Bootstrap minimo | Almacen SO/registro sellado del instalador, fuera checkout; destino PG/SSL/CA inicial, credenciales de conexion por identidad y referencia MASTER_ENCRYPTION_KEY | Asistente local autorizado verifica host/destino y vuelve a sellar para identidad SO nueva; no copiar registro ligado a otro equipo ni editar DSN a mano |
+| Configuracion y secretos | PostgreSQL: settings/perfiles/politicas/flags/revisiones y boveda AEAD; certs publicos y metadatos de activos privados | Backup/restore conserva UUID/version/referencias; descifrar exige material de recuperacion de raiz por canal independiente; no export de secretos en claro ni reconstruccion desde defaults |
+| Datos/objetos/artefactos | BD, evidencia/cuarentena/objetos, respaldos cifrados y releases firmadas en almacenamiento privado homologado | Manifest consistente BD+objetos+hashes; restituir ACL/identidades/roles/certificados y verificar lectura; nunca copiar data PG activa ni confundir paquete con datos |
+
+No se promete cero archivos fisicos: servicio/PG/objetos/backups/certificados materializados siguen existiendo. Se elimina la edicion operativa de .env, JSON, YAML, proxy, rutas o passwords por el cliente; el instalador/supervisor los administra si una dependencia requiere materializacion. No dejar copias editables como segunda fuente de verdad. API no puede resolver problemas de conexion usando credenciales migrador ni pasar a una BD alternativa.
+
+### Destinos y certificado
+
+Wizard ofrece PG local portable incluido o PostgreSQL18 externo/gestionado por red privada; formularios exactos en [SDD](01-spec-driven-development.md#formularios-de-instalacion-y-configuracion). Local solo inicia cluster nuevo si destino vacio se confirma; servidor existente se inventaria y exige flujo de adopcion/upgrade, sin initdb/reset/PID borrado. No copiar los binarios/cluster de desarrollo como paquete cliente ni usar holamundo. Postgres portable por SO/arquitectura debe redistribuirse con licencia/procedencia/parche verificados; otra mayor/proveedor no se homologa por aceptar host/puerto.
+
+Remoto: host DNS/puerto/base exacta, roles distintos, sslmode/CA y verificacion de certificado por cada DSN. require cifra sin autenticar servidor y verify-ca no verifica hostname: se muestran para diagnostico aislado, no satisfacen activacion gestionada que exige verify-full. Un error CA/SAN/fecha bloquea instalacion; no fallback, desactivar validacion ni aceptar certificado por un clic. CA inicial publica se sella con conexion por necesidad de arranque; CA de proveedores posteriores vive en BD. Rotacion verifica nuevo/antiguo durante ventana aprobada y renueva pools automaticamente tras drenar sin perder transacciones.
+
+Credenciales runtime/migrador se capturan write-only en canal wizard temporal HTTPS emparejado; pruebas separadas verifican nombre/identidad/encoding/revision/btree_gist/grants y negativa runtime DDL. SQL de prueba solo lectura o transaccion revertida/objeto tecnico aislado aprobado, nunca tabla/registro de negocio en origen existente. Permiso de extension lo prepara DBA con autorizacion propia, no se hereda de CREATE temporal ya revocado F6. Conectividad no certifica backup/proveedor/capacidad ni autoriza migracion inicial sin confirmacion del destino.
+
+### Cambio de equipo o proveedor
+
+1. Aprobar plan/ventana/responsables independientes y destinos aislados; comprobar soporte de paquete/SO/PG/IdP/proveedores y claves disponibles sin mostrarlas en consola o SPA.
+2. Ejecutar mediante agente homologado protocolo guia05 seccion7, detener escritores/scheduler/colas y capturar BD+objetos+config y referencias de claves; guardar pendientes/leases, no descartar entregas para fingir continuidad.
+3. Restaurar en destino nuevo y recuperar raiz bajo custodios; re-sellar credenciales/CA para nuevo SO sin hacer clone de identidad productiva activa. Entorno aislado inhibe egress, workers, webhooks, feeds y SSO productivos antes de cualquier arranque: una copia de configuracion active no autoriza enviar.
+4. Verificar head/grants/FK/config_revision, hashes/objetos/fotos/originales, AEAD con claves correctas y rechazo de raiz errada, caducidad CA/JWT y ultimo admin local. Probar secretos solo con sandbox deliberado, no conexiones o correos heredados contra produccion.
+5. Switchover aprobado garantiza un unico escritor/instancia emisora; conserva instance_id cuando es recuperacion controlada o crea clon aislado registrado con identidad distinta. Fencing/revision y revocacion de capacidades antiguas evitan duplicar recurrencia/webhooks. Reabrir tras smoke, sin cambiar fechas RN-02/RN-06 ni finales.
+
+Si hubo nuevas escrituras, reconciliar antes de volver a copia anterior; no rollback sin perdida prometido. Un cambio de modalidad requiere nueva evidencia operativa, no solo formulario guardado.
+
+### Fallos y recuperacion desde UI supervisada
+
+| Fallo | Comportamiento futuro requerido |
+| --- | --- |
+| BD no disponible/rol sin permisos | Live minimo, ready503; no wizard abierto ni regeneracion de bootstrap; diagnostico local autenticado, retries de lectura acotados, sin mutacion duplicada |
+| Almacen SO/raiz no recuperable | Servicio bloqueado/mantenimiento; restauracion de claves bajo custodia, no generar raiz nueva sobre ciphertext existente |
+| Conexion probada pero version cambia antes de instalar | Invalidar prueba ligada a destino/version,409 y reconfirmacion; no usar test antiguo para otro host |
+| Configuracion BD invalida o modulo no instalado | Rechazo422/409 sin aplicar revision parcial, admin ve campos seguros; no override de entorno ni defaults |
+| Rotacion/upgrade cortado | Registrar intento durable, mantener maintenance y reanudar con fencing/lock/artefacto firmado; no stamp ni editar revision aplicada |
+| Servicio/proxy exige reload | Supervisor aplica automaticamente revision compatible, drena y verifica; error conserva mantenimiento, no pide al cliente editar archivos/reiniciar manualmente |
+
+RPO/RTO, custodia, retencion y soporte exigen ensayo medido con archivos/claves y suplente, no los acredita esta especificacion. Comprobaciones de esta sesion solo Markdown/IDs/modelo/diff; ni precheck PG, builds o conexiones a proveedores.

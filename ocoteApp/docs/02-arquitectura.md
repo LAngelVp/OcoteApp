@@ -65,7 +65,7 @@ Refresh usa filas con `id` propio y `family_id` comun; `sid` siempre apunta al i
 - Refresh/logout requieren `X-CSRF-Token` vinculado criptograficamente a familia y expiracion. Login/refresh entregan `csrf_token`; un GET `/api/v1/auth/csrf` protegido por cookie y validacion de origen permite recuperarlo tras recarga, sin retornar credenciales. CORS no permite otros origenes. El token CSRF no autentica por si solo.
 - Mutaciones de dominio requieren Bearer y JSON; no se autentican mediante cookie refresh. Angular usa texto escapado, sin HTML arbitrario de usuarios. CSP restrictiva con recursos autoalojados; no `unsafe-eval`. Evitar registros de cabeceras de autorizacion y cookies en proxy/APM.
 - Politicas centralizadas implementan matriz de seccion 2 SDD, incluyendo descargas, historial y agregados. UUID dificulta enumeracion pero no reemplaza permisos. Pruebas contra IDOR, escalamiento de roles y mass assignment obligatorias.
-- Secretos solo en configuracion protegida de despliegue; `.env` local ignorado y futuro `.env.example` sin valores reales. Cifrado de backups y disco donde residen datos/evidencias; claves separadas del respaldo.
+- F1-F6 instaladas: secretos en configuracion protegida de despliegue, .env local ignorado y plantillas sin valores reales. Evolucion D09/D10: boveda cifrada en PostgreSQL y bootstrap minimo sellado externo segun seccion8; aun no implementada ni autorizada. Cifrado de backups/disco y claves separadas del respaldo siguen siendo requisitos.
 - `audit_events` para accesos fallidos y administracion; `task_history` para hechos de tarea/subtarea. Cuenta de BD de migracion distinta de la cuenta runtime. Auditar acceso operativo privilegiado.
 
 ### Controles transversales y fronteras de confianza
@@ -553,3 +553,154 @@ Salud F1 implementada: GET `/api/v1/health/live` minimo sin BD; GET `/api/v1/hea
 - Prototipo de compatibilidad Angular/Material/CDK, ngx-echarts/ECharts y vis-timeline con build produccion ejecutados en F1 como fixture sintetica de pruebas; no UI funcional ni tema OCOTE homologados. Angular 18 sin soporte y 61 alertas npm bajo aceptaciones temporales separadas hasta 2026-12-24 solo local/sintetico; no sustituyen remediacion ni aprobacion productiva. Actualizaciones requieren autorizacion y nuevas pruebas.
 - Validacion visual y accesible de Material, Kanban, Timeline y ECharts con tokens de la SDD. Automatizacion de contraste no reemplaza evaluacion de foco, teclado ni lectores de pantalla.
 - Revision de amenazas: robo/reuso refresh, CSRF, XSS, IDOR, escalamiento, uploads, borrado de auditoria y perdida de volumen. D07 bloquea produccion sin resolver politica de soporte de Angular 18.
+
+## 8. Arquitectura empresarial proyectada
+
+Solo diseno RF-16..35/RN-08..20/D09..16, sin nuevas tablas ni servicios instalados. Base inmutable de partida: head20261125_0005,19 tablas dominio/20 contando Alembic. [Contratos funcionales y formularios](01-spec-driven-development.md#8-evolucion-empresarial-propuesta), [secuencia/autorizaciones](03-estado-actual-y-roadmap.md#18-evolucion-empresarial-documental) y [protocolo futuro de entrega](05-paquetizacion-instalacion-y-actualizaciones.md#9-entrega-empresarial-sin-archivos-operativos) gobiernan esta extension. Se conserva monolito modular; workers y agente son procesos con fronteras de privilegio, no una exigencia de microservicios ni nueva dependencia instalada.
+
+### Configuracion Total en BD y raiz de confianza
+
+```mermaid
+flowchart LR
+  Operador[Operador local autorizado] --> Wizard[Wizard temporal HTTPS]
+  Wizard --> Supervisor[Instalador y supervisor acotado]
+  Supervisor --> Bootstrap[Conexion sellada y raiz en almacen SO]
+  Bootstrap --> PG[(PostgreSQL privado)]
+  PG --> API[Monolito API y politicas]
+  API --> SPA[Angular por mismo origen]
+  API --> Outbox[Outbox en misma transaccion]
+  Outbox --> Worker[Worker con lease y alcance]
+  Worker --> Conectores[Adaptadores tipados y egress permitido]
+  API --> Jobs[Solicitud operativa autenticada]
+  Jobs --> Agente[Agente de operaciones sin shell libre]
+  Agente --> Release[Protocolo de release y restore aislado]
+```
+
+La unica configuracion externa es un registro generado y sellado por instalador/almacen SO: identidad de instancia, destino PG (host/puerto/nombre/SSL/CA inicial), credenciales independientes para alcanzar PG por servicio y referencia MASTER_ENCRYPTION_KEY. API solo recibe acceso runtime; migrador/backup viven bajo identidades SO y permisos separados. La raiz se genera automaticamente, nunca se deriva de la credencial local publica ni se guarda en PostgreSQL. Elegir otra BD exige mantenimiento/captura/restore y switchover aprobado: no modificar DSN en caliente ni usar otra base ante error. El wizard es canal privilegiado temporal autenticado, no panel publico accesible por no haber usuarios.
+
+Al conectar se obtiene revision compatible y configuracion tipada de PostgreSQL, incluidas politicas de seguridad, origen HTTPS, claves JWT/certificados de servicio cifrados, limites, flags, branding e integraciones. Proxy/servicios consumen por IPC autenticado la configuracion desde supervisor; si requieren PEM, se materializa automaticamente con ACL, reemplazo atomico y eliminacion segura de temporales. Eso no habilita archivos sueltos editables por el cliente. Binarios, datos PG, evidencia y respaldos siguen siendo archivos/objetos persistentes. Para la primera pantalla TLS sin BD, instalador genera identidad/certificado temporal local o usa identidad SO homologada; solo sirve al canal local emparejado, no aprueba un certificado productivo.
+
+Registry de claves, DTO, algoritmos, proveedores y rangos forma parte del paquete firmado. La BD guarda valores, no plugins ejecutables ni roles/formulas configurables. Configuracion combinada se valida/guarda en una transaccion con revision global, expected_version y auditoria sanitizada; los cuatro settings F2 conservan claves/semantica y autoridad, no se duplican en JSON de conectores. organization_profiles guarda branding, no un segundo organization_name/timezone. Cada request/job lee revision vigente antes de autorizar, obtiene snapshot de configuracion y lo conserva durante la unidad de trabajo. NOTIFY/IPC acelera invalidacion, pero comprobacion de revision/fail-closed evita que perdida de aviso o worker atrasado aplique permisos revocados. No cache indefinida ni mezcla de versiones. Cambio de origen/certificado se aplica mediante transicion supervisada que drena conexiones y revoca/revalida sesiones; cambio de origen no fabrica Origin/Referer ni relaja cookies.
+
+No se borra el .env actual ni se cambia su precedencia en esta sesion. F7 futura debe importar solo valores existentes explicitamente aprobados, cifrar secretos, comparar comportamiento y confirmar cambio de autoridad atomico. Una clave migrada no tiene fallback a .env; ausencia/invalidez bloquea, nunca regresa silenciosamente a una version vieja. Valores que faltan requieren operador, sin seeds/defaults de negocio. La seguridad fija de RN-03/RN-06/RN-07 y limites duros siempre prevalece sobre flags.
+
+### Boveda y ciclo criptografico
+
+AEAD AES-256-GCM por biblioteca mantenida; DEK aleatoria por version/proposito, cifrada por raiz KEK del almacen SO. encrypted_secrets contiene ciphertext/nonce96/tag128, key_version_id y AAD de instancia/secret_id/proposito/version; UNIQUE(key_version_id,nonce), validacion de formato y autenticacion antes de usar. secret_key_versions guarda solo DEK envuelta, wrapping_nonce/tag, algoritmo y referencia de raiz/epoch, nunca KEK/DEK en claro. Nonces nuevos y no reutilizados por clave tambien al restaurar; no rollback de contadores/estado criptografico sobre claves en uso. Implementacion debe demostrar unicidad/rotacion con pruebas de biblioteca, no construir cifrador propio.
+
+Alta/reemplazo produce version de secreto nueva e inmutable; referencias se cambian atomicamente con config_revision y audit_event sin contenido secreto. GET de negocio no retorna ciphertext ni metadatos criptograficos; solo estado/rotated_at/version. No endpoint de desencriptacion generico; resolver por proposito permitido dentro del adaptador. Passwords de usuarios, api_keys y tokens verificables se hashean, no se meten reversiblemente en boveda. La boveda protege robo de dump, no compromiso del proceso autorizado/SO, ni sustituye RBAC/ACL/TLS. Catalogar quien puede usar cada secreto y reducir memoria/logs/core dumps.
+
+Rotar credencial externa requiere validar version nueva, activar referencia, retirar credencial anterior en proveedor y probar consumidores/reintentos. Rotar raiz genera epoch nuevo y nuevas DEK/versiones cifradas, verifica lectura bajo mantenimiento y cambia referencias por lotes reanudables sin modificar ciphertext historico. Raices antiguas permanecen selladas solo mientras las requieran respaldos/historia conforme custodia, no se eliminan por completar un job. Fallo conserva referencia anterior y mantenimiento cuando no sea posible consistencia; nunca rehace secretos por no poder descifrar. Dump cifrado, registro de versiones y claves por canal separado son necesarios: prueba de restore en host aislado incluye bootstrap, claves de recuperacion y secretos funcionales de sandbox. Perder BD o raiz no se resuelve con reset de admin.
+
+### Conectores, trabajos e identidad tecnica
+
+Adaptador por tipo/proveedor implementado y firmado con operaciones permitidas (test/read/write especifica), DTO por proveedor y politica egress compartida. Ninguna URL/config habilita fetch arbitrario. DNS/IP se revalidan en cada intento, sin redirects y con excepcion privada exacta por host/puerto/protocolo aprobada y auditada; CA/hostname, timeouts/bytes/cuotas tambien en pruebas. Configuracion puede desactivarse sin eliminar recursos historicos: evidence_files debe resolver storage_config_id y version capturados, no apuntar todo al proveedor activo actual. Migrar objetos exige copia/hash/lectura/backup antes de cambiar referencia operativa; no mover ni borrar originales por un toggle.
+
+Outbox: service muta dominio+historia+audit+evento en misma transaccion. Worker reclama lote acotado mediante FOR UPDATE SKIP LOCKED en transaccion corta, lease_owner/token/lease_until y fencing token impiden finalizar un lease viejo. Red fuera de transaccion de dominio; timeout/no respuesta es ambiguo, usar event_id/idempotency_key del proveedor. Reintento at-least-once, dedup por destino/evento y dead-letter tras presupuesto agotado; sin prometer exactly-once. Antes de cada envio revalidar usuario/servicio/regla/configuracion/alcance vigentes; baja de usuario no deja datos listos para enviar. Estado job terminal no se reescribe: retry es nuevo intento ligado. Fallo de proveedor no revierte tarea; fallo de insertar outbox si la regla es obligatoria si revierte mutacion completa.
+
+api_keys autentica service_principal con scopes/department_ids acotados, sin refresh humano ni rol admin. Un grant no evita politicas de tarea/cierre/version. Desde F9 para recurrencia se proyecta actor_service_id nullable y actor_kind en task_history/audit_events, por revision expand/validate; F11 reutiliza esa identidad para API externa. Hechos antiguos y actor_id originales intactos; nuevos eventos humanos usan solo actor_id, tecnicos solo actor_service_id, no autenticados solo audit_events con actor_kind=anonymous y ambos null. El job registra ademas owner_user_id delegante y revalida interseccion de sus permisos vigentes con los del servicio, no atribuye ejecucion humana ficticia. CHECK de exclusividad/trigger y FK RESTRICT, sin reescribir historia. Cambiar nulabilidad para nuevos eventos tecnicos no permite editar eventos existentes. Normalizar identidad en politica antes de acceso, no un bypass por header de key.
+
+SSO usa librerias OIDC/SAML/LDAP mantenidas; external_identities liga issuer/subject estable a users existente tras vinculo seguro. Nuevos callbacks futuros /api/v1/auth/sso/{config_id}/start y /callback son contratos de protocolo: state/nonce/PKCE/SAML correlation de un uso, sin aceptar configuracion desde callback; se convierten en sesion OCOTE. Para SAML POST cross-site, la excepcion de CSRF se limita a ese endpoint autenticado por asercion/correlacion, no elimina Origin/CSRF del resto ni cambia SameSite/HttpOnly de refresh. Si navegador/politica impiden el flujo, bloquear homologacion, no reducir seguridad. LDAP nunca envuelve password en logs ni la persiste. Descubrimiento solo contra endpoint permitido, no Issuer URL como SSRF libre. DevOps conserva IDs externos y alias unico de tarea, sin recalcular RN-03.
+
+### Inventario relacional futuro
+
+Son47 tablas nuevas proyectadas, no migradas; sin fusionar entes distintos en system_settings. Convenciones: id UUID PK; M=created_at/updated_at UTC y version>=1 con trigger incremento exacto; A=append-only sin UPDATE/DELETE/TRUNCATE. FK RESTRICT salvo referencia opcional explicita; toda relacion tiene indice FK, todo listado `(scope/owner,created_at,id)`/cursor. CHECKs no sustituyen validacion semantica de servicio. Los CHECK por tipo que acceden a otra tabla se implementan con trigger/locks o FK compuesta, nunca CHECK con subconsulta invalida. Definiciones y filas nuevas se crean solo en fase autorizada, sin sembrar valores. Fases F7..F12 son dependencias de implementacion, no permisos ya otorgados.
+
+| Tabla proyectada | Claves, campos, indices y protecciones adicionales | Primera fase |
+| --- | --- | --- |
+| deployment_instances | Singleton confirmado por instalador, instance_uuid UNIQUE, setup_state, public_origin, config_revision FK, seal_epoch, manifest_revision; M; trigger de transicion setup irrepetible y origen HTTPS | F7 |
+| configuration_revisions | revision BIGINT PK creciente, schema_version, changed_keys, sanitized_diff, actor_id FK users nullable solo setup externo, request_id, created_at; A; sin copiar secretos ni credenciales SQL | F7 |
+| organization_profiles | Singleton FK deployment_instances, logo_asset_id FK private_assets, welcome/footer texto, palette tipada; M; no duplicar cuatro claves system_settings, validar contraste en servicio | F8 |
+| security_policies | Singleton FK instancia, password/session/lockout/pagination/import limites tipados, revision FK; M; CHECK rangos RN-09/techos y auditoria atomica | F7 base/F8 extension |
+| feature_flags | code UNIQUE de registry, enabled, config_revision FK; M; trigger/servicio impide habilitar codigo ausente y desactivar con invariantes pendientes | F8 |
+| secret_key_versions | UUID PK, purpose, key_epoch UNIQUE por instancia/proposito, wrapped_dek, wrapping_nonce/tag, root_key_ref, algorithm fijo; A; UNIQUE(root_key_ref,wrapping_nonce); sin key en claro | F7 |
+| encrypted_secrets | purpose, owner/config identificable, secret_version, key_version_id FK, ciphertext/nonce/tag, rotated_at; A; UNIQUE(owner,purpose,secret_version), UNIQUE(key_version_id,nonce); proposito/owner validados | F7 |
+| private_assets | kind CA/cert/logo, media_type, size/hash, bytes BYTEA acotado privado, secret_ref FK solo claves cifradas separadas, scan_at si logo; A; CA parseada sin private key, logo<=1MiB sin contenido activo | F7 certificados/F8 branding |
+| integration_configs | type/provider/scope_kind/department_id FK, name, config_schema_version, validated_config JSONB no secreto, secret_refs tipadas, state, tested_revision; M; CHECK ambito, UNIQUE tipo/nombre/ambito con NULLS NOT DISTINCT | F7 local/ClamAV F5; F8 centro |
+| integration_health_checks | config_id FK/config_version, kind, status/latency/checked_at/result_code, job_id FK job_runs; resultado A, sin cuerpo/secreto; indice(config_id,checked_at,id) y validez ligada a version | F7 local/ClamAV F5; F8 centro |
+| service_principals | name, approved_scopes, department_ids normalizados/validados, is_active, token_version, created_by FK users; M; sin password/rol humano; indice estado/owner | F9 worker/F11 API |
+| api_keys | principal_id FK, public_prefix UNIQUE, token_hash UNIQUE/pepper_ref, scopes subconjunto, CIDR list tipada, expires_at/revoked_at; M para revocar, hash/scopes de token emitido inmutables, rotar crea fila nueva | F11 |
+| webhook_subscriptions | config_id FK, event_codes permitidos, scope, signing_secret_id FK, retry_policy tipada, is_active; M; version invalida prueba y firma usa version capturada | F11 |
+| webhook_deliveries | subscription_id FK, outbox_id FK, event_id, attempt_no, payload_hash, timestamp/status/http_code/next_attempt_at; UNIQUE(subscription_id,event_id,attempt_no); intento mutable solo hasta terminal, sin cuerpo sensible en visor | F11 |
+| webhook_inbox | config_id FK, provider_delivery_id, body_hash, received_at/verified_at, job_id FK; UNIQUE(config_id,provider_delivery_id), A; mismo ID/cuerpo distinto se deniega, payload permitido cifrado/limitado | F11 |
+| external_identities | config_id FK, issuer/subject UNIQUE conjunto, user_id FK, last_validated_at, is_active; M; nunca vinculo automatico por email ni auto-admin, revocar sesiones al desvincular | F11 |
+| task_external_links | task_id/config_id FK, provider/repository/external_id/type, URL derivada permitida, alias capturado; UNIQUE(config_id,repository,external_id,task_id); M solo active/version, identidad inmutable y desvinculacion auditada sin DELETE | F11 |
+| transactional_outbox | event_id UUID UNIQUE, event_type/schema_version/resource FK segun tipo, scope/actor, payload minimo validado, created_at; A para hecho, distribucion via deliveries/jobs; indice(created_at,id) | F9 |
+| job_runs | kind/owner/request_id/idempotency_key, input_hash, state, attempt/retry_of_id FK propia, lease_token/lease_until, config_revision FK; UNIQUE(kind,owner,idempotency_key); M solo no terminal, indice(state,next_run_at,id) | F7 instalacion/F8+ trabajos |
+| notification_rules | name/scope/department FK, trigger, conditions/actions JSONB permitidas, channel_config_ids validados, enabled; M; indice(scope,enabled,event_type), no expresion ejecutable | F10 |
+| notifications | user_id FK, outbox_id FK, rule_version, safe_projection, created_at/read_at, version; UNIQUE(user_id,outbox_id,rule_version); solo read_at/version mutable, no contenido publico ni conteo por otro usuario | F10 |
+| notification_deliveries | notification_id/config_id FK, channel, attempt_no, state/provider_ref/error_code; UNIQUE(notification_id,channel,config_id,attempt_no); terminal protegido y dedup logico por destinatario/evento/regla/canal | F10 |
+| notification_preferences | user_id PK/FK, channels permitidos, quiet_start/end TIME, timezone IANA, opt_in; M; no facultad de habilitar canal/modulo desactivado | F10 |
+| calendar_configs | name/scope_kind/department_id FK nullable para org, weekday_mask entero1..127, inheritance, revision; M; UNIQUE ambito con NULLS NOT DISTINCT, una configuracion efectiva por scope | F9 |
+| calendar_holidays | calendar_id FK, holiday_date DATE, name; M/desactivacion, UNIQUE(calendar_id,holiday_date), indice fecha; sin feriados precargados | F9 |
+| calendar_feeds | owner_user_id FK, scope derivado, token_hash UNIQUE, signing_key_ref, expires_at/revoked_at, version; M revocacion, indice(owner_user_id,expires_at), no access JWT persistido | F10 |
+| calendar_sync_items | config_id/feed_id/task_id FK, event_kind start/current/original, external_uid/etag, source_version, last_sync_at; UNIQUE(config_id,task_id,event_kind), CAS de etag; sin escritura de fechas origen | F11 |
+| task_dependencies | predecessor_task_id/successor_task_id FK tasks, created_by FK, active, M; CHECK distintos, UNIQUE par, indice inverso; trigger toma lock de grafo por plan y rechaza ciclo/ambito incompatible | F9 |
+| task_impediments | task_id/owner_user_id FK, reason/opened_at/closed_at/resolution, M; CHECK cierre>=apertura y resolucion requerida; indice(task_id,closed_at), aperturas/cierres auditados sin borrar intervalos | F9 |
+| templates | type/scope/department FK, name/current_version/is_active, M; UNIQUE nombre normalizado/ambito/tipo; permisos por tipo, catalogo inicialmente vacio | F9 |
+| template_versions | template_id FK, template_version, payload JSONB validado/referencias catalogo, schema_version/hash, created_by FK; UNIQUE(template_id,template_version), A | F9 |
+| recurrence_schedules | template_version_id/owner_user_id/calendar_id FK, frequency/interval/end_policy/missed_policy, next_due_at, enabled, M; CHECK limites/fin o cantidad, indice(enabled,next_due_at) | F9 |
+| recurrence_occurrences | schedule_id/job_id FK, scheduled_for civil+zona capturada, occurrence_key UNIQUE(schedule_id,scheduled_for), generated_entity FK tipada, result; A al terminal, idempotencia entre reinicios/DST | F9 |
+| custom_field_definitions | entity_type/key/scope/department FK, data_type, label, constraints/required_stage_ids permitidos, active, M; UNIQUE tipo/key/ambito; tipo/key inmutables tras uso | F9 |
+| custom_field_options | definition_id FK, code/label/position/is_active, M; UNIQUE(definition_id,code), indice(definition_id,position,id), desactivar conserva valores | F9 |
+| custom_field_values | definition_id FK y exactamente uno plan_id/objective_id/task_id FK; columnas text/NUMERIC(18,4)/DATE/boolean/option tipadas, M; UNIQUE definicion/entidad con NULLS NOT DISTINCT; trigger tipo/ambito/opciones | F9 |
+| tags | name_normalized/scope/department FK, label/color_code permitidos/is_active, M; UNIQUE nombre/ambito; colores accesibles, no CSS/HTML | F9 |
+| entity_tags | tag_id FK y exactamente un plan_id/objective_id/task_id FK, assigned_by FK/created_at; UNIQUE tag/entidad, M solo active/version; retiro logico auditado, sin borrar vinculacion historica | F9 |
+| comments | exactamente un task_id/objective_id FK, author_id FK users, parent_comment_id FK propia nullable/inmutable, current_revision, annulled_at, M; indices recurso/created_at/id y padre/id; trigger mismo recurso/profundidad<=5/sin ciclo; texto solo en revisiones | F9 |
+| comment_revisions | comment_id/author_id FK, revision_no/body/reason/created_at, annulment flag; UNIQUE(comment_id,revision_no), A; transicion atomica current_revision y tombstone | F9 |
+| comment_mentions | comment_revision_id/mentioned_user_id FK, notification_event_id FK outbox cuando aplique; UNIQUE(revision,user), A; permisos revalidados, no autocomplete global | F9 |
+| saved_views | owner_id FK, scope/department, entity_type/name/filter_schema_version/filters JSONB, M; UNIQUE owner/nombre/entidad/ambito; no SQL ni permisos capturados permanentes | F9 |
+| import_jobs | job_id PK/FK job_runs, actor_id FK, entity_type/file_hash/mapping/preview_hash, config_revision, expires_at, state/version; CHECK estado de preview antes commit, hash/idempotencia ligados | F12 |
+| import_rows | import_id FK, row_number1..1000, normalized_data cifrada/ref, errors tipados/row_hash; UNIQUE(import_id,row_number), indice(import_id,row_number); staging sin FK falsa a entidad no creada | F12 |
+| export_jobs | job_id PK/FK, requester_id/final_evaluation_id FK opcional, format/filters/cut/scope/row_count/byte_count/hash/expires_at, result_storage_config_id FK y result_object_key privado; terminal inmutable, descarga reautoriza cada vez | F12 |
+| retention_policies | category UNIQUE, minimum_days/legal_hold/responsible_user_id FK/approval_ref, M; CHECK dias aprobados, no DELETE por reducir numero; categorias historicas protegidas | F7 politica/F12 consola |
+| backup_records | job_id FK, source_revision/instance_id, manifest_hash/dump_hash/size, encrypted_key_ref, private_location_ref, restore_job_id FK/result/duration; A; indice(instancia,created_at,id), sin descarga via SPA | F7 |
+
+No se infiere que la futura BD final tenga ese numero de tablas: el inventario es propuesta47 nuevas mas19 dominio base, sujeto a revision/migraciones por fase, no head publicada ni66 tablas ya existentes. No hay DDL ejecutable en este documento. Relacion comun de configuracion/boveda/jobs y ejemplo de extension:
+
+```mermaid
+erDiagram
+  integration_configs ||--o{ integration_health_checks : prueba
+  integration_configs ||--o{ encrypted_secrets : referencia
+  secret_key_versions ||--o{ encrypted_secrets : cifra
+  integration_configs ||--o{ webhook_subscriptions : configura
+  webhook_subscriptions ||--o{ webhook_deliveries : intenta
+  transactional_outbox ||--o{ webhook_deliveries : origina
+  users ||--o{ notifications : recibe
+  transactional_outbox ||--o{ notifications : origina
+  tasks ||--o{ task_impediments : registra
+  tasks ||--o{ task_dependencies : precede
+  comments ||--o{ comment_revisions : conserva
+  custom_field_definitions ||--o{ custom_field_values : tipa
+  templates ||--o{ template_versions : versiona
+  template_versions ||--o{ recurrence_schedules : genera
+  recurrence_schedules ||--o{ recurrence_occurrences : deduplica
+  job_runs ||--o{ backup_records : evidencia
+```
+
+### Cambios aditivos sobre tablas existentes
+
+- system_settings conserva cuatro claves/tipos actuales; ampliaciones del registry requieren revision versionada/contrato, no claves arbitrarias ni otro organization_timezone. Cada nueva tabla de politica tiene una sola fuente de verdad; un secreto nunca es value de setting.
+- evidence_files conserva IDs/hash/storage_key/atestacion/versiones publicadas. Una futura columna nullable storage_config_id y provider_version admite legacy sin reescribir filas append-only: mapa tecnico aditivo de ubicaciones aprobado o revision de contrato especifica, nunca backfill de historia/firma antimalware inventada. Resolver ruta legacy requiere valor existente confirmado por operador; no default de proveedor. private_assets no sustituye evidencia ni usa su contenido para logos.
+- tasks puede incorporar display_code unico autogenerado solo al crear, con prefijo confirmado, secuencia atomica y UUID permanente; legacy obtiene alias por backfill explicitamente autorizado sin tocar originales/historia. Sin prefijo aprobado, DevOps no vincula codigos ficticios. Campos/custom tags se almacenan aparte; no crear columna por definicion del cliente.
+- task_history/audit_events solo amplian catalogo de eventos y columnas de identidad tecnica en revision nueva, conservan triggers append-only y todo hecho previo. Mutacion de extension que afecta tarea agrega hecho y version de tarea en misma transaccion. evaluations/evaluation_items finales no se alteran: extensiones leen foto v1 como v1 y nuevos reportes no la enriquecen retroactivamente.
+- Para multi_select, custom_field_values conserva lista acotada de option_ids JSONB y trigger verifica pertenencia/actividad bajo lock de definicion/opciones; valores scalars usan columnas tipadas. No FK polimorfica opaca: entidades referenciadas tienen FK explicita y CHECK exactamente una, coherente con entity_type y departamento. Indices B-tree `(definition_id,number/date/option,entity_id)` segun rama y GIN acotado en listas/text search, creados por migracion de release tras EXPLAIN con volumen autorizado, nunca CREATE INDEX desde formulario.
+
+### Privilegios, triggers y concurrencia
+
+| Identidad futura | Permisos estrictos | Prohibiciones |
+| --- | --- | --- |
+| ocote_runtime | SELECT proyecciones/autorizacion; INSERT/UPDATE versionado en configuracion y entidades mutables; INSERT en A; SELECT ciphertext solo via repositorio de proposito necesario, nunca API publica | Sin DDL/CREATE/extension/TRUNCATE/DELETE historico, sin credencial migrador, sin UPDATE/DELETE de hechos A o ciphertext existente |
+| ocote_migrador | DDL de revisiones aprobadas bajo maintenance/lock; grants explicitos y backfills versionados ensayados | No runtime ni sesion de negocio; no CREATE general heredado de F6 ni editar0001..0005 |
+| Worker, rol tecnico futuro por aprobar | SELECT de configuracion/secretos de sus propositos, claim/update de jobs/deliveries no terminales, INSERT de resultados/outbox autorizado; comandos de recurrencia mismos services/politicas | Sin privilegio humano global ni DDL, no acceso universal a secretos de otro tipo/backup; particionar grants/vistas si comparte BD, no presumir RLS implementada |
+| Agente operaciones, identidad SO/SQL separada por aprobar | Capacidades install/backup/restore-isolated/update sobre instancia/destinos aprobados; obtiene migrador solo durante release | No endpoint shell/SQL libre, no exponer dump/claves al admin web, no restore sobre origen por clic |
+
+REVOKE PUBLIC en tablas/secuencias/funciones; grants por tabla/columna y version de paquete, no GRANT ALL. Permisos de ejemplo son requisitos, no roles creados. Pruebas SQL con cada identidad demuestran que un fallo en API no permite borrar hechos. Cambios de secreto/flag/configuracion requieren autorizacion y audit aun siendo admin; reautenticar sensible y no mostrar credencial por tener rol.
+
+Triggers comunes: version+1 y columnas identidad inmutables; transiciones validas/terminales congelados; FK/ambito/tipo y append-only con rechazo de TRUNCATE; ciclos de dependencia bajo lock serializador compartido por todos los escritores del grafo. Pertenencia/alcance se valida tambien antes de consulta en services; no afirmar que trigger equivale a RBAC. Sin SECURITY DEFINER generico; cualquier funcion privilegiada futura fija search_path, valida capacidad y recibe grant minimo revisado.
+
+Orden futuro de locks conserva prefijo F3: configuracion compartida/exclusiva -> departamento -> usuarios UUID ordenados -> lock de grafo/plan -> objetivo -> tareas UUID -> subtareas -> solicitud -> extension/definicion UUID -> job/outbox. Publicar regla requerida o cambiar catalogo toma configuracion exclusiva; operacion toma compartida antes de resolver requisitos. Claim de cola se confirma antes de acceder al dominio, sin red/leases largos bloqueando filas de tareas. Completar/crear dependencia/activar requisito/commit de import revalida versiones bajo mismos locks; deadlock/serialization/timeout normalizado409, rollback completo, cliente conserva formulario sin retry ciego.
+
+### Puertas tecnicas por extension
+
+F7 homologa soporte/dependencias D07, custodios D06, setup emparejado, TLS remoto verify-full, backup/restore con claves y origen preservado. F8 prueba AEAD/proveedor/escaneo y revocacion/recarga multi-proceso antes de activar configuracion; F9 prueba DAG inverso concurrente, campos requeridos/plantillas/festivos sin cambio de RN-03/RN-06; F10 prueba outbox/quiet hours/alcance al entregar; F11 replay/SSRF/firmas/JIT/revocacion y acceso de emergencia; F12 atomicidad de import, export final/limites, caida del agente y contingencia. Indices y politicas se miden con datos autorizados aislados; no numeros de capacidad, soporte de proveedor ni AA certificados por estos diagramas.

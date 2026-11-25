@@ -2,6 +2,14 @@
 
 Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F6 autorizada/implementada/migrada local/sintetico, [acta vigente](../docs/03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). Bootstrap/datos/configuracion preservados; aceptacion operativa F5 y almacenamiento/ClamAV reales pendientes, cargas cerradas. F7 bloqueado. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). D03/D08/RN-06 ratificados; responsable/excepciones extendidos a F6 hasta2026-12-24, no produccion.
 
+## Evolucion empresarial solo documental
+
+La [SDD2.1](../docs/01-spec-driven-development.md#8-evolucion-empresarial-propuesta) propone RF-16..35/RN-08..20/D09..16 y formularios/contratos /api/v1/integrations, no endpoints ya instalados. [Modelo futuro](../docs/02-arquitectura.md#8-arquitectura-empresarial-proyectada):47 tablas nuevas proyectadas (boveda/configuracion, conectores/colas/identidad tecnica, extensiones y operaciones), con PK/FK/indices/triggers/grants por fase. Inventario real sigue19 tablas de dominio/20 contando Alembic, head20261125_0005; no metadata nueva creada por documentar.
+
+F7 futura trasladara configuracion operativa a BD y secretos a encrypted_secrets con AEAD/write-only; bootstrap externo minimo conserva solo conexion PG/CA inicial/credenciales por servicio y raiz MASTER_ENCRYPTION_KEY sellada en almacen SO. Roles/formulas/permisos/techos siguen codigo; API no recibe migrador, master key en Angular ni endpoint decrypt. Registry tipado y revision atomica permiten recarga segura; no .env operativo para cliente tras transicion autorizada. **La carga .env/CLI descrita abajo es el comportamiento F1-F6 instalado y no cambia en esta sesion.** No fallback dual ni borrado de archivos/credenciales actuales para simular evolucion.
+
+[F7..F12](../docs/03-estado-actual-y-roadmap.md#18-evolucion-empresarial-documental) siguen bloqueadas hasta autorizacion/DoD correspondientes. El [wizard de instalacion](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#9-entrega-empresarial-sin-archivos-operativos), workers/outbox, boveda, SSO, conectores, imports y consola son diseno, no herramientas disponibles. Cinco revisiones0001..0005, tools/f1_local.py..f6_local.py y tools/f6_visual.cjs son intocables en esta tarea junto con codigo app/tests/src/scripts/lock/database. Solo este README se edita bajo backend; no init-dev/pytest/build/conexion PG por documentacion. Nueva release requiere revision/herramienta nueva y protocolo, nunca adaptar evidencias historicas.
+
 ## Inventario
 
 | Ruta                                                                                                                                                       | Responsabilidad                                                                                   |
