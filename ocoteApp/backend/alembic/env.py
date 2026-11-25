@@ -1,13 +1,43 @@
+import re
+
 from sqlalchemy import create_engine, pool, text
 
 from alembic import context
 from app.core.config import DATABASE_NAME, MigrationSettings
 
 
+def migrate(connection, expected_database):
+    if expected_database != DATABASE_NAME and not re.fullmatch(
+        r"ocote_f2_(?:test|restore)_[0-9a-f]{32}", expected_database
+    ):
+        raise RuntimeError("Unapproved migration destination")
+    identity = connection.execute(
+        text(
+            "SELECT current_database(), current_user, rolsuper, rolcreatedb, rolcreaterole, "
+            "rolreplication, rolbypassrls FROM pg_roles WHERE rolname=current_user"
+        )
+    ).one()
+    if identity[:2] != (expected_database, "ocote_migrador") or any(identity[2:]):
+        raise RuntimeError("Unexpected database or migration role")
+    connection.commit()
+    context.configure(
+        connection=connection,
+        target_metadata=None,
+        version_table_schema="public",
+        transaction_per_migration=True,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
+
+
 def run_migrations() -> None:
-    settings = MigrationSettings()
     if context.is_offline_mode():
         raise RuntimeError("Offline SQL is not supported; use a controlled online migration")
+    supplied = context.config.attributes.get("connection")
+    if supplied is not None:
+        migrate(supplied, context.config.attributes.get("expected_database", ""))
+        return
+    settings = MigrationSettings()
     engine = create_engine(
         settings.migration_database_url.get_secret_value(),
         poolclass=pool.NullPool,
@@ -20,23 +50,7 @@ def run_migrations() -> None:
     )
     try:
         with engine.connect() as connection:
-            identity = connection.execute(
-                text(
-                    "SELECT current_database(), rolsuper, rolcreatedb, rolcreaterole, "
-                    "rolreplication, rolbypassrls FROM pg_roles WHERE rolname = current_user"
-                )
-            ).one()
-            if identity[0] != DATABASE_NAME or any(identity[1:]):
-                raise RuntimeError("Migration requires the exact database and a nonprivileged role")
-            connection.rollback()
-            context.configure(
-                connection=connection,
-                target_metadata=None,
-                version_table_schema="public",
-                transaction_per_migration=True,
-            )
-            with context.begin_transaction():
-                context.run_migrations()
+            migrate(connection, DATABASE_NAME)
     finally:
         engine.dispose()
 

@@ -1,6 +1,6 @@
-# OCOTE Backend: Base Tecnica F1
+# OCOTE Backend: Identidad Y Administracion F2
 
-Solo infraestructura: Python 3.12, FastAPI, SQLAlchemy 2.0 sincrono, psycopg 3 y Alembic. No autenticacion de usuarios, administracion ni modulos de negocio. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md) y [protocolo de release](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). F1 cerrado solo para desarrollo local/sintetico con excepciones hasta 2026-12-24; evidencia, fallos/reintento, hashes y puertas en [acta F1](../docs/03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Python 3.12, FastAPI, SQLAlchemy 2.0 sincrono, psycopg 3 y Alembic; F2 local/sintetico implementado y verificado, con bootstrap/configuracion del operador pendientes. No F3-F7 ni pantallas Angular. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md) y [protocolo de release](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). Evidencia y limites en [F2](../docs/03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local); excepciones hasta 2026-12-24 en [acta F1 historica](../docs/03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
 
 ## Inventario
 
@@ -11,9 +11,13 @@ Solo infraestructura: Python 3.12, FastAPI, SQLAlchemy 2.0 sincrono, psycopg 3 y
 | [app/core/config.py](app/core/config.py)                                                                                                                   | Variables/.env mediante Pydantic Settings, validacion de DSN/base/rol/IANA y perfil TLS           |
 | [app/core/errors.py](app/core/errors.py)                                                                                                                   | problem+json, request_id generado en servidor y logs sanitizados de estado/duracion               |
 | [app/db/engine.py](app/db/engine.py), [app/db/session.py](app/db/session.py)                                                                               | Pool acotado, una Session por peticion, unidad de trabajo explicita con commit/rollback           |
-| [app/routers/health.py](app/routers/health.py)                                                                                                             | Unicas rutas implementadas: live/ready                                                            |
+| [app/routers/health.py](app/routers/health.py)                                                                                                             | Live/ready tecnicos, independientes del bootstrap de usuarios |
 | [alembic.ini](alembic.ini), [alembic/env.py](alembic/env.py), [alembic/script.py.mako](alembic/script.py.mako)                                             | Configuracion directa de migracion, NullPool y plantilla para revisiones futuras                  |
 | [revision inicial](alembic/versions/20261124_0001_technical_foundation.py)                                                                                 | 20261124_0001, solo release_history; Alembic administra alembic_version                           |
+| [revision F2](alembic/versions/20261124_0002_identity.py), [modelos](app/models/identity.py) | Nueve tablas de identidad/configuracion, vacias por diseno; no seeds |
+| [seguridad](app/core/security.py), [sesion](app/services/identity.py), [rutas auth](app/routers/auth.py) | Argon2id, RS256, CSRF, rotacion/revocacion y politicas centrales |
+| [DTO](app/schemas/identity.py), [administracion](app/services/administration.py), [rutas](app/routers/administration.py) | CRUD/versiones, scopes, parametros, catalogos y workflow atomico |
+| [bootstrap](tools/bootstrap.py), [actualizacion local F2](tools/f2_local.py), [pruebas F2](tests/test_identity.py) | CLI de uso unico, backup/migracion/no-op/restore y pruebas aisladas |
 | [.env.example](.env.example)                                                                                                                               | Nombres y ejemplos sin secretos reales; distinta de la plantilla del helper en raiz               |
 | [tools/f1_local.py](tools/f1_local.py)                                                                                                                     | Aprovisionamiento y ensayo exclusivamente local/explicito; no ocote-admin ni actualizador cliente |
 | [tests/test_foundation.py](tests/test_foundation.py), [tests/test_rehearsal.py](tests/test_rehearsal.py), [tests/test_postgres.py](tests/test_postgres.py) | Salud/config/errores, backup bloqueante y PostgreSQL opt-in con fixtures revertidas               |
@@ -36,25 +40,47 @@ Crear .venv solo cuando no exista. En otro SO usar el Python 3.12 y ruta .venv/b
 Regeneracion deliberada/revisada del lock (pip-tools 7.5.2 esta fijado en dev):
 
 ```bash
-backend/.venv/Scripts/python -m piptools compile --extra dev --generate-hashes --strip-extras --output-file backend/requirements.lock backend/pyproject.toml
+backend/.venv/Scripts/python -m piptools compile --allow-unsafe --extra dev --generate-hashes --strip-extras --output-file backend/requirements.lock backend/pyproject.toml
 ```
 
 ## Configuracion Y Roles
 
-Pydantic carga solo backend/.env como archivo, sin ejecutar Bash; las variables de entorno prevalecen. No se carga el .env de raiz ni se exporta todo su contenido. No sobrescribir una configuracion existente. DSN y token son SecretStr; los errores no imprimen entradas sensibles. Las variables requeridas estan en la plantilla, sin defaults de password.
+Pydantic carga backend/.env sin ejecutar Bash; AuthSettings agrega backend/.local/auth.env para claves/origen. Las variables de entorno prevalecen. No se carga el .env de raiz ni se exporta todo su contenido. No sobrescribir configuracion existente. DSN y token son SecretStr; los errores no imprimen entradas sensibles. Las variables requeridas estan en la plantilla, sin defaults de password.
 
 - DATABASE_URL: postgresql+psycopg, base exacta ocoteAppDatabase y usuario ocote_runtime.
 - MIGRATION_DATABASE_URL: igual base, usuario ocote_migrador; endpoint directo. La API no utiliza este DSN.
 - HEALTH_TOKEN: secreto aleatorio del monitor de al menos 32 caracteres, solo servidor/monitor; no enviarlo a Angular ni en query strings.
-- ORGANIZATION_TIMEZONE: requerida y validada IANA; America/Mexico_City es la zona oficial D01 ratificada el 2026-11-24. No hay configuracion operativa en BD todavia; F2 debera usarla solo para bootstrap y aplicar RN-07 sin override runtime.
+- ORGANIZATION_TIMEZONE: requerida y validada IANA; America/Mexico_City es zona oficial D01. Solo referencia/bootstrap, nunca override runtime de system_settings. F2 no la inserta automaticamente: el admin crea explicitamente la clave.
 - APP_ENV/DEPLOYMENT_MODE: desarrollo local solo loopback. Managed exige sslmode=verify-full, hostname y sslrootcert a CA legible en ambos DSN. Validacion de configuracion no demuestra TLS real ni homologa proveedor. Este perfil local rechaza produccion: su habilitacion requiere un perfil aprobado separado.
 - Pool local por proceso: size=3, overflow=0, espera/conexion=3 s, statement=5 s, lock=2 s, idle-in-transaction=10 s y UTC. Son limites de desarrollo, no dimensionamiento productivo.
 
-El backend sincrono usa endpoints/dependencias def, ejecutados por FastAPI en threadpool; el cierre del engine tambien sale del event loop. Una Session se cierra al finalizar la peticion, revirtiendo cualquier transaccion pendiente. unit_of_work abre una unica transaccion y confirma solo al salir sin errores; no hay commits automaticos del router ni operaciones de negocio.
+El backend sincrono usa endpoints/dependencias def en threadpool. Una Session por peticion se cierra/revierte al terminar. La dependencia F2 toma lock compartido para lecturas/exclusivo para mutaciones, confirma antes de enviar respuesta y revierte errores; revocacion por reuso se confirma antes del 401. Sin commits del router ni cache de permisos/configuracion.
 
-Roles ya provisionados en este checkout: runtime CONNECT/USAGE y SELECT de las dos tablas tecnicas; migrador CONNECT y USAGE/CREATE en public, sin privilegios elevados en cluster. PUBLIC perdio CREATE/USAGE en public y permisos sobre la base; cada rol recibe lo necesario explicitamente. Runtime no tiene CREATE, TEMP, INSERT/UPDATE/DELETE/TRUNCATE de bitacora ni membresia del migrador. No hay grants DML automaticos para futuras tablas: cada migracion autorizada debe otorgar permisos minimos y preservar auditoria append-only. Migrador disponible solo durante operacion autorizada; no es una cuenta de la API.
+Roles provisionados en F1: runtime CONNECT/USAGE y SELECT de las dos tablas tecnicas; migrador CONNECT y USAGE/CREATE en public, sin privilegios elevados en cluster. F2 extiende DML especifico como se describe abajo. PUBLIC sin CREATE/USAGE en public; cada rol recibe permisos explicitos. Runtime no CREATE/TEMP/DML de bitacora ni membresia del migrador. No grants DML automaticos a futuras tablas: cada revision otorga minimos/preserva append-only. Migrador solo durante operacion autorizada, nunca API.
 
-El .env combinado generado es exclusivamente de desarrollo, con contrasenas aleatorias distintas y ACL privada. En despliegue, inyectar al proceso API solo su DSN/token y entregar el DSN migrador por canal operativo separado; no distribuir el .env local ni la credencial publica de preparacion. No existen JWT/usuarios de negocio aun.
+El .env combinado generado es exclusivamente de desarrollo, con contrasenas aleatorias distintas y ACL privada. En despliegue, inyectar al proceso API solo su DSN/token y entregar el DSN migrador por canal operativo separado; no distribuir el .env local ni la credencial publica. F2 agrega SELECT/INSERT/UPDATE en tablas mutables/refresh y solo SELECT/INSERT en audit_events; sin DELETE, DDL ni DML sobre ledger para runtime. Triggers protegen identidad/version/auditoria. No usuarios reales ni claves JWT inicializados en origen en esta entrega.
+
+## Bootstrap Y Configuracion F2
+
+Las once tablas existen en ocoteAppDatabase/head20261124_0002, pero las nueve F2 estan vacias intencionalmente. No defaults de negocio, seeds, demos o credencial admin. `ready` verifica infraestructura, NO que configuracion/bootstrap esten completos. Auth sin claves inicializadas devuelve 503, no genera secretos al arrancar.
+
+Solo operador local autorizado, con custodia/canal definidos y preflight correcto. Elegir un origen HTTPS loopback real y confiable: el siguiente puerto es ejemplo de operador, no proxy/certificado instalado por esta tarea.
+
+```bash
+bash scripts/init-dev.sh --check
+backend/.venv/Scripts/python backend/tools/bootstrap.py init-auth --origin https://localhost:8443 --execute
+backend/.venv/Scripts/python backend/tools/bootstrap.py bootstrap-admin --execute
+```
+
+`init-auth` crea RSA3072, secreto CSRF y auth.env en backend/.local con ACL privada/O_EXCL; no sobrescribe claves ni backend/.env. Variables generadas: AUTH_ORIGIN, JWT_PRIVATE_KEY_FILE, CSRF_SECRET_FILE. Issuer/audience tecnicos ocote-local/ocote-spa; cambiarlos exige revisar sesiones. No enviar claves a agentes. `bootstrap-admin` exige claves validas, cero usuarios y ausencia de mantenimiento; pide email/nombre y password dos veces con getpass, Argon2id/auditoria en una transaccion con lock. Nunca password por argumento/log ni reset por repeticion; si ya hay usuarios, usar recuperacion aprobada, no recrear admin.
+
+Luego admin configura explicitamente por API autenticada: cuatro claves POST /api/v1/settings (organization_name, organization_timezone oficial America/Mexico_City, evidence_max_bytes 1..10485760, export_max_rows 1..10000); prioridades incluyendo normal activa; exactamente cinco codes annual/semiannual/quarterly/monthly/custom con custom activo. Etiquetas/posiciones/limites son decisiones del operador, no valores sembrados. POST /api/v1/workflow introduce grafo completo atomicamente: etapas con code/name/position/kind/is_initial/requisitos/reason, aristas por from_code/to_code/allowed_roles y motivo global; existentes exigen expected_version por fila, sin omitir/borrar registros. GET /api/v1/configuration-status reporta faltantes; instalacion vacia es valida pero no habilita F3.
+
+Sesion: POST auth/login (origen exacto), GET auth/csrf con cookie/origen, POST auth/refresh y auth/logout con cookie/origen/X-CSRF-Token, GET auth/me con Bearer y POST auth/change-password con password actual/nueva. Rutas bajo /api/v1. Access solo memoria SPA futura; refresh nunca JSON/localStorage. RS256/claves controladas, 10min access/7dias absolutos refresh; revocar familia invalida access inmediatamente. Cookie Secure/HttpOnly/SameSite Strict/Path /api/v1/auth: no bajar Secure para usar HTTP. Uvicorn HTTP siguiente solo sirve smoke tecnico o upstream privado de proxy HTTPS autorizado; navegador con sesion requiere TLS configurado aparte.
+
+Administracion: GET/POST y PATCH por id de departments/users/workflow-stages/workflow-transitions/priorities/horizon-types; POST users/{id}/reset-password; GET/POST settings, GET/PATCH settings/{key}; POST priorities/reorder y horizon-types/reorder con items id/position/expected_version y reason; workflow atomico, configuration-status, audit-events/releases solo lectura sanitizada. Releases tiene detalle por id y alias release-history; listas admin/auditoria/releases con limit1..100, cursor UUID y next_cursor, orden ascendente de UUID. Mutaciones con reason/version, 409 sin overwrite. Catalogos /catalogs por rol/departamento; sin permisos F3-F6 anunciados. Sin DELETE.
+
+Argon2id local: memoria65536KiB, tiempo3, paralelismo2; no benchmark productivo. Login y refresh <=10/cuenta/min y <=50/cliente/min compartidos, hashing efimero de claves/cliente, memoria acotada por proceso; 429/Retry-After60. No limite distribuido ni soporte multiples workers homologado. JSON <=1MiB; logs sin cuerpos/passwords/tokens/DSN. HTTPS real, custodia, bootstrap y configuracion de origen siguen pendientes; las pruebas usan transporte HTTPS TestClient y secretos sinteticos aislados.
 
 ## Salud Y Arranque
 
@@ -68,7 +94,7 @@ Swagger/OpenAPI HTTP no estan expuestos. El proxy futuro debe restringir ready a
 
 ## Migracion Y Ensayo Local
 
-La revision aplicada 20261124_0001 ya es inmutable. Crea solo release_history con checks/FK/indices y trigger de identidad/version/terminales protegidas; alembic_version es metadata de Alembic. No crear las otras 18 tablas por anticipado. Downgrade bloqueado por preservacion de bitacora: usar fix-forward o restore aislado aprobado, nunca stamp.
+Ambas revisiones aplicadas 20261124_0001 y 20261124_0002 son inmutables. F1 crea release_history; F2 agrega nueve tablas sin seeds. Alembic_version es metadata tecnica: once tablas en total, no las 19 objetivo. Downgrade bloqueado por preservacion de bitacora: usar fix-forward o restore aislado aprobado, nunca stamp.
 
 Comandos de inspeccion, sin migrar:
 
@@ -100,6 +126,8 @@ Los artefactos quedan en database/backups/f1-<attempt>/ con ACL local: events.js
 
 ### Verificar La Base Tecnica Existente
 
+Procedimiento historico exclusivo de head0001 con dos tablas. **No ejecutarlo en el origen actual F2**: rechaza el nuevo inventario. No adaptar silenciosamente el helper F1 ni repetir provision/rehearse/retry-verification.
+
 Solo para una comprobacion local expresamente autorizada, con API/escritores detenidos y PGPASSWORD introducida directamente en terminal y exportada como arriba:
 
 ```bash
@@ -109,6 +137,20 @@ unset PGPASSWORD
 ```
 
 Exige identidad original, unica head tecnica, solo las dos tablas tecnicas y cero sesiones ajenas. Toma lock persistente/mantenimiento, nuevo backup con restore aislado bloqueante y dos upgrades no-op comparando snapshots; preserva las filas release_history existentes **sin mutaciones persistidas** (fixtures de constraints en transacciones revertidas). La comprobacion no es una release: deja su journal/manifests propios en database/backups/f1-closure-<UUID>/, no fabrica otra fila de despliegue. El dump de cierre incluye ambos intentos anteriores ya terminales. Exito limpia solo su destino temporal/marca; fallo conserva mantenimiento/evidencia, sin reset ni reintento automatico. No usar provision/rehearse/retry-verification para repetir este chequeo.
+
+### Migracion Local F2
+
+[f2_local.py](tools/f2_local.py) ya ejecuto apply sobre origen0001 ->0002; intento y hashes en acta F2. Solo acepta ese origen una vez, cero sesiones ajenas, lock persistente/mantenimiento, backup/restore antes del upgrade, segundo no-op, restore posterior y del registro running, terminal y reapertura. Antes de crearse fila el journal externo es evidencia; si ya existe running intenta marcarla failed sin tocar terminales. Cualquier fallo conserva mantenimiento; diagnostico/fix-forward aprobado, no reaplicar/resetear ni editar revision instalada.
+
+Para probar revision desde cero sin tocar origen, con credencial administrativa introducida/exportada directamente en terminal como arriba:
+
+```bash
+bash scripts/init-dev.sh --check
+backend/.venv/Scripts/python backend/tools/f2_local.py check-migration --execute
+unset PGPASSWORD
+```
+
+Crea/elimina solo ocote_f2_test_<UUID>; restaura solo ocote_f2_restore_<UUID>. No es actualizador cliente ni una orden para repetir apply en origen. El restore usa --no-acl: comparar datos/esquema no prueba restauracion de grants; la suite verifica grants runtime aparte. recorded.dump captura running: reconciliar evento terminal del journal antes de reabrir un restore. Manifests locales no firmados/instantaneas del ensayo, no hash del checkout final, cifrado/copia off-host ni recovery de host.
 
 ## Verificacion Y Limites
 
@@ -120,8 +162,8 @@ backend/.venv/Scripts/python -m pip check
 git diff --check
 ```
 
-La primera invocacion omite 7 casos PostgreSQL; la segunda requiere configuracion local y revision ya aplicada. Casos reales usan runtime y migrador, sin superusuario, y fixtures transaccionales revertidas; no SQLite ni datos de negocio. Resultado del cierre: 33 passed, lint y pip check correctos; dos negativas nuevas cubren backup fallido antes del no-op y deteccion de mutacion de historia. Una advertencia de deprecacion TestClient/httpx queda registrada, sin cambiar dependencias solo para silenciarla.
+La primera invocacion da **33 passed, 25 skipped**, sin conectar PostgreSQL; la segunda requiere PGPASSWORD administrativa local temporal, configuracion y head0002. F1 usa fixtures con rollback en origen; F2 crea bases UUID aisladas, migra con migrador y ejerce API con runtime/datos sinteticos, eliminandolas al terminar. Superusuario solo prepara/elimina destinos, nunca API. No SQLite ni identidades de prueba en origen. Resultado F2: **58 passed**, Ruff/pip check limpios; races/reuso, ultimo admin, scopes/errores, constraints, no-defaults, bootstrap, reordenamiento atomico y paginacion/proyeccion de releases. Deprecacion TestClient/httpx conocida; editor reporta diagnostico TS6 rootDir en tsconfig.json no modificado, fuera de F2. No build Angular reejecutado.
 
-D01 ratificada; politica D05 y objetivos/responsable D06 aprobados en [guia 05, seccion 3.1](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepcion expresa sin suplente y excepciones separadas D07 por soporte Angular/61 alertas npm hasta 2026-12-24, solo desarrollo local F1/F2 con datos sinteticos; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Build/prototipo/peers pasaron, no remediacion de seguridad. Otro host/nube/TLS/capacidad, cifrado/copia off-host, programacion de backups, firma y homologacion cliente siguen pendientes; no SLA demostrado. El Python observado es 3.12.0 local: no certifica un nivel de parche productivo. btree_gist disponible no equivale a extension instalada/probada con exclusion GiST. No instalador/ocote-admin, login/JWT/CSRF, almacenamiento ni integraciones.
+D01 ratificada; politica D05 y objetivos/responsable D06 aprobados en [guia 05, seccion 3.1](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepcion sin suplente y excepciones separadas D07 soporte Angular/61 alertas hasta 2026-12-24, solo F1/F2 local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS/capacidad, cifrado/copia off-host, scheduler, firma/paquete y homologacion cliente pendientes; no SLA ni remediacion de seguridad. Python3.12.0 local no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Sin almacenamiento ni integraciones. Build/tests Angular historicos F1 no se repitieron: frontend/lock intactos.
 
-Siguiente paso: aprobar D02/D04 y custodia/bootstrap del primer admin y autorizar F2 (identidad, permisos, parametros/catalogos y administracion) con revisiones propias, sin exceder las excepciones locales ni su fecha. F2 no iniciado ni autorizado en este cierre.
+Siguiente paso: operador completa custodia/bootstrap y configuracion explicita como arriba. Despues solicitar aceptacion de ejemplos temporales/D03/D08 y reglas de F3, y autorizacion expresa de esa fase. **F3 no autorizado**; no crear planes/tareas/evaluaciones ni pantallas funcionales por anticipado. PostgreSQL queda activo, sin API/dev server persistente, sin bases temporales o mantenimiento pendiente.

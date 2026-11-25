@@ -16,6 +16,52 @@ class ServiceUnavailable(Exception):
     pass
 
 
+class CommandError(Exception):
+    def __init__(self, status: int, code: str, *, persist: bool = False):
+        self.status = status
+        self.code = code
+        self.persist = persist
+
+
+class JsonLimitMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] != "http" or scope["method"] not in {"POST", "PATCH", "PUT"}:
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope["headers"])
+        path = scope["path"]
+        if (
+            path not in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}
+            and headers.get(b"content-type", b"").split(b";", 1)[0].strip().lower()
+            != b"application/json"
+        ):
+            await problem(Request(scope), 415, "JSON_REQUIRED", "JSON commands required.")(
+                scope, receive, send
+            )
+            return
+        body = bytearray()
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                return
+            body.extend(message.get("body", b""))
+            if len(body) > 1048576:
+                await problem(Request(scope), 413, "PAYLOAD_TOO_LARGE", "Request body too large.")(
+                    scope, receive, send
+                )
+                return
+            if not message.get("more_body", False):
+                break
+
+        async def replay():
+            return {"type": "http.request", "body": bytes(body), "more_body": False}
+
+        await self.app(scope, replay, send)
+
+
 class RequestContextMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -69,6 +115,8 @@ def problem(request: Request, status: int, code: str, detail: str) -> JSONRespon
     }
     if status == 401:
         headers["WWW-Authenticate"] = "Bearer"
+    if status == 429:
+        headers["Retry-After"] = "60"
     return JSONResponse(
         status_code=status,
         media_type="application/problem+json",
@@ -86,6 +134,10 @@ def problem(request: Request, status: int, code: str, detail: str) -> JSONRespon
 
 
 def install_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(CommandError)
+    async def command_error(request: Request, exc: CommandError) -> JSONResponse:
+        return problem(request, exc.status, exc.code, "The request could not be completed.")
+
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
         codes = {401: "INVALID_CREDENTIALS", 403: "FORBIDDEN", 404: "RESOURCE_NOT_FOUND"}

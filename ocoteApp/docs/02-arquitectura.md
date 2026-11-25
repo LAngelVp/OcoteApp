@@ -1,6 +1,6 @@
 # OCOTE: arquitectura y modelo de datos
 
-Version documental: 2.0. Fecha de corte: 2026-11-24. Estado: modelo final objetivo de 19 tablas y despliegue local/nube especificados, no implementados. Backend/migraciones aun pendientes.
+Version documental: 2.0 con incremento F2 autorizado el 2026-11-24. Modelo objetivo de 19 tablas; F2 agrega nueve tablas vacias a la tecnica release_history. No F3-F7 ni despliegue productivo/nube. Estado y evidencia vigentes en roadmap.
 
 La [especificacion SDD](01-spec-driven-development.md) gobierna RN-01 a RN-07, RF-01 a RF-15 y tokens. El [roadmap](03-estado-actual-y-roadmap.md) distingue evidencia de propuesta y fija puertas D01-D08. La [guia de entrega](05-paquetizacion-instalacion-y-actualizaciones.md) gobierna paquetes, instalacion local/nube e integraciones y es fuente unica del protocolo de release.
 
@@ -8,7 +8,7 @@ La [guia de entorno y portabilidad](04-entorno-y-portabilidad.md) contiene el pr
 
 ## 1. Decisiones de arquitectura
 
-Monorepo ligero: Angular permanece en la raiz, backend/ sera independiente. Monolito modular con PostgreSQL y transacciones ACID; frontend/API pueden permanecer in-house aunque PostgreSQL sea remoto gestionado. Nube no introduce multitenencia ni conexion del navegador a BD.
+Monorepo ligero: Angular permanece en raiz y backend/ ya contiene F1/F2 por capas routers -> schemas/policies -> services -> models/BD. Monolito modular PostgreSQL/ACID; frontend/API pueden permanecer in-house aunque PostgreSQL sea gestionado. Nube no introduce multitenencia ni conexion del navegador a BD.
 
 | Area          | Decision objetivo                                                               | Restriccion                                                                                            |
 | ------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -174,7 +174,7 @@ Service valida cambios de periodo bajo bloqueo del plan y sus hijos: ningun obje
 | requires_evidence, requires_reason | BOOLEAN DEFAULT false                     |
 | is_active                          | BOOLEAN DEFAULT true                      |
 
-CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND NOT requires_reason)); CHECK(kind <> 'completed' OR is_active). Indices unicos parciales sobre constante para `WHERE is_initial` y `WHERE kind='completed'` garantizan como maximo una inicial y una terminal. Service/seed garantiza al menos una de cada y rechaza quitar la ultima. Reordenamiento en una transaccion con unicidad diferible de position, sin estados intermedios visibles. Se valida existencia de camino a terminal para cada etapa activa al guardar aristas/configuracion.
+CHECK(NOT is_initial OR (kind='open' AND is_active AND NOT requires_evidence AND NOT requires_reason)); CHECK(kind <> 'completed' OR is_active). Indices unicos parciales sobre constante para `WHERE is_initial` y `WHERE kind='completed'` garantizan como maximo una inicial y una terminal. Instalacion vacia permitida sin seed; admin configura inicial, terminal y aristas atomicamente mediante POST /workflow. Una configuracion activa exige camino a terminal para cada etapa activa y no permite quitar inicial/terminal. Reordenamiento en una transaccion con unicidad diferible de position, sin estados intermedios visibles. Code/kind/is_initial no se cambian en PATCH F2; no se omiten controles por falta de tareas.
 
 ### workflow_transitions
 
@@ -337,7 +337,7 @@ Indices `(entity_type, entity_id, created_at, id)`, `(actor_id, created_at, id)`
 | value      | JSONB escalar, sin null; tipo/rango segun clave                                                      |
 | updated_by | UUID FK users.id ?, null solo bootstrap con actor operacional externo registrado                     |
 
-UNIQUE(key). CHECK dependiente de key: nombre JSON string 1..160; zona string 1..100; evidence/export JSON number entero 1..10485760 / 1..10000. Pydantic valida enteros sin coercion y pertenencia a zona IANA instalada; validacion numerica SQL con CASE por jsonb_typeof para no castear texto arbitrario. Valores iniciales: nombre y zona obligatorios suministrados por operador; limite evidencia 10485760 y exportacion 5000. No secretos, claves libres ni override env. Admin cambia value con reason/version, lock global exclusivo, audit_events en misma transaccion; insercion inicial solo seed/bootstrap, nunca DELETE runtime. Zona bloqueada tras primera tarea/evaluacion. Cada request operacional lee bajo lock compartido; sin cache invalida. Tipos/politica de edicion son codigo, no columnas editables.
+UNIQUE(key). CHECK dependiente de key: nombre JSON string 1..160; zona string 1..100; evidence/export JSON number entero 1..10485760 / 1..10000. Pydantic valida enteros sin coercion y pertenencia a zona IANA instalada; validacion numerica SQL con CASE por jsonb_typeof para no castear texto arbitrario. F2 no inserta valores: admin crea explicitamente las cuatro claves mediante POST /settings; 10485760/5000 son referencias previas, no defaults sembrados. No secretos, claves libres ni override env. Admin cambia value con reason/version, lock global exclusivo y audit_events en misma transaccion; nunca DELETE runtime. Zona bloqueada tras primera tarea/evaluacion. Cada request operacional lee bajo lock compartido; sin cache invalida. Tipos/politica de edicion son codigo, no columnas editables.
 
 ### priorities
 
@@ -349,7 +349,7 @@ UNIQUE(key). CHECK dependiente de key: nombre JSON string 1..160; zona string 1.
 | position  | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED           |
 | is_active | BOOLEAN DEFAULT true                                     |
 
-CHECK(code <> 'normal' OR is_active). Seed inicial propuesto low/normal/high con posiciones 10/20/30; aprobar D04. Service exige normal existente; admin agrega/renombra/reordena/desactiva sin borrar ni cambiar code. UNIQUE(code) y UNIQUE(position) son indices; FK tasks.priority_id RESTRICT. Desactivar no reasigna tareas existentes, impide nuevas selecciones; cambio de prioridad en tarea abierta requiere version e historia. Lock global exclusivo en catalogo, compartido en operacion; eventos en audit_events. No prioridad por subtarea ni orden automatico por urgencia.
+CHECK(code <> 'normal' OR is_active). No seed low/normal/high: admin crea prioridades explicitamente; normal activa es requisito de configuracion completa, sin etiqueta/posicion inventada. Admin agrega/renombra/reordena/desactiva sin borrar ni cambiar code. UNIQUE(position) diferible. FK tasks.priority_id RESTRICT en F3. Desactivar no reasigna tareas existentes, impide nuevas selecciones; cambio de prioridad en tarea abierta requiere version e historia. Lock global exclusivo en catalogo, compartido en operacion; eventos en audit_events. No prioridad por subtarea ni orden automatico por urgencia.
 
 ### horizon_types
 
@@ -361,7 +361,7 @@ CHECK(code <> 'normal' OR is_active). Seed inicial propuesto low/normal/high con
 | position  | INT >= 0, UNIQUE DEFERRABLE INITIALLY DEFERRED                       |
 | is_active | BOOLEAN DEFAULT true                                                 |
 
-CHECK(code <> 'custom' OR is_active). Seed crea exactamente cinco filas con etiquetas RN-01 y posiciones 10..50; verifica faltantes/conflictos sin sobrescribir preferencias. FK annual_plans.horizon_type/objectives.horizon_type referencia code UNIQUE, no traduccion; no otro CHECK duplicado en padres. UUID/code inmutables; sin INSERT/DELETE runtime, solo nombre/orden/activo por admin con lock exclusivo, version/motivo y audit_events. No duracion rigida, formulas o JSON de plantillas ejecutables. Horizonte inactivo puede mantenerse en registros previos, nunca elegirse como nuevo code. Ampliar cinco semanticas exige revision de contrato, no CRUD.
+CHECK(code <> 'custom' OR is_active). F2 no crea filas: admin introduce explicitamente exactamente los cinco codes RN-01 por POST /horizon-types, eligiendo etiquetas/posiciones; no puede inventar otro code ni borrar/renombrar los existentes. INSERT runtime queda limitado por CHECK/UNIQUE y autorizacion admin; UPDATE solo nombre/orden/activo con lock exclusivo, version/motivo/auditoria, nunca DELETE. FK annual_plans.horizon_type/objectives.horizon_type referencia code UNIQUE en F3. No duracion rigida, formulas o JSON de plantillas ejecutables. Horizonte inactivo puede mantenerse en registros previos, nunca elegirse como nuevo code. Ampliar cinco semanticas exige revision de contrato.
 
 ### due_date_requests
 
@@ -412,7 +412,7 @@ Solo rol operativo de release puede INSERT y avanzar columnas de estado mientras
 - Orden de bloqueos de dominio: control de configuracion, departamentos por UUID, usuarios afectados por UUID, planes por UUID, objetivos por UUID, tareas por UUID y subtareas por UUID; cada comando toma solo las filas necesarias, siempre en ese orden. Configuracion de usuarios/departamentos coordina bloqueo con asignacion/creacion para que no se asigne a usuarios inactivos. Probar carreras, no solo validaciones secuenciales.
 - Workflow, roles, parametros, prioridades y horizontes usan advisory transaccional global exclusivo; operacion toma el mismo compartido antes de leer configuracion/autorizar. Bootstrap usa exclusivo. Mantener orden completo antes de fila solicitud. Release usa lock operativo persistente distinto en conexion dedicada directa, no lock transaccional liberado por cada revision ni conexion del pool. Asignaciones bloquean usuarios antes de plan/tarea; si no se puede conservar orden, reiniciar transaccion.
 - Consultas de metricas agregan subtareas por task_id antes de unirlas a tareas para no multiplicar denominadores. Evitar N+1 mediante carga explicita. Indices se validan con EXPLAIN y datos de volumen acordado, no se agregan sin medir.
-- Migraciones Alembic versionadas/revisadas, sin create_all. Nueva BD recorre revisiones; seeds conservadores por code/key crean faltantes sin pisar configuracion, fechas ni credenciales. Orden logico: tablas/constraints -> catalogos -> parametros explicitos -> primer admin por bootstrap seguro; auditoria operacional externa cubre etapa anterior a users/audit_events.
+- Migraciones Alembic versionadas/revisadas, sin create_all. F2 crea tablas/constraints vacias, bootstrap del primer admin por CLI y configuracion explicita de catalogos/parametros mediante API autenticada; no seeds. Futuras releases solo incorporan seeds por code/key si aprobados, sin pisar datos. Auditoria externa cubre etapa anterior a users/audit_events; CLI de bootstrap deja primer audit transaccional.
 - Campos de evidencia y JSONB tienen contratos versionados y validacion Pydantic, no son un escape a la definicion del dominio. Limite de peticion JSON 1 MiB; evidencias con limite dedicado en proxy y API.
 
 ### Actualizaciones del cliente y cambios de esquema
@@ -507,7 +507,7 @@ flowchart TB
   Files --> Backup
 ```
 
-- Desarrollo comprobado: binarios Windows PostgreSQL 18.4 en database/postgres/bin, cluster 18 en database/data, logs en database/logs, endpoint 127.0.0.1:5432 y base ocoteAppDatabase con solo alembic_version/release_history, revision 20261124_0001. Roles runtime/migrador separados; migracion/no-op y restores tecnicos probados en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local). La base previa ocote se conserva sin renombrar/copiar/borrar. Credenciales solo locales en guia operativa; no son las futuras credenciales productivas.
+- Desarrollo comprobado: PG18.4 Windows en database/postgres/bin, cluster18 en database/data, logs en database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0002, once tablas: nueve F2 vacias mas release_history/alembic_version. Roles separados; migracion/no-op/restores y permisos probados en [evidencia F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local). ocote se conserva sin renombrar/copiar/borrar. Bootstrap/configuracion del operador pendientes; no homologacion productiva.
 - Arranque/verificacion: `bash scripts/init-dev.sh` y luego `bash scripts/init-dev.sh --check`. Delega en db-start.sh: valida pg_ctl status, pg_isready, version mayor y SHOW data_directory antes de consultar/crear ocoteAppDatabase con mayusculas exactas. Nunca hace initdb, migrations/seeds, reset, stop ni configuracion persistente. Solo al arrancar fija loopback/puerto; init-dev muestra estado de backend/.venv, backend/alembic y node_modules.
 - Produccion in-house (D06 pendiente): portable bajo usuario dedicado o contenedor con volumen persistente; FastAPI separado y proxy sirviendo `dist/ocote-app/browser` segun salida verificada del build. SPA fallback a index.html solo fuera de `/api`; errores API no devuelven HTML. Validar version minor soportada y parcheada antes de desplegar.
 - `initdb` solo para una instalacion nueva sin cluster, mediante decision explicita del operador; jamas para reparar una falla de arranque. Portable no significa copiar data mientras el servidor esta activo ni incluir la BD en Angular.

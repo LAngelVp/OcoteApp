@@ -1,18 +1,18 @@
 # OCOTE: entorno local y portabilidad
 
-Version documental: 2.0 con cierre F1 local, 2026-11-24. Guia de entorno/retoma local; instalacion del cliente y protocolo normativo de release se centralizan en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion cliente pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado vigente y excepciones en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F2 local, 2026-11-24. Retoma local; instalacion cliente/release en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
 
 ## 1. Estado real y limites
 
 | Elemento       | Estado comprobado                                                                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Frontend       | Angular 18.2 SPA/SCSS en raiz; Material/CDK, ngx-echarts/ECharts y vis-timeline con prototipo/build probados; pantalla inicial, no modulos OCOTE |
-| Backend        | Python 3.12 + FastAPI + SQLAlchemy 2.0 + psycopg 3 + Alembic tecnicos existentes; solo health y revision                       |
+| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; health, identidad/permisos y administracion F2; no F3-F7 |
 | Binarios       | database/postgres/bin; postgres --version devuelve PostgreSQL 18.4 Windows                                                  |
 | Cluster        | database/data, inicializado previamente; PG_VERSION contiene 18                                                             |
 | Logs           | database/logs/postgres.log; no versionados                                                                                  |
 | Endpoint       | 127.0.0.1:5432 por defecto; comprobado listen_addresses=127.0.0.1 y autenticacion host SCRAM-SHA-256                        |
-| Base objetivo  | ocoteAppDatabase, nombre exacto con mayusculas; solo alembic_version y release_history; revision 20261124_0001                 |
+| Base objetivo  | ocoteAppDatabase exacta; head20261124_0002, nueve tablas F2 vacias mas alembic_version/release_history; tres releases terminales |
 | Usuario local  | postgres, superusuario SOLO para preparacion/desarrollo local                                                               |
 | Password local | `holamundo`, credencial conocida y debil, EXCLUSIVA de desarrollo local; NUNCA produccion, red compartida o datos reales    |
 
@@ -20,7 +20,7 @@ La propuesta documental anterior mencionaba PostgreSQL 16; la evidencia es 18.4/
 
 La base anterior ocote permanece intacta: no se renombra, copia, importa ni borra automaticamente. En otro equipo puede no existir. Si contiene datos utiles, inventariar y planificar su traslado con respaldo/aprobacion; crear ocoteAppDatabase no migra su contenido. Libpq/createdb reciben el nombre exacto; en SQL manual de administracion un identificador de esta base requeriria comillas dobles ("ocoteAppDatabase"), nunca asumir que un nombre sin comillas conserva mayusculas.
 
-F1 cerrado para desarrollo local/sintetico, no produccion/nube: backend/roles tecnicos, revision/no-op, backup y restore aislado probados; no usuarios/roles de negocio, login ni tablas/endpoints de dominio. El superusuario postgres no es el usuario administrador de negocio `admin` de RF-01 ni cuenta runtime. Excepciones hasta 2026-12-24: ausencia de suplente y D07 soporte/61 alertas, aceptadas separadamente; no exponer a red compartida ni procesar entradas no confiables. F2 no autorizado.
+F1 cerrado y F2 autorizado/implementado/verificado solo local/sintetico. F2 tiene identidad/login/admin, pero cero usuarios/datos/claves reales provisionados: operador completa bootstrap/configuracion segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni cuenta runtime. Excepciones sin suplente y D07 soporte/61 alertas hasta 2026-12-24; no red compartida/entradas no confiables. F3 no autorizado; no produccion/nube.
 
 ## 2. Credenciales y configuracion
 
@@ -29,7 +29,7 @@ F1 cerrado para desarrollo local/sintetico, no produccion/nube: backend/roles te
 - [init-dev.sh](../scripts/init-dev.sh) usa `PGPASSWORD="${PGPASSWORD:-holamundo}"` en su proceso, SOLO development/test. Si esta vacia/no definida, usa la credencial local conocida. No imprime la password ni la pasa en argumentos de psql/createdb; la del entorno prevalece.
 - [db-start.sh](../scripts/db-start.sh) sigue disponible como helper inferior: solo activa ese fallback con --local-dev. Para PGPASSFILE protegido y sin fallback usar db-start.sh sin --local-dev y con PGPASSWORD sin definir. En init-dev, el fallback PGPASSWORD prevalece sobre PGPASSFILE: no usarlo como lector transparente de otro password file.
 - PGPASSWORD es temporal al proceso, no una caja fuerte: un usuario privilegiado puede inspeccionar entornos. Evitar shell tracing (`bash -x`), capturas de entorno, logs y URLs con password. El helper deshabilita xtrace y nunca solicita credenciales interactivamente. Para una credencial real usar gestor de secretos/archivo de acceso restringido.
-- F1 creo ocote_runtime sin superusuario y ocote_migrador separado, con passwords aleatorias diferentes. Backend carga solo backend/.env protegido (no ejecuta shell); plantilla [backend/.env.example](../backend/.env.example) sin secretos. No repetir provision ni sobrescribir configuracion existente; no hardcodear postgres/holamundo en Python, Angular, SQL o conexiones productivas.
+- F1 creo ocote_runtime sin superusuario y ocote_migrador separado, passwords aleatorias diferentes. Backend carga backend/.env protegido; AuthSettings agrega backend/.local/auth.env generado por CLI, nunca ejecuta shell. [Plantilla](../backend/.env.example) sin secretos. No repetir provision, init-auth ni sobrescribir configuracion/claves existentes; no hardcodear postgres/holamundo en backend/SPA/SQL productivos.
 
 Configuracion opcional sin escribir la password en historial de comandos:
 
@@ -52,7 +52,7 @@ Si se usa la credencial de ejemplo, introducir `holamundo` en ese prompt o usar 
 | PGPASSWORD          | init-dev: fallback local holamundo; db-start: sin default salvo --local-dev; entorno temporal, nunca argumento                                     |
 | PGPASSFILE          | Opcional, soporte nativo libpq para archivo de passwords                                                                                           |
 
-Host fijo 127.0.0.1: no existe parametro para BD remota. El helper ignora servicios/opciones libpq heredados que podrian redirigir conexion. DATABASE_URL es secreto del backend; ORGANIZATION_TIMEZONE=America/Mexico_City esta ratificada D01, solo entrada inicial para system_settings.organization_timezone, no override runtime. Helper no los consume. Parametros/catalogos operativos futuros en BD segun RN-07; passwords/DSN/claves en entorno protegido o gestor, nunca en system_settings.
+Host fijo 127.0.0.1: no parametro para BD remota. Helper ignora servicios/opciones libpq heredados que redirijan conexion. DATABASE_URL es secreto; ORGANIZATION_TIMEZONE=America/Mexico_City ratificada D01, solo bootstrap, nunca override runtime. Helper no los consume. F2 crea estructuras de parametros/catalogos vacias: admin introduce datos explicitamente. Passwords/DSN/claves en entorno/gestor, nunca system_settings.
 
 Cliente local productivo, contenedor y PostgreSQL gestionado usan la guia 05, no init-dev. En nube se validan TLS verify-full/CA, endpoint privado, roles/extensiones, pool acotado y conexion directa de migracion. No extender informalmente el helper cambiando host ni aplicar su credencial conocida a otra instancia. El cierre F1 comprobo el cluster original ya activo y lo dejo activo, sin reiniciarlo ni homologar otra instancia.
 
@@ -160,7 +160,7 @@ Las rutas no deben depender de C:/Users de un desarrollador; el helper las deriv
 
 ## 6. Backup y restauracion portables
 
-El ensayo F1 ejecuto backup y restore aislado tecnicos: evidencia y hashes en acta F1. Para repetir verificacion autorizada sobre la base tecnica existente usar verify-existing del runbook, no provision/rehearse. El fragmento manual siguiente es entrenamiento, no el gate automatico de release. Desarrollo usa pg_dump de la misma distribucion; el respaldo integral de producto debe coordinar BD y evidencias. Volumen persistente no equivale a backup.
+F1 y F2 ejecutaron backup/restore aislados, evidencia/hashes en roadmap. verify-existing es historico exclusivo de head0001/dos tablas: **no usarlo en el origen F2**, ni provision/rehearse. f2_local.py ya aplico0002 una vez; no repetir apply. check-migration prueba desde cero en destino unico, no toca origen. El fragmento siguiente es entrenamiento, no gate de release. Backup integral futuro coordina BD/evidencia; volumen no equivale a backup.
 
 Con credencial exportada temporalmente o PGPASSFILE, y desde raiz:
 
@@ -202,4 +202,4 @@ La suite usa mocks en carpetas temporales con espacios, no el cluster real: 16 p
 
 Evidencia historica del helper, anterior a F1: PostgreSQL 18.4/cluster 18 ya activo en loopback. init-dev creo ocoteAppDatabase porque faltaba; repeticion y --check desde fuera del checkout exitosos, sin renombrar/borrar ocote. Entonces el objetivo estaba vacio y no habia backend ni restore. La evidencia posterior vigente de revision/roles/restore, sin leer datos legacy ni resetear el origen, esta en acta F1; no otros SO ni protocolo cliente homologados.
 
-Siguiente paso exacto: aprobar D02/D04 y custodia/bootstrap seguro del primer admin, nombre organizacional y autorizacion expresa F2 dentro de las excepciones locales vigentes. F2-F7 y RF-\* conservan orden/criterios del roadmap; no crear negocio ni otras tablas por anticipado.
+Siguiente paso exacto: operador define custodia/origen HTTPS y completa bootstrap/configuracion explicitos segun runbook; D02/D04 ya confirmadas para F2. Despues resolver D03/D08/ejemplos temporales y obtener autorizacion expresa F3. F3-F7/RF-\* conservan orden/gates; no crear negocio ni pantallas por anticipado. Mensaje heredado del helper sobre F1 no sustituye este estado vigente.

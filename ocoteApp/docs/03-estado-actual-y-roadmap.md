@@ -1,8 +1,8 @@
 # OCOTE: estado actual y roadmap
 
-Version documental: 2.0 con acta de cierre F1 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. No implementa F2, negocio ni instalador cliente.
+Version documental: 2.0 con incremento F2 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. Sin F3-F7 ni instalador cliente.
 
-Estado vigente: **F1 cerrado para desarrollo local con datos sinteticos y excepciones expresas hasta 2026-12-24**, segun [acta de seccion 7](#7-cierre-formal-f1-local). F2 no autorizado ni iniciado. La seccion 6 conserva la primera ejecucion y su fallo/reintento; secciones 1 y 5 son fotografias historicas F0, no inventario actual. Reglas y DoD se preservan; los limites y gates de entornos no homologados se explicitan, no se proclaman cumplidos.
+Estado vigente: **F2 autorizado, implementado y verificado tecnicamente en local/sintetico; bootstrap y configuracion reales pendientes del operador**, segun [seccion 8](#8-identidad-y-administracion-f2-local). F3 no autorizado. Las excepciones F1 hasta 2026-12-24 siguen en [seccion 7](#7-cierre-formal-f1-local). Secciones 1 y 5 son fotografias F0; 6 y 7 conservan ejecucion/cierre F1 historicos, no el inventario actual. No se proclaman satisfechos gates de produccion o de fases posteriores.
 
 Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y datos](02-arquitectura.md), [entorno local](04-entorno-y-portabilidad.md), [entrega/actualizaciones](05-paquetizacion-instalacion-y-actualizaciones.md). RF-01..12 y RN-01..06 se conservan; se agregan RF-13..15 y RN-07 sin renumerar D01-D08/F0-F7.
 
@@ -95,11 +95,11 @@ Riesgo principal: version instalada no compatible o perdida del volumen. Mitigac
 
 ### F2. Identidad, permisos y administracion
 
-Dependencia: F1. Puertas: D02, D04 catalogos/flujo inicial y provision segura del primer admin; revisar refresh/CSRF y credenciales, ratificar nombre/zona RN-07.
+Dependencia: F1. D02/D04 confirmadas en la autorizacion F2 de seccion 8. La instalacion queda vacia deliberadamente; provision segura del primer admin y configuracion explicita del operador son necesarias antes de uso, no defaults de migracion. Revisar refresh/CSRF y credenciales, introducir nombre/zona RN-07.
 
-Entregables: departments/users/audit_events/refresh_sessions, system_settings/priorities/horizon_types y etapas/aristas, migraciones/seeds conservadores; bootstrap admin de uso unico sin default, JWT/Argon2id/CSRF y politicas. RF-01/RF-02/RF-13 API; no tableros de negocio. Zona sin override env; protegerla desde F3 con primera tarea/evaluacion.
+Entregables: departments/users/audit_events/refresh_sessions, system_settings/priorities/horizon_types y etapas/aristas, migracion aditiva sin seeds segun autorizacion expresa; bootstrap admin de uso unico sin default, JWT/Argon2id/CSRF y politicas. RF-01/RF-02/RF-13 API; no tableros de negocio. Zona sin override env; probar proteccion desde F3 con primera tarea/evaluacion real.
 
-DoD: ciclo sesion/CSRF/reuso/revocacion, carreras ultimo admin y 401/403/404; politicas positivas/negativas por modulo/proyeccion, no solo boton oculto. Parametros rechazan claves/tipos/limites invalidos y conflictos; procesos observan mismo valor; cinco horizontes/normal/custom protegidos. Seeds repetidos no pisan datos y bootstrap repetido no duplica/resetea admin. Workflow inicial/terminal y grafo validos.
+DoD: ciclo sesion/CSRF/reuso/revocacion, carreras ultimo admin y 401/403/404; politicas positivas/negativas por modulo/proyeccion, no solo boton oculto. Parametros rechazan claves/tipos/limites invalidos y conflictos; procesos leen BD sin cache; cinco horizontes/normal/custom protegidos. Migracion/no-op no inventan ni pisan datos; bootstrap repetido no duplica/resetea admin. Workflow inicial/terminal y grafo validos al configurar atomicamente. Instalacion vacia reporta configuracion incompleta, no viola este contrato ni habilita F3.
 
 Riesgo principal: permisos solo visuales o cookies vulnerables. Mitigacion: autorizacion central, pruebas negativas en servidor y HTTPS/origen/CSRF.
 
@@ -178,9 +178,9 @@ Riesgo principal: una demo funcional se confunda con operacion lista. Mitigacion
 | Riesgo / decision                                                  | Responsable propuesto       | Puerta y mitigacion                                                                                                                   |
 | ------------------------------------------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | D01 Zona y horizontes configurables, sin ciclo anual rigido        | Gerencia + TI               | Flexibilidad adoptada; F1 confirma zona IANA; F3 valida ejemplos, contencion y cruces de anio                                         |
-| D02 Un departamento/rol por usuario no cubra organigrama           | Gerencia + seguridad        | F2; aprobar matriz o especificar memberships antes de migrar                                                                          |
+| D02 Un departamento/rol por usuario no cubra organigrama           | Gerencia + seguridad        | Confirmada para F2 local: un rol; departamento obligatorio L/C. No memberships implicitas; custodia del admin pendiente del operador |
 | D03 Pesos iguales sin criterio de calidad                          | Gerencia                    | F3; aceptar metricas separadas, no prometer score de productividad                                                                    |
-| D04 Etapas/cierre y catalogos iniciales                            | Administrador de proceso    | F2 aprueba etapas/prioridades/horizontes y RF-13; F3 ratifica cierre/solicitudes, sin reglas arbitrarias                              |
+| D04 Etapas/cierre y catalogos iniciales                            | Administrador de proceso    | Semanticas F2 confirmadas, sin seeds; operador elige etiquetas/posiciones/grafo. F3 ratifica cierre/solicitudes y F5 evidencia |
 | D05 Datos personales, evidencia y retencion                        | Seguridad + legal + TI      | F1 politica; F5 escaneo/compensaciones; minimizar datos y proteger descargas                                                          |
 | D06 Desarrollo portable confirmado; A/B productivos pendientes     | TI/operaciones              | F1 SO/proveedor/region, roles/extension/TLS/red/pool, RPO/RTO y restore; F7 paquete/instalacion/upgrade/contingencia homologados      |
 | D07 Soporte Angular 18 y compatibilidad ECharts 6 / ngx-echarts 18 | Lider tecnico + seguridad   | F1 y F7; Angular 18 es version historica al corte; verificar soporte oficial, no asumir parches vigentes; upgrade solo con aprobacion |
@@ -254,7 +254,7 @@ Preparacion hacia F2: ratificar D01/D05/D06/D07 y cerrar/aceptar formalmente las
 
 ## 7. Cierre formal F1 local
 
-Acta del 2026-11-24 local. Titular y responsable operativo: **LUIS ANGEL VALLEJO - DESARROLLADOR**. El usuario autorizo completar F1, ratifico decisiones y acepto expresamente los riesgos delimitados abajo. **F1 queda cerrado en Windows x64, PostgreSQL portable 18.4/loopback y datos sinteticos; no es una liberacion productiva ni homologacion nube/F7.** Secciones 1, 5 y 6 conservan evidencia historica; esta seccion gobierna el estado actual. No hubo cambios de dependencias, helpers previos, endpoints de negocio ni pantallas funcionales.
+Acta historica del 2026-11-24 local. Titular y responsable operativo: **LUIS ANGEL VALLEJO - DESARROLLADOR**. El usuario autorizo completar F1, ratifico decisiones y acepto expresamente los riesgos delimitados abajo. **F1 queda cerrado en Windows x64, PostgreSQL portable 18.4/loopback y datos sinteticos; no es una liberacion productiva ni homologacion nube/F7.** Secciones 1, 5 y 6 conservan evidencia anterior; seccion 8 registra el incremento posterior F2. En este cierre F1 no hubo cambios de dependencias, helpers previos, endpoints de negocio ni pantallas funcionales.
 
 ### Decisiones y excepciones expresas
 
@@ -313,3 +313,59 @@ El destino ocote_f1_restore_ed913a74b9f4443696af67b0c708ab6c fue eliminado sin F
 **Base lista para solicitar F2, no autorizacion de F2.** Antes de iniciarla: aprobar D02 (matriz de permisos/organigrama y responsables), D04 (catalogos y flujo inicial), definir identidad/custodio, entrega segura y recuperacion del primer admin sin credenciales por defecto, ratificar nombre organizacional y conservar zona D01 conforme RN-07; obtener autorizacion expresa F2 dentro de los limites temporales anteriores. D03/D08 y ejemplos temporales siguen sus puertas F3/F6.
 
 Primer trabajo tras esas aprobaciones: especificar y crear revisiones F2 propias para identidad/administracion (departments/users/audit_events/refresh_sessions, system_settings/priorities/horizon_types y workflow), seeds conservadores y bootstrap de uso unico; despues sesion JWT/Argon2id/CSRF y politicas positivas/negativas. No editar la revision aplicada, crear todas las tablas objetivo ni iniciar planes/tareas/evaluaciones o pantallas funcionales por anticipado.
+
+## 8. Identidad y administracion F2 local
+
+### Autorizacion y estado
+
+El titular autoriza expresamente implementar/verificar F2 local con datos sinteticos y confirma D02/D04: un rol por usuario, departamento obligatorio para lider/colaborador, etapas globales con inicial open sin requisitos y terminal completed unica, transiciones sin gerente y con admin. Sustituye la puerta F2 pendiente de seccion 7; no altera su evidencia ni autoriza F3-F7. Se mantienen responsable, restricciones y vencimiento 2026-12-24 de las excepciones.
+
+**Base F2 implementada y verificada; puesta en uso pendiente de bootstrap/configuracion explicitos.** Por instruccion expresa no se inventaron ni sembraron usuarios, departamentos, etapas, aristas, prioridades, horizontes o parametros. No se genero identidad/password de un admin real ni se eligio un origen HTTPS en nombre del operador. La herramienta segura esta probada con identidades sinteticas exclusivamente en bases aisladas eliminadas al terminar. No pantallas Angular funcionales, planes/tareas/evaluaciones, exports ni cargas de archivos.
+
+### Entregables y pruebas
+
+| Superficie | Implementacion y evidencia |
+| ---------- | ------------------------- |
+| Modelos/revision | [Nueve modelos](../backend/app/models/identity.py) y [20261124_0002](../backend/alembic/versions/20261124_0002_identity.py), aditiva desde 0001, sin INSERT/seeds. Nueve tablas F2 mas release_history y alembic_version; CHECK/FK/UNIQUE, indices, triggers de identidad/version y auditoria append-only. Ambas revisiones aplicadas quedan inmutables. |
+| Sesion | Argon2id 64 MiB/3 iteraciones/2 vias, rehash; RSA >=3072/RS256 con kid y claims fijados. Access 10 min, refresh absoluto 7 dias, solo hash de jti en BD. Cookie Secure/HttpOnly/SameSite Strict, origen HTTPS loopback exacto, CSRF ligado a familia/expiracion. Rotacion/reuso concurrente, revocacion persistida antes del 401, logout idempotente y cambio/reset de password probados. |
+| Permisos | Usuario/rol/departamento/token_version/familia consultados en cada solicitud. Admin para CRUD/configuracion/auditoria/releases; catalogos minimos L solo departamento, C solo propio contexto, G lectura global. Denegacion antes de lookup administrativo, 401/403/404 sanitizados y sin hashes. Cambio rol/departamento/estado/password revoca sesiones; carrera ultimo admin deja exactamente uno. |
+| Administracion | Altas/PATCH con DTO allowlist, version y motivo; sin DELETE. Catalogos con codes estables, normal/custom protegidos, reordenamiento atomico, cuatro claves tipadas, grafo completo atomico con versionado y rollback. `/configuration-status` permite instalacion vacia y reporta incompleta; no crea datos. Lock advisory compartido/exclusivo y transaccion unica. |
+| Bootstrap | [CLI](../backend/tools/bootstrap.py) crea claves privadas sin sobrescribir; bootstrap exige cero usuarios y lock exclusivo, captura password con getpass y audita. Repetir no crea/resetea identidades. Configuracion separada en backend/.local/auth.env ignorada; sin secretos en argumentos/SPA/logs. |
+| Limites HTTP | JSON <=1 MiB, 413/415/422, request_id/no-store/nosniff, 401 con WWW-Authenticate, 429 con Retry-After. Login/refresh limitados por cuenta y cliente en memoria acotada por proceso; no proteccion distribuida productiva. |
+| Herramienta local | [f2_local.py](../backend/tools/f2_local.py): lock de sesion/mantenimiento, cero sesiones ajenas, backup previo y restore bloqueantes, upgrade, no-op y restores posteriores; conserva historia/legacy. Fallo retiene mantenimiento y journal; si existe fila propia running intenta terminal failed sin modificar terminales. Sin reset, downgrade, stamp, create_all o restore sobre origen. |
+
+Dependencias nuevas revisadas y fijadas con hashes: argon2-cffi 25.1.0, PyJWT 2.15.1 y cryptography 50.0.2 (mas transitivas). Regeneracion con pip-tools sin upgrade global y con --allow-unsafe para incluir setuptools fijado. Angular/package-lock y revision F1 preservados; no audit fix ni cambio de stack.
+
+| Gate ejecutado | Resultado real |
+| -------------- | -------------- |
+| `bash scripts/init-dev.sh --check` previo/posterior | Exit 0, PG18.4 y base exacta, servidor ya estaba activo y queda activo. Su mensaje heredado de siguiente paso F1 no gobierna la fase vigente. |
+| `f2_local.py check-migration --execute` | Migracion desde cero en base temporal unica, nueve tablas vacias y segundo upgrade no-op; destino eliminado. |
+| `f2_local.py apply --execute` | Exit 0, backup/restore before, upgrade, segundo upgrade no-op, restore after y recorded; reapertura solo al terminar validaciones. No se repite sobre head0002. |
+| `OCOTE_RUN_PG_TESTS=1 backend/.venv/Scripts/python -m pytest -q backend/tests` | **58 passed**: 33 base F1 actualizados, 1 caso adicional de head obsoleta y 24 de identidad/administracion. Incluye PostgreSQL real aislado, carreras de refresh/ultimo admin, scopes/errores, no-defaults, bootstrap no repetible, reordenamiento/rollback, paginacion/proyeccion de auditoria/releases y backup fallido antes de Alembic. Una deprecacion TestClient/httpx conocida, sin cambiar dependencias solo para silenciarla. |
+| `backend/.venv/Scripts/python -m pytest -q backend/tests` sin opt-in | **33 passed, 25 skipped**; la suite ordinaria no conecta PostgreSQL ni crea fixtures de negocio en origen. |
+| `python -m ruff check backend` / `python -m pip check` | Limpios, usando backend/.venv/Scripts/python. |
+| Alembic `current` / `heads` | Ambos **20261124_0002 (head)**; head unica. Health ready positivo y negativos comprobados en suite. |
+| Inventario final de solo lectura | Once tablas; cero filas en las nueve F2 (incluidas users/audit_events), tres releases terminales, cero temporales, maintenance ausente. ocote OID16384 y ocoteAppDatabase OID16389 conservados. |
+| Documentacion/integridad | 9 documentos, 141 referencias locales/anclas, 9 JSON validos, fences balanceados e IDs conservados; diff check limpio. Hashes F1/package-lock identicos al acta anterior; no secretos/claves/dumps/data/logs/venv en archivos rastreados o nuevos no ignorados. Frontend/helpers y herramientas F1 sin cambios. |
+
+El editor no reporta errores en los archivos F2 tocados. Si reporta un diagnostico TS6 de rootDir en tsconfig.json, no modificado por esta tarea; no se corrigio ni se repitio build Angular por estar fuera de alcance. Las pruebas/build frontend de seccion 7 son historicas, no gates reejecutados de F2. La validacion documental es estructural, no prueba de diagramas renderizados ni de cobertura semantica completa.
+
+### Evidencia de migracion y recuperacion
+
+Intento **c7eb0899-dc10-41ec-b347-11bd84218652**, request_id **ea97b886-d16e-416f-a0a1-fa1028cc27fb**. Inicio UTC 2026-11-25T03:10:09.417876Z; fin 03:10:16.748611Z; **7.769 s**. Resultado release_history `succeeded/F2_LOCAL_VERIFIED`, version2. Las dos filas F1 terminales conservaron su identidad/resultado/version. No reescritura de historia ni lectura de registros de negocio legacy.
+
+| Dump privado | Bytes | SHA-256 | Restore medido |
+| ------------ | ----- | ------- | -------------- |
+| before.dump | 11307 | d821304dbb0a5f94964b616668e400e991629150054ce08583fcb655cceddcaf | 0.555 s |
+| after.dump | 45945 | 8decd760df3389b7d1731bd228a1b9f7db955ff26dbd0933f6675c94beed2616 | 0.676 s |
+| recorded.dump | 46196 | 6311a3540070b23c187775f76684a5ee54612aac2a7a67249152e660501d5fd9 | 0.656 s |
+
+Dumps, manifests y journal fsync con ACL privada en database/backups/f2-c7eb0899-dc10-41ec-b347-11bd84218652/, ignorados por Git. SHA-256 de revision F2 aplicada: b14f3196c0572385d9af86cd451181b809933726cb89ce9915c3286df428006f. Restore siempre a destino unico del mismo cluster, --no-owner/--no-acl, sin --clean/FORCE ni sobrescribir origen/legacy. Se compararon datos/revision, columnas, propiedades de constraints, indices, triggers/funciones y probes F1 con rollback. `--no-acl` prueba recuperacion logica, no restauracion de grants; permisos runtime se verificaron aparte en suite. Los tiempos no son RTO/RPO productivos ni recuperacion de host.
+
+recorded.dump contiene el intento running; el evento terminal posterior exige reconciliacion desde journal al restaurar antes de reabrir. Manifest es instantanea del ensayo local no firmada, no hash del checkout final: pruebas posteriores completaron contratos API/contingencia sin modificar revision aplicada ni repetir upgrade de origen. No paquete cliente/ocote-admin, cifrado/copia off-host, scheduler, TLS/proxy real, multiples workers, carga o homologacion nube.
+
+### Retoma y puerta F3
+
+Seguir [runbook de bootstrap](../backend/README.md#bootstrap-y-configuracion-f2): el operador elige origen HTTPS loopback y canal/custodia, inicializa claves sin sobrescribir y aporta nombre/email/password del primer admin directamente en terminal. Configura explicitamente nombre, zona oficial America/Mexico_City, limites, cinco horizontes, prioridad normal activa y grafo valido; verificar `/configuration-status`. No ejecutar seeds ni usar datos de pruebas en origen. Hasta entonces autenticacion no inicializada falla cerrada y configuracion esta incompleta por diseno.
+
+**F3 no autorizado ni iniciado.** Antes de solicitarlo: resolver bootstrap/custodia/configuracion reales, registrar aceptacion de ejemplos temporales/D03/D08 y reglas de cierre/fecha D04 pendientes de negocio, revisar excepciones vigentes y obtener autorizacion expresa. RF-03..RF-15 de fases posteriores no se declaran implementados por estas pruebas; UI F4 y evidencia F5 siguen bloqueadas.
