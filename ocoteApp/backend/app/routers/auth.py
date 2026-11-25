@@ -60,10 +60,32 @@ def logout(request: Request, db: Database, tokens: TokenService):
 @router.get("/me")
 def me(user: CurrentUser):
     permissions = {
-        "admin": ["administration:manage", "catalogs:global"],
-        "gerente": ["catalogs:global"],
-        "lider": ["catalogs:department"],
-        "colaborador": ["catalogs:self"],
+        "admin": [
+            "administration:manage",
+            "catalogs:global",
+            "planning:manage",
+            "tasks:global",
+            "tasks:manage",
+            "tasks:transition",
+            "dates:decide",
+            "date-requests:create",
+        ],
+        "gerente": [
+            "catalogs:global",
+            "planning:manage",
+            "tasks:global",
+            "dates:decide",
+            "date-requests:create",
+        ],
+        "lider": [
+            "catalogs:department",
+            "planning:department",
+            "tasks:department",
+            "tasks:manage",
+            "tasks:transition",
+            "date-requests:create",
+        ],
+        "colaborador": ["catalogs:self", "tasks:self", "tasks:transition"],
     }
     return {**identity.user_view(user), "permissions": permissions[user.role]}
 

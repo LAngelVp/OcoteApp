@@ -12,6 +12,7 @@ from app.db.engine import create_database_engine
 from app.routers.administration import router as administration_router
 from app.routers.auth import router as auth_router
 from app.routers.health import router
+from app.routers.operations import router as operations_router
 from app.services.identity import LoginLimiter
 
 
@@ -47,4 +48,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(router)
     app.include_router(auth_router)
     app.include_router(administration_router)
+    app.include_router(operations_router)
     return app

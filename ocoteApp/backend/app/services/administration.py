@@ -166,6 +166,14 @@ def validate_record(db, record):
     elif isinstance(record, WorkflowStage):
         if (record.is_initial or record.kind == "completed") and not record.is_active:
             raise CommandError(409, "PROTECTED_STAGE")
+        if (
+            not record.is_active
+            and has_rows(db, "tasks")
+            and db.scalar(
+                text("SELECT EXISTS(SELECT 1 FROM tasks WHERE stage_id=:id)"), {"id": record.id}
+            )
+        ):
+            raise CommandError(409, "OCCUPIED_STAGE")
         if record.is_initial and (
             record.kind != "open" or record.requires_reason or record.requires_evidence
         ):

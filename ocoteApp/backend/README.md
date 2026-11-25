@@ -1,6 +1,6 @@
-# OCOTE Backend: Identidad Y Administracion F2
+# OCOTE Backend: Nucleo Operativo F3
 
-Python 3.12, FastAPI, SQLAlchemy 2.0 sincrono, psycopg 3 y Alembic; F2 local/sintetico implementado y verificado, con bootstrap/configuracion del operador pendientes. No F3-F7 ni pantallas Angular. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md) y [protocolo de release](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). Evidencia y limites en [F2](../docs/03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local); excepciones hasta 2026-12-24 en [acta F1 historica](../docs/03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F3 local/sintetico implementado/verificado, sin F4-F7 ni UI. Bootstrap posterior del operador observado y preservado; configuracion pendiente. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). [Evidencia F3](../docs/03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local); responsable/excepciones hasta2026-12-24 conservados, no produccion.
 
 ## Inventario
 
@@ -18,6 +18,8 @@ Python 3.12, FastAPI, SQLAlchemy 2.0 sincrono, psycopg 3 y Alembic; F2 local/sin
 | [seguridad](app/core/security.py), [sesion](app/services/identity.py), [rutas auth](app/routers/auth.py) | Argon2id, RS256, CSRF, rotacion/revocacion y politicas centrales |
 | [DTO](app/schemas/identity.py), [administracion](app/services/administration.py), [rutas](app/routers/administration.py) | CRUD/versiones, scopes, parametros, catalogos y workflow atomico |
 | [bootstrap](tools/bootstrap.py), [actualizacion local F2](tools/f2_local.py), [pruebas F2](tests/test_identity.py) | CLI de uso unico, backup/migracion/no-op/restore y pruebas aisladas |
+| [revision F3](alembic/versions/20261124_0003_operations.py), [modelos](app/models/operations.py), [DTO](app/schemas/operations.py) | Seis tablas sin seeds; originales/versiones/append-only y fechas civiles |
+| [servicio](app/services/operations.py), [API](app/routers/operations.py), [tests](tests/test_operations.py), [protocolo F3](tools/f3_local.py) | Permisos/alcance, comandos/fechas/historia atomicos, formulas y migracion local |
 | [.env.example](.env.example)                                                                                                                               | Nombres y ejemplos sin secretos reales; distinta de la plantilla del helper en raiz               |
 | [tools/f1_local.py](tools/f1_local.py)                                                                                                                     | Aprovisionamiento y ensayo exclusivamente local/explicito; no ocote-admin ni actualizador cliente |
 | [tests/test_foundation.py](tests/test_foundation.py), [tests/test_rehearsal.py](tests/test_rehearsal.py), [tests/test_postgres.py](tests/test_postgres.py) | Salud/config/errores, backup bloqueante y PostgreSQL opt-in con fixtures revertidas               |
@@ -54,17 +56,19 @@ Pydantic carga backend/.env sin ejecutar Bash; AuthSettings agrega backend/.loca
 - APP_ENV/DEPLOYMENT_MODE: desarrollo local solo loopback. Managed exige sslmode=verify-full, hostname y sslrootcert a CA legible en ambos DSN. Validacion de configuracion no demuestra TLS real ni homologa proveedor. Este perfil local rechaza produccion: su habilitacion requiere un perfil aprobado separado.
 - Pool local por proceso: size=3, overflow=0, espera/conexion=3 s, statement=5 s, lock=2 s, idle-in-transaction=10 s y UTC. Son limites de desarrollo, no dimensionamiento productivo.
 
-El backend sincrono usa endpoints/dependencias def en threadpool. Una Session por peticion se cierra/revierte al terminar. La dependencia F2 toma lock compartido para lecturas/exclusivo para mutaciones, confirma antes de enviar respuesta y revierte errores; revocacion por reuso se confirma antes del 401. Sin commits del router ni cache de permisos/configuracion.
+Endpoints/dependencias def en threadpool, una Session por peticion sin autoflush y flush explicito. Configuracion compartida para lecturas/comandos F3, exclusiva para auth/admin. Orden de filas departamento -> usuarios UUID ordenados -> plan -> objetivo -> tarea -> subtarea -> solicitud; plan serializa altas/cambios/cierre. Dependencia confirma antes de responder, revierte errores; revocacion por reuso confirma antes del401. Sin commits de routers ni cache de permisos/configuracion.
 
 Roles provisionados en F1: runtime CONNECT/USAGE y SELECT de las dos tablas tecnicas; migrador CONNECT y USAGE/CREATE en public, sin privilegios elevados en cluster. F2 extiende DML especifico como se describe abajo. PUBLIC sin CREATE/USAGE en public; cada rol recibe permisos explicitos. Runtime no CREATE/TEMP/DML de bitacora ni membresia del migrador. No grants DML automaticos a futuras tablas: cada revision otorga minimos/preserva append-only. Migrador solo durante operacion autorizada, nunca API.
 
-El .env combinado generado es exclusivamente de desarrollo, con contrasenas aleatorias distintas y ACL privada. En despliegue, inyectar al proceso API solo su DSN/token y entregar el DSN migrador por canal operativo separado; no distribuir el .env local ni la credencial publica. F2 agrega SELECT/INSERT/UPDATE en tablas mutables/refresh y solo SELECT/INSERT en audit_events; sin DELETE, DDL ni DML sobre ledger para runtime. Triggers protegen identidad/version/auditoria. No usuarios reales ni claves JWT inicializados en origen en esta entrega.
+El .env local tiene contrasenas aleatorias distintas/ACL privada; nunca distribuirlo ni reutilizar credencial publica. En despliegue API recibe solo su DSN/token y migrador por canal separado. F2/F3 otorgan SELECT/INSERT/UPDATE en mutables y solo SELECT/INSERT en audit_events/task_history; runtime sin DELETE/DDL/DML de ledger. Triggers protegen identidad/versiones/originales/cierre/auditoria. Esta tarea no inicializo claves/admin en origen; bootstrap posterior del operador observado se preserva.
 
 ## Bootstrap Y Configuracion F2
 
-Las once tablas existen en ocoteAppDatabase/head20261124_0002, pero las nueve F2 estan vacias intencionalmente. No defaults de negocio, seeds, demos o credencial admin. `ready` verifica infraestructura, NO que configuracion/bootstrap esten completos. Auth sin claves inicializadas devuelve 503, no genera secretos al arrancar.
+ocoteAppDatabase/head20261124_0003 tiene17 tablas/cuatro releases terminales; seis F3 vacias y configuracion pendiente. Sin defaults/seeds/demos ni admin inventado por desarrollo. Durante cierre se observo bootstrap del operador (auth.env,1 usuario/1audit_event); no repetir ni sobrescribir. `ready` solo infraestructura, no configuracion completa. Sin claves auth falla503, no las genera al arrancar; altas operativas sin configuracion409.
 
 Solo operador local autorizado, con custodia/canal definidos y preflight correcto. Elegir un origen HTTPS loopback real y confiable: el siguiente puerto es ejemplo de operador, no proxy/certificado instalado por esta tarea.
+
+El checkout actual ya presenta bootstrap: confirmar custodia/identidad por canal del operador y completar configuracion, **no ejecutar de nuevo init-auth/bootstrap-admin**. El bloque siguiente es exclusivamente referencia para una instalacion nueva autorizada, nunca para resetear claves/usuario existentes.
 
 ```bash
 bash scripts/init-dev.sh --check
@@ -78,9 +82,17 @@ Luego admin configura explicitamente por API autenticada: cuatro claves POST /ap
 
 Sesion: POST auth/login (origen exacto), GET auth/csrf con cookie/origen, POST auth/refresh y auth/logout con cookie/origen/X-CSRF-Token, GET auth/me con Bearer y POST auth/change-password con password actual/nueva. Rutas bajo /api/v1. Access solo memoria SPA futura; refresh nunca JSON/localStorage. RS256/claves controladas, 10min access/7dias absolutos refresh; revocar familia invalida access inmediatamente. Cookie Secure/HttpOnly/SameSite Strict/Path /api/v1/auth: no bajar Secure para usar HTTP. Uvicorn HTTP siguiente solo sirve smoke tecnico o upstream privado de proxy HTTPS autorizado; navegador con sesion requiere TLS configurado aparte.
 
-Administracion: GET/POST y PATCH por id de departments/users/workflow-stages/workflow-transitions/priorities/horizon-types; POST users/{id}/reset-password; GET/POST settings, GET/PATCH settings/{key}; POST priorities/reorder y horizon-types/reorder con items id/position/expected_version y reason; workflow atomico, configuration-status, audit-events/releases solo lectura sanitizada. Releases tiene detalle por id y alias release-history; listas admin/auditoria/releases con limit1..100, cursor UUID y next_cursor, orden ascendente de UUID. Mutaciones con reason/version, 409 sin overwrite. Catalogos /catalogs por rol/departamento; sin permisos F3-F6 anunciados. Sin DELETE.
+Administracion: GET/POST y PATCH departments/users/workflow-stages/workflow-transitions/priorities/horizon-types; reset-password, settings, reorder, workflow atomico y configuration-status. Audit-events/releases sanitizados solo lectura, releases detalle y alias release-history; listas limit1..100/cursor UUID/next_cursor, UUID ascendente. Mutaciones reason/version,409 sin overwrite; catalogos por alcance y auth/me solo facultades F1-F3. Sin DELETE.
 
 Argon2id local: memoria65536KiB, tiempo3, paralelismo2; no benchmark productivo. Login y refresh <=10/cuenta/min y <=50/cliente/min compartidos, hashing efimero de claves/cliente, memoria acotada por proceso; 429/Retry-After60. No limite distribuido ni soporte multiples workers homologado. JSON <=1MiB; logs sin cuerpos/passwords/tokens/DSN. HTTPS real, custodia, bootstrap y configuracion de origen siguen pendientes; las pruebas usan transporte HTTPS TestClient y secretos sinteticos aislados.
+
+## API Operativa F3
+
+Prefijo /api/v1: GET/POST annual-plans/objectives/tasks y GET/PATCH por id; period-changes en planes/objetivos y status-changes en planes. A/G planifican; A/L gestionan tareas; G solo lectura/fechas, no transiciones. Tareas: assignments/stage-transitions/due-date-changes/schedule-changes, GET/POST tasks/{id}/subtasks y GET/PATCH subtasks/{id} con completion/due-date-changes/schedule-changes. Child commands verifican expected_version y expected_task_version; alta child usa expected_version del padre. C solo asignadas/contexto minimo/ejecucion permitida, sin agregados ni planes/objetivos/solicitudes.
+
+POST tasks/{id}/due-date-requests y subtasks/{id}/due-date-requests captura versiones sin mutar tarea. A/G/L solicitan por alcance; A/G approve/reject, approve nunca solicitante; cancel propio L o A/G. Pending unica por destino; versiones obsoletas/terminales/cerrados409. Validacion al solicitar y aprobar; fecha+historia+decision atomicas, original intacta. GET due-date-requests/detalle y tasks/{id}/history requieren alcance sobre tarea, no solo UUID.
+
+Fechas ISO YYYY-MM-DD civiles estrictas, rangos inclusivos y timestamps UTC del servidor. Periodos/fechas/schedules/asignaciones/decisiones con reason; status-changes opcional. Progreso proporcional con subtareas;100 pendiente no cierra tarea. Dos puntualidades por zona BD. Originales/historia/cierre inmutables. Listas limit1..100/cursor/next_cursor y filtros plan/departamento/objetivo/asignado/etapa/prioridad/puntualidad antes de paginar; historia created_at/id y cursor de misma tarea. Evidencia requerida o IDs ficticios422 hasta F5. Sin DELETE/UI/evidencia/Kanban/Timeline/analytics/evaluaciones/exports.
 
 ## Salud Y Arranque
 
@@ -94,7 +106,7 @@ Swagger/OpenAPI HTTP no estan expuestos. El proxy futuro debe restringir ready a
 
 ## Migracion Y Ensayo Local
 
-Ambas revisiones aplicadas 20261124_0001 y 20261124_0002 son inmutables. F1 crea release_history; F2 agrega nueve tablas sin seeds. Alembic_version es metadata tecnica: once tablas en total, no las 19 objetivo. Downgrade bloqueado por preservacion de bitacora: usar fix-forward o restore aislado aprobado, nunca stamp.
+Tres revisiones20261124_0001/0002/0003 inmutables. F1 crea release_history; F2 agrega nueve tablas y F3 seis, sin seeds:17 totales incluyendo alembic_version, no19 objetivo. Downgrade bloqueado: fix-forward o restore aislado aprobado, nunca stamp. Las instrucciones F1/F2 siguientes son historicas; no ejecutar sus comandos en origen F3 ni adaptar helpers.
 
 Comandos de inspeccion, sin migrar:
 
@@ -126,7 +138,7 @@ Los artefactos quedan en database/backups/f1-<attempt>/ con ACL local: events.js
 
 ### Verificar La Base Tecnica Existente
 
-Procedimiento historico exclusivo de head0001 con dos tablas. **No ejecutarlo en el origen actual F2**: rechaza el nuevo inventario. No adaptar silenciosamente el helper F1 ni repetir provision/rehearse/retry-verification.
+Procedimiento historico exclusivo head0001/dos tablas. **No ejecutarlo en origen actual F3**; rechaza inventario nuevo. No adaptar helper F1 ni repetir provision/rehearse/retry-verification.
 
 Solo para una comprobacion local expresamente autorizada, con API/escritores detenidos y PGPASSWORD introducida directamente en terminal y exportada como arriba:
 
@@ -142,15 +154,19 @@ Exige identidad original, unica head tecnica, solo las dos tablas tecnicas y cer
 
 [f2_local.py](tools/f2_local.py) ya ejecuto apply sobre origen0001 ->0002; intento y hashes en acta F2. Solo acepta ese origen una vez, cero sesiones ajenas, lock persistente/mantenimiento, backup/restore antes del upgrade, segundo no-op, restore posterior y del registro running, terminal y reapertura. Antes de crearse fila el journal externo es evidencia; si ya existe running intenta marcarla failed sin tocar terminales. Cualquier fallo conserva mantenimiento; diagnostico/fix-forward aprobado, no reaplicar/resetear ni editar revision instalada.
 
-Para probar revision desde cero sin tocar origen, con credencial administrativa introducida/exportada directamente en terminal como arriba:
+### Migracion Local F3
+
+[f3_local.py](tools/f3_local.py) ya ejecuto apply0002 ->0003: lock persistente/mantenimiento, before restaurado y migrado/no-op en UUID aislado antes de DDL origen, upgrade/no-op origen y cuatro restores before/after/recorded/terminal. Preserva F2/legacy/releases previas y verifica grants aparte. Fallo mantiene maintenance/journal, no reintentar apply en origen0003 ni retirar marca manualmente. Backups privados/hashes en roadmap9.
+
+Para probar F3 desde cero sin tocar origen, con credencial administrativa introducida/exportada directamente en terminal como arriba:
 
 ```bash
 bash scripts/init-dev.sh --check
-backend/.venv/Scripts/python backend/tools/f2_local.py check-migration --execute
+backend/.venv/Scripts/python backend/tools/f3_local.py check-migration --execute
 unset PGPASSWORD
 ```
 
-Crea/elimina solo ocote_f2_test_<UUID>; restaura solo ocote_f2_restore_<UUID>. No es actualizador cliente ni una orden para repetir apply en origen. El restore usa --no-acl: comparar datos/esquema no prueba restauracion de grants; la suite verifica grants runtime aparte. recorded.dump captura running: reconciliar evento terminal del journal antes de reabrir un restore. Manifests locales no firmados/instantaneas del ensayo, no hash del checkout final, cifrado/copia off-host ni recovery de host.
+Crea/elimina solo ocote_f2_test_<UUID>/ocote_f2_restore_<UUID>, prefijo aprobado reutilizado sin alterar helpers F1/F2. No actualizador cliente ni orden para repetir apply. Restore --no-acl no prueba recuperar grants; suite/protocolo verifican runtime aparte. recorded contiene running/reconciliar journal; terminal incluye intento terminal. Manifest no firmado/instantanea, no checkout final, cifrado/copia off-host ni recovery de host.
 
 ## Verificacion Y Limites
 
@@ -162,8 +178,8 @@ backend/.venv/Scripts/python -m pip check
 git diff --check
 ```
 
-La primera invocacion da **33 passed, 25 skipped**, sin conectar PostgreSQL; la segunda requiere PGPASSWORD administrativa local temporal, configuracion y head0002. F1 usa fixtures con rollback en origen; F2 crea bases UUID aisladas, migra con migrador y ejerce API con runtime/datos sinteticos, eliminandolas al terminar. Superusuario solo prepara/elimina destinos, nunca API. No SQLite ni identidades de prueba en origen. Resultado F2: **58 passed**, Ruff/pip check limpios; races/reuso, ultimo admin, scopes/errores, constraints, no-defaults, bootstrap, reordenamiento atomico y paginacion/proyeccion de releases. Deprecacion TestClient/httpx conocida; editor reporta diagnostico TS6 rootDir en tsconfig.json no modificado, fuera de F2. No build Angular reejecutado.
+Sin opt-in: **46 passed,44 skipped**, sin conectar PostgreSQL. Con OCOTE_RUN_PG_TESTS=1: **90 passed**, requiere PGPASSWORD administrativa temporal local/configuracion/head0003. F1 usa rollback en origen; F2/F3 bases UUID aisladas, migrador para Alembic y runtime para API/sinteticos, eliminadas al terminar. Superusuario solo prepara/elimina destinos, nunca API. Sin SQLite ni fixtures de negocio en origen. Ruff format/check(31 archivos) y pip check limpios. Incluye scopes/formulas/originales, carreras cierre-subtarea/aprobacion y periodo-alta, atomicidad/versiones y fallos antes de DDL. Deprecacion TestClient/httpx y TS6 rootDir ajeno al cambio permanecen; no build Angular repetido. [Resultados/hashes/limites](../docs/03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local).
 
-D01 ratificada; politica D05 y objetivos/responsable D06 aprobados en [guia 05, seccion 3.1](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepcion sin suplente y excepciones separadas D07 soporte Angular/61 alertas hasta 2026-12-24, solo F1/F2 local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS/capacidad, cifrado/copia off-host, scheduler, firma/paquete y homologacion cliente pendientes; no SLA ni remediacion de seguridad. Python3.12.0 local no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Sin almacenamiento ni integraciones. Build/tests Angular historicos F1 no se repitieron: frontend/lock intactos.
+D01/formulas del nucleo ratificadas; D03/D08 gerenciales siguen F6. Base D05/objetivos D06 en [guia05](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepciones sin suplente/D07 soporte/61 alertas conservadas por F3 hasta2026-12-24, solo local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS/capacidad, cifrado/copia off-host/scheduler/firma/homologacion pendientes, no SLA/remediacion. Python3.12.0 no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Sin almacenamiento/integraciones. Frontend/lock/builds historicos intactos.
 
-Siguiente paso: operador completa custodia/bootstrap y configuracion explicita como arriba. Despues solicitar aceptacion de ejemplos temporales/D03/D08 y reglas de F3, y autorizacion expresa de esa fase. **F3 no autorizado**; no crear planes/tareas/evaluaciones ni pantallas funcionales por anticipado. PostgreSQL queda activo, sin API/dev server persistente, sin bases temporales o mantenimiento pendiente.
+Siguiente paso: confirmar custodia/origen HTTPS/bootstrap ya observado sin repetir/sobrescribir; completar settings/catalogos/grafo explicitos y configuration-status. Despues solicitar autorizacion F4 y validar muestra accesible OCOTE/licencia tipografica/Material18.2. **F4-F7 no autorizados**; no pantallas/evidencia/evaluaciones/nube por anticipado. PostgreSQL queda activo, sin API/dev server iniciado ni temporales/mantenimiento.

@@ -1,6 +1,6 @@
 # OCOTE: paquetizacion, instalacion y actualizaciones
 
-Version documental: 2.0, con F2 local del 2026-11-24. Especificacion de entrega objetivo, NO instalador/despliegue certificado. Backend F1/F2, revisiones y herramientas locales probadas; no empaquetador firmado, ocote-admin ni actualizador cliente. Estado en [F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local); excepciones en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F3 local del 2026-11-24. Especificacion objetivo, NO instalador/despliegue certificado. Backend F1-F3/herramientas locales probados, no paquete firmado/ocote-admin/actualizador cliente. Estado en [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local); excepciones en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
 
 ## 1. Autoridad, alcance y modalidades
 
@@ -13,7 +13,7 @@ Leer [SDD](01-spec-driven-development.md), [arquitectura/modelo](02-arquitectura
 
 Ninguna incluye BD dentro de Angular ni acceso SQL desde el navegador. Nube no exige llevar frontend/API a nube ni usar multiples origenes. Solo HTTPS publico; servicios y BD privados. Un despliegue puede ser offline respecto a Internet si distribuye dependencias/certificados/actualizaciones de seguridad por canal autorizado.
 
-Estado vigente: PG18.4 Windows local/head20261124_0002, once tablas, nueve F2 vacias y tres releases terminales; roles runtime/migrador y backup/migracion/no-op/restores aislados probados, ocote conservada. CLI de bootstrap seguro probada aislada, no ejecutada con identidad real. No prueba cliente/contenedor/otro SO/nube/perdida de host; protocolo cliente es contrato, no homologacion.
+Estado vigente: PG18.4 Windows local/head20261124_0003, 17 tablas/cuatro releases terminales; seis F3 vacias y bootstrap posterior del operador preservado, configuracion pendiente. Roles separados y backup/restauracion/migracion/no-op/cuatro restores F3 probados, ocote conservada. No homologa cliente/contenedor/otro SO/nube/perdida de host; protocolo cliente es contrato.
 
 ## 2. Paquete de cliente reproducible
 
@@ -75,16 +75,16 @@ Aprobacion expresa del titular del proyecto el 2026-11-24 como base F1 y objetiv
 
 | Ambito | Politica aprobada y puerta de implementacion |
 | ------ | ------------------------------------------ |
-| Clasificacion/minimizacion | Usuarios, asignaciones, ejecucion y evaluaciones son informacion interna/personal de acceso restringido por rol Y alcance; evidencia y respaldos se tratan como potencialmente sensibles. No cargar datos reales en este entorno F1/F2. No recolectar datos extra ni contenido de archivos, tokens, DSN, passwords o cuerpos en logs. |
+| Clasificacion/minimizacion | Usuarios/asignaciones/ejecucion/evaluaciones son informacion interna/personal restringida por rol Y alcance; evidencia/backups potencialmente sensibles. No datos reales en F1-F3 local. Sin datos extra ni contenido de archivos/tokens/DSN/passwords/cuerpos en logs. |
 | Evidencia privada | Volumen u object storage privado fuera del directorio publico y de releases, claves generadas por servidor, minimo privilegio y descarga autenticada/autorizada. PDF/PNG/JPEG hasta 10 MiB, verificar extension/MIME/firma y SHA-256 sin considerar eso prueba antimalware. No enlaces publicos permanentes ni nombres/rutas elegidos por el cliente. |
 | Cuarentena y escaneo | Antes de F5, integrar y probar antivirus mantenido: carga en cuarentena privada, no descargable/publicable ni valida para completar una tarea hasta resultado limpio confirmado. Error, timeout, indisponibilidad o resultado desconocido: fail-closed, conservar evidencia tecnica sanitizada y permitir tratamiento por operador autorizado; nunca publicar por fallback. No existe almacenamiento/escaneo implementado en F1. |
 | Cifrado y custodia | Para datos reales, cifrado en reposo de evidencia/backups y en transito cuando cruza host, claves separadas con rotacion y acceso auditado. Probar restauracion con sus claves. Los dumps tecnicos locales actuales tienen ACL privada, NO cifrado ni copia off-host; no trasladar a ellos datos reales ni afirmar cumplimiento productivo. |
 | Historia y retencion | No purga automatica ni borrado/reescritura de originales, task_history, audit_events, solicitudes/releases terminales, fotos finales o evidencia. Antes de produccion, seguridad/legal/negocio fijan plazos por categoria, residencia, obligaciones y tratamiento de solicitudes de acceso/supresion; no inventar un plazo legal ni prometer CRUD destructivo. Mantener acceso restringido durante conservacion. |
 | Respaldos | Diarios y antes de cada release; retencion minima 30 dias, sin habilitar purgas en esta tarea. Conjunto consistente BD+evidencia y configuracion, manifest/hash, cifrado/copia fuera del dominio de fallo y claves por canal separado antes de datos reales. Fallo de respaldo o restore previo bloquea migracion conforme seccion 7. Programacion, copia off-host y alertas aun no implementadas. |
 | Recuperacion | RPO <=24 h y RTO <=4 h aprobados como objetivos de diseno, no SLA ni resultados de produccion. Restore aislado mensual y por release, con revision, integridad, historia, archivos y duracion documentadas. El ensayo local de 0.482 s de la seccion 7 del roadmap prueba solo recuperacion logica de dos tablas en el mismo cluster, no fallo de host, carga o RPO operacional. |
-| Continuidad | El nombre inicialmente propuesto para sustituto coincidia con el responsable; se aprobo expresamente excepcion **sin suplente hasta 2026-12-24**, solo F1/F2 local con datos sinteticos. Si el responsable no esta disponible, suspender migraciones/restores; no delegar credenciales informalmente. Designar/capacitar otra persona o cargo independiente antes del vencimiento o de datos reales/produccion. |
+| Continuidad | Excepcion **sin suplente hasta 2026-12-24**, conservada por F3 solo local/sintetico; sustituto inicialmente propuesto coincidia con responsable. Sin responsable suspender migraciones/restores, no delegar credenciales informalmente. Designar/capacitar persona/cargo independiente antes de vencer o de datos reales/produccion. |
 
-Runbook/evidencias en [backend/README.md](../backend/README.md) y [F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local). No repetir provision/rehearse ni verify-existing F1 sobre origen F2. f2_local aplico revision propia con nuevo intento y restores; no release firmada. Fallo mantiene mantenimiento/bitacora, sin reset. Esta politica no autoriza nuevas operaciones: F2 tuvo autorizacion expresa separada, F3 sigue no autorizado.
+Runbook/evidencias en [backend/README.md](../backend/README.md) y [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local). No comandos historicos F1/F2 ni repetir apply F3 sobre origen actualizado. f3_local aplico0003 con intento propio, ensayo restaurado previo y cuatro restores, no release firmada. Fallo conserva mantenimiento/bitacora, sin reset. Autorizacion F3 fue expresa/separada; no habilita F4-F7 ni datos reales.
 
 ## 4. Instalacion A: PostgreSQL local
 

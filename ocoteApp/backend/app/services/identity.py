@@ -63,8 +63,16 @@ def database(request: Request):
     if (BACKEND_DIR / ".local" / "maintenance.json").exists():
         raise ServiceUnavailable()
     with request.app.state.session_factory() as db:
+        db.autoflush = False
         try:
-            config_lock(db, exclusive=request.method not in {"GET", "HEAD"})
+            operational = request.url.path.split("/")[3:4] in [
+                ["annual-plans"],
+                ["objectives"],
+                ["tasks"],
+                ["subtasks"],
+                ["due-date-requests"],
+            ]
+            config_lock(db, exclusive=not operational and request.method not in {"GET", "HEAD"})
             yield db
             db.commit()
         except CommandError as error:

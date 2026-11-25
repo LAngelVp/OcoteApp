@@ -1,8 +1,8 @@
 # OCOTE: estado actual y roadmap
 
-Version documental: 2.0 con incremento F2 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. Sin F3-F7 ni instalador cliente.
+Version documental: 2.0 con incremento F3 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. Sin F4-F7 ni instalador cliente.
 
-Estado vigente: **F2 autorizado, implementado y verificado tecnicamente en local/sintetico; bootstrap y configuracion reales pendientes del operador**, segun [seccion 8](#8-identidad-y-administracion-f2-local). F3 no autorizado. Las excepciones F1 hasta 2026-12-24 siguen en [seccion 7](#7-cierre-formal-f1-local). Secciones 1 y 5 son fotografias F0; 6 y 7 conservan ejecucion/cierre F1 historicos, no el inventario actual. No se proclaman satisfechos gates de produccion o de fases posteriores.
+Estado vigente: **F3 autorizado, implementado y verificado local/sintetico**, segun [seccion 9](#9-nucleo-operativo-f3-local). Configuracion pendiente; bootstrap posterior del operador observado y preservado. F4-F7 no autorizados. Excepciones hasta 2026-12-24 en [seccion 7](#7-cierre-formal-f1-local). Secciones 1/5 son F0, 6/7 F1 y 8 F2 historicos: sus puertas fueron sustituidas solo por autorizacion posterior expresa. No son inventario vigente ni aprobacion productiva.
 
 Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y datos](02-arquitectura.md), [entorno local](04-entorno-y-portabilidad.md), [entrega/actualizaciones](05-paquetizacion-instalacion-y-actualizaciones.md). RF-01..12 y RN-01..06 se conservan; se agregan RF-13..15 y RN-07 sin renumerar D01-D08/F0-F7.
 
@@ -105,7 +105,7 @@ Riesgo principal: permisos solo visuales o cookies vulnerables. Mitigacion: auto
 
 ### F3. Nucleo de planes, ejecucion, fechas y auditoria
 
-Dependencia: F2. Puertas: ratificar ejemplos temporales D01, formulas D03, flujo D04 y corte/cohorte D08 con gerencia. Elegir correccion administrativa fuera de MVP si no se acepta cierre irreversible.
+Dependencia: F2. Ejemplos D01, formulas del nucleo y cierre irreversible/fechas D04 ratificados por autorizacion F3 de seccion 9. D03/D08 gerenciales siguen F6. Configuracion explicita es requisito de uso, no datos que deban inventarse para pruebas aisladas. Sin reapertura fuera del MVP.
 
 Entregables: annual_plans/objectives con FK horizonte/rangos, tasks con prioridad, subtasks/task_history/due_date_requests; period-changes y solicitudes/decisiones atomicas auditadas; RF-03/04/05/11/14 y RN-01..07. Probar duplicada pending, versiones obsoletas, autoaprobacion rechazada, contracciones y zona bloqueada tras uso. Foto final F6/evidencia F5: no habilitar reglas dependientes antes.
 
@@ -369,3 +369,32 @@ recorded.dump contiene el intento running; el evento terminal posterior exige re
 Seguir [runbook de bootstrap](../backend/README.md#bootstrap-y-configuracion-f2): el operador elige origen HTTPS loopback y canal/custodia, inicializa claves sin sobrescribir y aporta nombre/email/password del primer admin directamente en terminal. Configura explicitamente nombre, zona oficial America/Mexico_City, limites, cinco horizontes, prioridad normal activa y grafo valido; verificar `/configuration-status`. No ejecutar seeds ni usar datos de pruebas en origen. Hasta entonces autenticacion no inicializada falla cerrada y configuracion esta incompleta por diseno.
 
 **F3 no autorizado ni iniciado.** Antes de solicitarlo: resolver bootstrap/custodia/configuracion reales, registrar aceptacion de ejemplos temporales/D03/D08 y reglas de cierre/fecha D04 pendientes de negocio, revisar excepciones vigentes y obtener autorizacion expresa. RF-03..RF-15 de fases posteriores no se declaran implementados por estas pruebas; UI F4 y evidencia F5 siguen bloqueadas.
+
+## 9. Nucleo operativo F3 local
+
+Autorizacion expresa del titular del 2026-11-24: RF-03/04/05/11, solicitudes RF-14 y RN-01..06 aplicables al nucleo. Sustituye la puerta F3 anterior, no evidencia historica F1/F2. D01 America/Mexico_City y formulas/cierre irreversible ratificados; D03/D08 gerenciales siguen F6. F4-F7 no autorizados: sin UI, evidencia/Kanban/Timeline, analytics/evaluaciones/exports ni nube/produccion.
+
+Se conservan responsable LUIS ANGEL VALLEJO - DESARROLLADOR, vencimiento 2026-12-24 y excepciones D06 sin suplente/D07 soporte Angular y 61 alertas separadas. Solo local/sintetico, sin red compartida ni entradas no confiables; sin responsable se suspenden migraciones/restores. No semillas/defaults ni datos reales autorizados por este desarrollo.
+
+Implementacion: [revision0003](../backend/alembic/versions/20261124_0003_operations.py), [servicio](../backend/app/services/operations.py), [rutas](../backend/app/routers/operations.py), [pruebas](../backend/tests/test_operations.py) y [protocolo](../backend/tools/f3_local.py). Seis tablas annual_plans/objectives/tasks/subtasks/task_history/due_date_requests, fechas civiles ISO estrictas, UTC del servidor, originales/cierre protegidos, versiones e historia/decisiones atomicas. Scopes antes de filtros/agregacion/paginacion; C sin agregados, L departamento y G no mueve tareas. Evidencia requerida devuelve 422 hasta F5. Flush explicito y lock compartido de configuracion; filas departamento -> usuarios UUID ordenados -> plan -> objetivo -> tarea -> subtarea -> solicitud; administracion exclusiva.
+
+Origen0002 ->0003 con migrador, lock persistente/mantenimiento/journal ACL privado. Before restaurado y migrado/no-op en UUID aislado antes de DDL origen; upgrade/no-op origen y cuatro restores. Intento e8ae650e-ed05-41fa-8cc6-0d206b7fed95, request_id349637c6-3382-4b9f-982b-6757a2f2cea9, succeeded/F3_LOCAL_VERIFIED version2. Inicio UTC2026-11-25T03:53:50.998863Z, evento final03:54:25.755377Z, 36.322 s. No repetir apply ni editar0003; SHA-256 c061c8aa372d34a881107bb37bb771d62a17db9e01bfc7d422c7c1f6e0775dc8.
+
+| Dump privado | Bytes | SHA-256 | Restore |
+| ------------ | ----- | ------- | ------- |
+| before.dump | 46190 | 23057f4a7d6072dd2ece4947ac12bcb6821e44208ccd2e37bb00e9cf47dff0f4 | 1.703 s |
+| after.dump | 82823 | 24b4327d4302b5d9236f1cb96c863531e3e8944d8e32184385705a32b962c70f | 2.020 s |
+| recorded.dump | 83045 | 4d75dd296f27fb89c48235cb7b574e8b6802f74f471b7b9a93119e2f1bb0ac7b | 2.180 s |
+| terminal.dump | 83034 | 288e3a21a894576ccfd4ed977cbd4b151950de642af02e239a5042659d6064d0 | 2.320 s |
+
+Artefactos en database/backups/f3-e8ae650e-ed05-41fa-8cc6-0d206b7fed95/, ignorados/ACL privados. Prefijo temporal ocote_f2 reutilizado sin alterar helpers F1/F2; todos eliminados sin FORCE. Comparacion logica/estructural y grants runtime aparte: --no-acl no prueba recuperar ACL ni equivalencia formal de constraints. terminal incluye intento terminal; recorded contiene running y exige reconciliar journal. Manifest no firmado/instantanea, no checkout final, cifrado/copia off-host, recovery de host ni SLA.
+
+Verificacion: **90 passed** con opt-in PostgreSQL; **46 passed/44 skipped** sin opt-in; Ruff format/check (31 archivos), pip check y diagnostico backend limpios. Preflight correcto, head0003 unica/17 tablas, cuatro releases terminales version2 y tres anteriores preservadas, OIDs ocote16384/ocoteAppDatabase16389 conservados, cero temporales/mantenimiento. PG ya activo y queda activo, sin API/dev server iniciado. Frontend/lock, scripts y herramientas F1/F2 intactos.
+
+Cierre documental: nueve documentos/154 enlaces locales con anclas, fences balanceados/nueve bloques JSON validos, IDs RF/RN/D/F y paleta conservados,19 entidades ER objetivo. SHA-256 de las tres revisiones y package-lock verificados; diff sin errores de espacios y cero artefactos privados visibles para Git. Comprobaciones documentales sin reconectar BD; no prueban renderizado ni homologacion productiva.
+
+Cobertura: 0/1/4 subtareas, progreso y pending_closure, medianoche/puntualidades, contencion/originales, scopes/errores/append-only, rollback historia/decision, migracion con datos F2 sinteticos preexistentes y fallos backup/restore bloqueantes. Carreras reales cierre/alta subtarea, cierre/aprobacion y periodo/alta tarea; promedio por tarea y filtros SQL. No SQLite ni fixtures en origen. Deprecacion TestClient/httpx y TS6 rootDir ajeno al cambio no remediados; sin build Angular repetido. Validacion documental estructural no prueba render ni cobertura semantica exhaustiva.
+
+La migracion comprobo quince tablas F2/F3 vacias y no ejecuto bootstrap/seeds. Durante cierre se detecto bootstrap_admin del operador a UTC04:00:35.500686 (posterior al protocolo): auth.env presente, un usuario/un audit_event; no se modificaron ni revirtieron. Otras trece tablas F2/F3 vacias, incluidas las seis F3; settings/catalogos/workflow pendientes. terminal.dump no cubre esas escrituras posteriores.
+
+Siguiente puerta F4: operador confirma custodia/origen HTTPS y bootstrap existente sin repetir/sobrescribir, completa configuracion explicita y verifica configuration-status segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). Requiere autorizacion expresa F4, muestra accesible con tokens OCOTE, licencia/autoalojamiento tipografico y mapeo publico Material18.2; no habilitar fases posteriores por anticipado.

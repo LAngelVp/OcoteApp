@@ -1,18 +1,18 @@
 # OCOTE: entorno local y portabilidad
 
-Version documental: 2.0 con F2 local, 2026-11-24. Retoma local; instalacion cliente/release en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F3 local, 2026-11-24. Retoma local; entrega en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
 
 ## 1. Estado real y limites
 
 | Elemento       | Estado comprobado                                                                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Frontend       | Angular 18.2 SPA/SCSS en raiz; Material/CDK, ngx-echarts/ECharts y vis-timeline con prototipo/build probados; pantalla inicial, no modulos OCOTE |
-| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; health, identidad/permisos y administracion F2; no F3-F7 |
+| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; health, identidad/admin F2 y nucleo F3; no F4-F7 |
 | Binarios       | database/postgres/bin; postgres --version devuelve PostgreSQL 18.4 Windows                                                  |
 | Cluster        | database/data, inicializado previamente; PG_VERSION contiene 18                                                             |
 | Logs           | database/logs/postgres.log; no versionados                                                                                  |
 | Endpoint       | 127.0.0.1:5432 por defecto; comprobado listen_addresses=127.0.0.1 y autenticacion host SCRAM-SHA-256                        |
-| Base objetivo  | ocoteAppDatabase exacta; head20261124_0002, nueve tablas F2 vacias mas alembic_version/release_history; tres releases terminales |
+| Base objetivo  | ocoteAppDatabase exacta; head20261124_0003, 17 tablas/cuatro releases terminales; seis F3 vacias y bootstrap posterior preservado |
 | Usuario local  | postgres, superusuario SOLO para preparacion/desarrollo local                                                               |
 | Password local | `holamundo`, credencial conocida y debil, EXCLUSIVA de desarrollo local; NUNCA produccion, red compartida o datos reales    |
 
@@ -20,7 +20,7 @@ La propuesta documental anterior mencionaba PostgreSQL 16; la evidencia es 18.4/
 
 La base anterior ocote permanece intacta: no se renombra, copia, importa ni borra automaticamente. En otro equipo puede no existir. Si contiene datos utiles, inventariar y planificar su traslado con respaldo/aprobacion; crear ocoteAppDatabase no migra su contenido. Libpq/createdb reciben el nombre exacto; en SQL manual de administracion un identificador de esta base requeriria comillas dobles ("ocoteAppDatabase"), nunca asumir que un nombre sin comillas conserva mayusculas.
 
-F1 cerrado y F2 autorizado/implementado/verificado solo local/sintetico. F2 tiene identidad/login/admin, pero cero usuarios/datos/claves reales provisionados: operador completa bootstrap/configuracion segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni cuenta runtime. Excepciones sin suplente y D07 soporte/61 alertas hasta 2026-12-24; no red compartida/entradas no confiables. F3 no autorizado; no produccion/nube.
+F1/F2 cerrados y F3 autorizado/implementado/verificado solo local/sintetico. Bootstrap posterior del operador observado (auth.env, 1 usuario/1 audit_event), no repetir ni sobrescribir; configuracion pendiente segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni runtime. Excepciones sin suplente/D07 soporte/61 alertas conservadas hasta 2026-12-24; sin red compartida/entradas no confiables. F4-F7 no autorizados; no produccion/nube.
 
 ## 2. Credenciales y configuracion
 
@@ -160,7 +160,7 @@ Las rutas no deben depender de C:/Users de un desarrollador; el helper las deriv
 
 ## 6. Backup y restauracion portables
 
-F1 y F2 ejecutaron backup/restore aislados, evidencia/hashes en roadmap. verify-existing es historico exclusivo de head0001/dos tablas: **no usarlo en el origen F2**, ni provision/rehearse. f2_local.py ya aplico0002 una vez; no repetir apply. check-migration prueba desde cero en destino unico, no toca origen. El fragmento siguiente es entrenamiento, no gate de release. Backup integral futuro coordina BD/evidencia; volumen no equivale a backup.
+F1-F3 ejecutaron backup/restores aislados, evidencia/hashes en roadmap9. Comandos F1/F2 son historicos: **no usarlos en origen F3**, ni provision/rehearse/verify-existing. f2_local aplico0002 y f3_local0003 una vez; no repetir apply ni editar revisiones. f3_local check-migration solo destino UUID aislado. Fragmento siguiente es entrenamiento, no gate de release. Backup integral futuro coordina BD/evidencia; volumen no equivale a backup.
 
 Con credencial exportada temporalmente o PGPASSFILE, y desde raiz:
 
@@ -202,4 +202,4 @@ La suite usa mocks en carpetas temporales con espacios, no el cluster real: 16 p
 
 Evidencia historica del helper, anterior a F1: PostgreSQL 18.4/cluster 18 ya activo en loopback. init-dev creo ocoteAppDatabase porque faltaba; repeticion y --check desde fuera del checkout exitosos, sin renombrar/borrar ocote. Entonces el objetivo estaba vacio y no habia backend ni restore. La evidencia posterior vigente de revision/roles/restore, sin leer datos legacy ni resetear el origen, esta en acta F1; no otros SO ni protocolo cliente homologados.
 
-Siguiente paso exacto: operador define custodia/origen HTTPS y completa bootstrap/configuracion explicitos segun runbook; D02/D04 ya confirmadas para F2. Despues resolver D03/D08/ejemplos temporales y obtener autorizacion expresa F3. F3-F7/RF-\* conservan orden/gates; no crear negocio ni pantallas por anticipado. Mensaje heredado del helper sobre F1 no sustituye este estado vigente.
+Siguiente paso exacto: operador confirma custodia/origen HTTPS/bootstrap existente y completa configuracion explicita. Nucleo F3 ratificado; D03/D08 gerenciales siguen F6. Despues obtener autorizacion expresa F4 y validar muestra accesible OCOTE/licencia tipografica/Material18.2; no crear pantallas por anticipado. Mensaje heredado del helper sobre F1 no sustituye estado vigente.

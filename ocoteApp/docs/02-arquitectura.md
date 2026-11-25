@@ -1,6 +1,6 @@
 # OCOTE: arquitectura y modelo de datos
 
-Version documental: 2.0 con incremento F2 autorizado el 2026-11-24. Modelo objetivo de 19 tablas; F2 agrega nueve tablas vacias a la tecnica release_history. No F3-F7 ni despliegue productivo/nube. Estado y evidencia vigentes en roadmap.
+Version documental: 2.0 con F3 autorizado el 2026-11-24. Modelo objetivo de 19 tablas; 17 actuales contando alembic_version, seis F3 vacias. No F4-F7 ni despliegue productivo/nube. Estado y evidencia vigentes en roadmap seccion 9; diccionarios futuros no implican tablas creadas.
 
 La [especificacion SDD](01-spec-driven-development.md) gobierna RN-01 a RN-07, RF-01 a RF-15 y tokens. El [roadmap](03-estado-actual-y-roadmap.md) distingue evidencia de propuesta y fija puertas D01-D08. La [guia de entrega](05-paquetizacion-instalacion-y-actualizaciones.md) gobierna paquetes, instalacion local/nube e integraciones y es fuente unica del protocolo de release.
 
@@ -8,7 +8,9 @@ La [guia de entorno y portabilidad](04-entorno-y-portabilidad.md) contiene el pr
 
 ## 1. Decisiones de arquitectura
 
-Monorepo ligero: Angular permanece en raiz y backend/ ya contiene F1/F2 por capas routers -> schemas/policies -> services -> models/BD. Monolito modular PostgreSQL/ACID; frontend/API pueden permanecer in-house aunque PostgreSQL sea gestionado. Nube no introduce multitenencia ni conexion del navegador a BD.
+Monorepo ligero: Angular permanece en raiz y backend/ contiene F1-F3 por capas routers -> schemas/policies -> services -> models/BD. Monolito modular PostgreSQL/ACID; navegador nunca conecta a BD, tampoco en modalidad gestionada.
+
+F3: configuracion compartida y locks departamento -> usuarios UUID ordenados -> plan -> objetivo -> tarea -> subtarea -> solicitud; el plan serializa cambios/altas/cierre y administracion usa exclusivo. Session sin autoflush y flush explicito unen datos/version/historia/decision en una transaccion; dependencia confirma antes de responder. Progreso con fracciones/promedio por tarea/null sin datos y puntualidad civil en zona de BD. Triggers protegen originales/identidad/versiones/cierres/terminales; runtime sin DELETE ni UPDATE de historia. [Evidencia F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local).
 
 | Area          | Decision objetivo                                                               | Restriccion                                                                                            |
 | ------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -507,7 +509,7 @@ flowchart TB
   Files --> Backup
 ```
 
-- Desarrollo comprobado: PG18.4 Windows en database/postgres/bin, cluster18 en database/data, logs en database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0002, once tablas: nueve F2 vacias mas release_history/alembic_version. Roles separados; migracion/no-op/restores y permisos probados en [evidencia F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local). ocote se conserva sin renombrar/copiar/borrar. Bootstrap/configuracion del operador pendientes; no homologacion productiva.
+- Desarrollo comprobado: PG18.4 Windows, database/postgres/bin, cluster18 database/data, logs database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0003/17 tablas/cuatro releases terminales; roles separados, migracion/no-op/cuatro restores y grants en [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local). ocote conservada; bootstrap posterior del operador preservado, configuracion pendiente, seis F3 vacias. No homologacion productiva.
 - Arranque/verificacion: `bash scripts/init-dev.sh` y luego `bash scripts/init-dev.sh --check`. Delega en db-start.sh: valida pg_ctl status, pg_isready, version mayor y SHOW data_directory antes de consultar/crear ocoteAppDatabase con mayusculas exactas. Nunca hace initdb, migrations/seeds, reset, stop ni configuracion persistente. Solo al arrancar fija loopback/puerto; init-dev muestra estado de backend/.venv, backend/alembic y node_modules.
 - Produccion in-house (D06 pendiente): portable bajo usuario dedicado o contenedor con volumen persistente; FastAPI separado y proxy sirviendo `dist/ocote-app/browser` segun salida verificada del build. SPA fallback a index.html solo fuera de `/api`; errores API no devuelven HTML. Validar version minor soportada y parcheada antes de desplegar.
 - `initdb` solo para una instalacion nueva sin cluster, mediante decision explicita del operador; jamas para reparar una falla de arranque. Portable no significa copiar data mientras el servidor esta activo ni incluir la BD en Angular.
@@ -525,7 +527,7 @@ flowchart TB
 
 ### Operacion y recuperacion
 
-Base D05/D06 aprobada el 2026-11-24: RPO <=24 h/RTO <=4 h son objetivos de diseno, respaldos diarios/por release con retencion minima 30 dias y restore mensual/por release. Responsable: LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion expresa sin suplente hasta 2026-12-24 solo F1/F2 local/sintetico, operaciones suspendidas si falta el responsable. Politica de privacidad, cuarentena/escaneo fail-closed antes de F5, cifrado/custodia y conservacion en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). No scheduler/escaneo/cifrado off-host implementados ni datos reales autorizados. Restore tecnico en mismo cluster no demuestra RPO/RTO productivos; dimensionar/probar host alterno, volumen y operacion antes de un SLA.
+Base D05/D06 aprobada 2026-11-24: RPO <=24 h/RTO <=4 h objetivos, no SLA; backups diarios/por release, retencion minima30 dias y restore mensual/por release. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion sin suplente hasta2026-12-24 conservada por F3 local/sintetico, sin responsable suspender operaciones. Privacidad/cuarentena/escaneo fail-closed antes de F5/cifrado/custodia en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Sin scheduler/escaneo/cifrado off-host implementados ni datos reales autorizados. Restore mismo cluster no demuestra recuperacion de host/carga/RPO/RTO productivos.
 
 Respaldar BD y evidencias como conjunto consistente: pausar escrituras durante la captura MVP, `pg_dump` y manifest de archivos/hash, claves/configuracion protegidas por separado. Restore en entorno aislado con comprobacion de FK, revision Alembic, conteos, archivos y login; conservar evidencia de duracion y resultado. Volumen persistente no equivale a backup y un backup sin prueba de restore no satisface DoD.
 

@@ -50,7 +50,7 @@ def test_real_roles_and_scoped_privileges(runtime, migrator):
             is create
         )
     assert runtime.execute("SELECT version_num FROM public.alembic_version").fetchall() == [
-        ("20261124_0002",)
+        ("20261124_0003",)
     ]
     assert runtime.execute("SELECT count(*) FROM public.release_history").fetchone()[0] >= 1
     for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
@@ -67,6 +67,24 @@ def test_real_roles_and_scoped_privileges(runtime, migrator):
         ).fetchone()[0]
         is False
     )
+    for table in (
+        "annual_plans",
+        "objectives",
+        "tasks",
+        "subtasks",
+        "task_history",
+        "due_date_requests",
+    ):
+        for privilege in ("SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "TRIGGER"):
+            expected = privilege in {"SELECT", "INSERT"} or (
+                privilege == "UPDATE" and table != "task_history"
+            )
+            assert (
+                runtime.execute(
+                    "SELECT has_table_privilege(current_user,%s,%s)", ("public." + table, privilege)
+                ).fetchone()[0]
+                is expected
+            )
 
 
 @pytest.mark.parametrize(
