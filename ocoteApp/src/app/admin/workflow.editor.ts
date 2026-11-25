@@ -8,7 +8,46 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Api, Row, text } from '../core/api';
 import { Feedback } from '../shared/feedback';
+import { integerValidator, integerValue } from '../shared/editor';
 import { problem, Problem } from '../core/problem';
+
+export function stageProblem(row: Row): string | null {
+  if ((row['is_initial'] || row['kind'] === 'completed') && !row['is_active']) return 'La etapa inicial y la completada deben permanecer activas.';
+  if (row['is_initial'] && (row['kind'] !== 'open' || row['requires_reason'] || row['requires_evidence'])) return 'La etapa inicial debe ser abierta y no puede exigir motivo ni evidencia.';
+  return null;
+}
+export function transitionProblem(row: Row, stages: Row[], from = 'from_stage_id', to = 'to_stage_id', identity = 'id'): string | null {
+  const allowed = row['allowed_roles'];
+  if (!Array.isArray(allowed) || !allowed.length || new Set(allowed).size !== allowed.length || allowed.some(role => !['admin','lider','colaborador'].includes(role)) || (row['is_active'] && !allowed.includes('admin'))) return 'Selecciona roles sin duplicados; una transicion activa debe incluir admin.';
+  const source = stages.find(stage => stage[identity] === row[from]), target = stages.find(stage => stage[identity] === row[to]);
+  if (!source || !target || source === target) return 'Selecciona etapas distintas de origen y destino.';
+  if (source['kind'] === 'completed') return 'Una etapa completada no puede tener salidas.';
+  if (row['is_active'] && (!source['is_active'] || !target['is_active'])) return 'Una transicion activa requiere ambas etapas activas.';
+  return null;
+}
+export function workflowProblem(stages: Row[], transitions: Row[]): string | null {
+  if (stages.length < 2 || stages.length > 100 || transitions.length < 1 || transitions.length > 1000) return 'El grafo requiere entre 2 y 100 etapas y entre 1 y 1000 transiciones.';
+  if (new Set(stages.map(stage => stage['code'])).size !== stages.length) return 'Los codigos de las etapas deben ser unicos.';
+  if (new Set(stages.map(stage => integerValue(stage['position']))).size !== stages.length) return 'Las posiciones de las etapas deben ser unicas.';
+  for (const stage of stages) { const message = stageProblem(stage); if (message) return message; }
+  const active = stages.filter(stage => stage['is_active']), initial = active.filter(stage => stage['is_initial']), terminal = active.filter(stage => stage['kind'] === 'completed');
+  if (initial.length !== 1 || terminal.length !== 1) return 'El grafo debe tener una sola etapa inicial activa y una sola completada activa.';
+  const pairs = new Set<string>();
+  for (const transition of transitions) {
+    const message = transitionProblem(transition, stages, 'from_code', 'to_code', 'code'); if (message) return message;
+    const pair = JSON.stringify([transition['from_code'], transition['to_code']]);
+    if (pairs.has(pair)) return 'No se permiten transiciones duplicadas.';
+    pairs.add(pair);
+  }
+  const reachable = new Set([terminal[0]['code']]), pending = [terminal[0]['code']];
+  while (pending.length) {
+    const target = pending.pop();
+    for (const transition of transitions) if (transition['is_active'] && transition['to_code'] === target && !reachable.has(transition['from_code'])) {
+      reachable.add(transition['from_code']); pending.push(transition['from_code']);
+    }
+  }
+  return active.every(stage => reachable.has(stage['code'])) ? null : 'Cada etapa activa necesita un camino a la completada.';
+}
 
 @Component({
   standalone: true, imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
@@ -32,6 +71,7 @@ import { problem, Problem } from '../core/problem';
       </div>@if (!group.get('expected_version')?.value) { <button mat-button type="button" (click)="transitions.removeAt(index)"><mat-icon>close</mat-icon>Quitar fila</button> }</section>
     }<button mat-stroked-button type="button" (click)="addTransition()"><mat-icon>add</mat-icon>Transicion</button>
     <mat-form-field class="detail-section"><mat-label>Motivo del cambio</mat-label><textarea matInput formControlName="reason" minlength="10" maxlength="2000" required></textarea><mat-error>Entre 10 y 2000 caracteres.</mat-error></mat-form-field>
+    @if (form.getError('workflow'); as message) { <p class="problem" role="alert">{{ message }}</p> }
     </mat-dialog-content><mat-dialog-actions align="end"><button mat-button type="button" [mat-dialog-close]="false" [disabled]="busy()">Cancelar</button>
       @if (issue()?.conflict) { <button mat-stroked-button type="button" [mat-dialog-close]="'reload'">Descartar cambios y recargar</button> }
       <button mat-flat-button [disabled]="busy() || form.invalid || stages.length < 2 || transitions.length < 1 || !!issue()?.conflict">Guardar grafo</button>
@@ -53,6 +93,11 @@ export class WorkflowEditor {
       from_code: this.data.stages.find(stage => stage['id'] === row['from_stage_id'])?.['code'],
       to_code: this.data.stages.find(stage => stage['id'] === row['to_stage_id'])?.['code'],
     }));
+    this.form.addValidators(() => {
+      const message = workflowProblem(this.stages.getRawValue(), this.transitions.getRawValue());
+      return message ? { workflow: message } : null;
+    });
+    this.form.updateValueAndValidity({ emitEvent: false });
   }
   codes(): string[] { return [...new Set(this.stages.getRawValue().map((row: Row) => text(row, 'code')).filter(Boolean))]; }
   addStage(row: Row = {}): void {
@@ -61,7 +106,7 @@ export class WorkflowEditor {
       code: new FormControl({ value: text(row, 'code'), disabled: existing }, [Validators.required, Validators.pattern('^[a-z][a-z0-9_]*$'), Validators.maxLength(40)]),
       name: new FormControl(text(row, 'name'), [Validators.required, Validators.maxLength(120)]),
       kind: new FormControl({ value: text(row, 'kind'), disabled: existing }, Validators.required),
-      position: new FormControl(row['position'] ?? null, [Validators.required, Validators.min(0), control => Number.isInteger(control.value) ? null : { integer: true }]),
+      position: new FormControl(integerValue(row['position'] ?? null), [Validators.required, Validators.min(0), integerValidator]),
       is_active: new FormControl(!!row['is_active']), is_initial: new FormControl({ value: !!row['is_initial'], disabled: existing }),
       requires_reason: new FormControl(!!row['requires_reason']), requires_evidence: new FormControl(!!row['requires_evidence']),
       expected_version: new FormControl(row['version'] ?? null),
@@ -80,7 +125,7 @@ export class WorkflowEditor {
     this.busy.set(true); this.issue.set(null); this.ref.disableClose = true;
     const values = this.form.getRawValue();
     try {
-      await this.api.command('/workflow', { stages: values.stages.map((row: Row) => ({ ...row, reason: values.reason })), transitions: values.transitions, reason: values.reason });
+      await this.api.command('/workflow', { stages: values.stages.map((row: Row) => ({ ...row, position: integerValue(row['position']), reason: values.reason })), transitions: values.transitions, reason: values.reason });
       this.ref.close(true);
     } catch (error) { this.issue.set(problem(error)); }
     finally { this.busy.set(false); this.ref.disableClose = false; }

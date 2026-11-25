@@ -481,3 +481,28 @@ Artefactos en database/backups/f5-<attempt>/ ignorados, no publicados. Manifest 
 No raiz EVIDENCE_STORAGE_ROOT ni EVIDENCE_CLAMAV_PORT configurados en el entorno, ni instalacion/escaneo ClamAV reales ensayados. Cargas operativas deshabilitadas por servidor/UI; los tests identifican dobles sinteticos y no prueban motor real, definiciones, antimalware mantenido ni E2E autenticado con identidad/configuracion del operador. No nuevas entradas no confiables/datos reales bajo excepcion. No homologacion AA integral/lector/navegadores, TLS productivo, seguridad de dependencias ni SLA por pasar estas pruebas.
 
 Siguiente puerta: operador completa configuracion existente sin overwrite, valida configuration-status, raiz privada externa/ACL/ClamAV mantenido y pruebas reales limpio/deteccion autorizada/caida/timeout/definiciones viejas/restore coherente; acepta F4/F5 con su propia sesion. Solo despues cerrar operativamente F5. **F6 requiere nueva autorizacion expresa y ratificacion D03/D08**; F7, exports/analytics/evaluacion/nube no implementados. D06 sin suplente y D07 separados conservan responsable/fecha2026-12-24 sin renovacion automatica.
+
+## 12. Correccion frontend de administracion 2026-11-25
+
+Correccion autorizada exclusivamente Angular/pruebas/documentacion tras F4/F5; no cambia reglas, fases ni actas anteriores. Backend y contratos consultados solo en lectura. Sin cambios en backend, migraciones0001..0004, helpers/scripts, lockfile o database; sin comandos de BD, seeds ni configuracion de negocio inventada. Conserva sesion/CSRF/roles, versiones y tema OCOTE; cierre operativo F5 y restricciones D06/D07 siguen pendientes en los terminos anteriores.
+
+### Causas y correcciones
+
+- El track anidado de administracion usaba `row['id'] ?? row['key']`, susceptible al temporal indefinido de Angular18 reportado como tmp_18_0. Se reemplaza por una funcion pura de clave estable. Auditoria AST TypeScript/Angular de los25 archivos de src/app:16 plantillas y29 bucles, incluidos anidados; restantes tracks directos o referencias estables de FormGroup, sin coalescencia/encadenamiento opcional/condicionales en track.
+- El input con `[type]` dinamico no seleccionaba NumberValueAccessor: al escribir un entero, el formulario podia conservar un string y rechazarlo. Rama estatica `type="number"`, enteros seguros/normalizacion estricta y payload numerico compartidos con el editor de grafo; sin truncar decimales ni adivinar separadores locales. Se valida entrada DOM real, cero, strings enteros, limites, decimales y valores ambiguos.
+- Tras crear un ajuste, la clave seleccionada podia permanecer aunque desapareciera de las opciones. Se limpia solo esa seleccion al recargar y se bloquea Crear durante la recarga; no se elige otra clave por defecto. Los cuatro ajustes tienen campos visibles: nombre texto1..160, zona IANA texto1..100 sin opcion fija/preseleccion, evidencia entero1..10485760 y exportacion entero1..10000. RN-07/409 de zona usada siguen siendo autoridad del servidor.
+- Reglas locales de etapas/transiciones alineadas al contrato: inicial abierta/activa sin requisitos, terminal activa sin salidas, roles validos/no duplicados/admin en arista activa, extremos distintos/activos cuando corresponde. Grafo completo verifica unicidad, inicial/terminal y caminos a terminal; preserva semanticas inmutables y expected_version. El servidor sigue resolviendo alcance, ocupacion, unicidad concurrente y conflictos.
+- Cada apertura de Editor/WorkflowEditor crea controles/estado propios. Pruebas con MatDialog real verifican contenido completo tras cancelar/guardar/409 y descarte/recarga, sin borrar datos al recibir409 ni compartir filas canceladas. Las confirmaciones intencionalmente sin campos (completar subtarea/transicion sin requisitos) muestran contexto de la tarea/accion en lugar de un cuerpo vacio.
+
+### Archivos y verificacion
+
+[Administracion](../src/app/admin/admin.page.ts), [grafo](../src/app/admin/workflow.editor.ts), [editor compartido](../src/app/shared/editor.ts), [detalle de tarea](../src/app/operations/task-detail.page.ts), [transicion](../src/app/operations/transition.ts), [pruebas de vistas](../src/app/f4.spec.ts) y [pruebas del editor](../src/app/shared/editor.spec.ts); esta adenda es el unico cambio documental y no reescribe los resultados historicos.
+
+| Comprobacion | Resultado |
+| --- | --- |
+| Build AOT | npm run build correcto,392.40kB inicial/98.05kB transferencia estimada; admin lazy25.02kB. Sin ampliar budgets ni modificar dependencias |
+| ChromeHeadless | **80/80 passed**, incluidas21 regresiones adicionales; entradas DOM/payload, cuatro ajustes/versiones, grafo/reglas y reaperturas reales |
+| Navegador sintetico | Cuatro ajustes creados/cancelados/reabiertos, limites y position de prioridades/horizontes enviados como number; sin ReferenceError. Modal IANA visible a360px sin desbordamiento de pagina |
+| Alcance | git diff --check limpio; diff de backend/scripts/package-lock/database vacio. Sin limpieza manual de .angular/cache necesaria |
+
+Navegador con API interceptada, datos sinteticos y sin escrituras a la API real; no demuestra aceptacion/E2E contra configuracion del operador. Rutas mock e identidad sintetica retiradas, pagina devuelta a https://localhost:8443/login. No se conecto/arranco/verifico BD por esta tarea frontend. No se repiten ni se atribuyen pruebas backend a este incremento. La siguiente puerta operativa F5 sigue siendo la de seccion11, sin autorizacion F6/F7 implicita.

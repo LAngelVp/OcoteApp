@@ -13,8 +13,8 @@ import { TaskDetailPage } from './operations/task-detail.page';
 import { RequestsPage } from './operations/requests.page';
 import { PlanningPage } from './operations/planning.page';
 import { AdminPage } from './admin/admin.page';
-import { WorkflowEditor } from './admin/workflow.editor';
-import { EditData } from './shared/editor';
+import { stageProblem, transitionProblem, workflowProblem, WorkflowEditor } from './admin/workflow.editor';
+import { EditData, Editor } from './shared/editor';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -98,10 +98,157 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     const fixture = await setup(AdminPage,'admin',{ section:'configuracion' });
     expect(fixture.nativeElement.textContent).toContain('Configuracion incompleta'); expect(api.writes).toEqual([]);
   });
+  it('renders nested admin rows with stable UUID or setting keys after reload', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'parametros' });
+    api.response = () => ({ items:[{ key:'organization_name',value:'Synthetic organization',version:1 },{ key:'evidence_max_bytes',value:1024,version:2 }] });
+    await fixture.componentInstance.load(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('tbody tr').length).toBe(2);
+    const first = fixture.nativeElement.querySelector('tbody tr');
+    await fixture.componentInstance.load(); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('tbody tr')).toBe(first);
+    expect(fixture.componentInstance.rowKey({ id:'synthetic-id' })).toBe('synthetic-id');
+    expect(fixture.componentInstance.rowKey({ key:'organization_name' })).toBe('organization_name');
+    expect(api.writes).toEqual([]);
+  });
+  it('clears a created setting selection after reload without defaulting to another key', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'parametros' });
+    fixture.componentInstance.settingKey = 'organization_name';
+    api.response = () => ({ items:[{ key:'organization_name',value:'Synthetic organization',version:1 }] });
+    await fixture.componentInstance.load(); fixture.detectChanges();
+    expect(fixture.componentInstance.settingKey).toBe('');
+    expect(fixture.componentInstance.availableKeys()).not.toContain('organization_name');
+    const create = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Crear'));
+    expect(create?.disabled).toBeTrue(); expect(api.writes).toEqual([]);
+  });
   it('starts an atomic workflow with no invented stages, transitions or roles', async () => {
     const fixture = await setup(WorkflowEditor); expect(fixture.componentInstance.stages.length).toBe(0); expect(fixture.componentInstance.transitions.length).toBe(0);
     fixture.componentInstance.addStage(); expect(fixture.componentInstance.stages.at(0).get('code')?.value).toBe('');
     expect(fixture.componentInstance.stages.at(0).get('kind')?.value).toBe(''); expect(api.writes).toEqual([]);
+  });
+  for (const [key,type,value] of [['organization_name','text','Synthetic organization'],['organization_timezone','text','Pacific/Auckland'],['evidence_max_bytes','number',1024],['export_max_rows','number',50]] as const) {
+    it('opens a typed empty setting and edits its current value for ' + key, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section:'parametros' }), dialog = dialogData(fixture);
+      fixture.componentInstance.settingKey = key; await fixture.componentInstance.edit();
+      expect(dialog.data().fields[0].type).toBe(type); expect(dialog.data().fields[0].value).toBeUndefined();
+      await dialog.data().submit({ value,reason:'Synthetic explicit configuration' });
+      expect(api.writes[0].body).toEqual({ key,value,reason:'Synthetic explicit configuration' });
+      await fixture.componentInstance.edit({ key,value,version:4 });
+      expect(dialog.data().fields[0].value).toBe(value);
+      await dialog.data().submit({ value,reason:'Synthetic explicit update' });
+      expect(api.writes[1]).toEqual({ path:'/settings/' + key,method:'PATCH',body:{ value,reason:'Synthetic explicit update',expected_version:4 } });
+      if (key === 'organization_timezone') {
+        expect(dialog.data().validate?.({ value:'Not/AZone' })).toContain('IANA');
+        expect(dialog.data().validate?.({ value })).toBeNull();
+      }
+    });
+  }
+  for (const section of ['departamentos','usuarios','prioridades','horizontes','etapas','transiciones','parametros']) {
+    it('reopens a complete independent Material dialog after cancel/save/conflict for ' + section, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section }), page = fixture.componentInstance, dialog = TestBed.inject(MatDialog);
+      page.settingKey = 'organization_name';
+      api.response = path => ({ items:path === '/workflow-stages' ? [{ id:'open',name:'Open',kind:'open',is_active:true },{ id:'done',name:'Done',kind:'completed',is_active:true }] : [] });
+      const values = { code:section === 'horizontes' ? 'annual' : 'synthetic',name:'Synthetic',position:0,is_active:true,display_name:'Synthetic',email:'synthetic@example.test',password:'Synthetic-password-123',role:'admin',department_id:null,from_stage_id:'open',to_stage_id:'done',allowed_roles:['admin'],kind:'open',is_initial:false,requires_reason:false,requires_evidence:false,value:'Synthetic organization',reason:'Synthetic explicit change' };
+      const open = async () => {
+        await page.edit(); fixture.detectChanges(); await fixture.whenStable();
+        const ref = dialog.openDialogs[0] as MatDialogRef<Editor>, editor = ref.componentInstance;
+        expect(document.querySelectorAll('mat-dialog-content mat-form-field').length).toBe(editor.data.fields.filter(field => field.type !== 'check').length);
+        expect(editor.data.fields.length).toBeGreaterThan(1); expect(editor.issue()).toBeNull(); expect(editor.busy()).toBeFalse();
+        return ref;
+      };
+      const cancelled = await open(), firstEditor = cancelled.componentInstance, originalFields = firstEditor.data.fields.map(field => field.key);
+      cancelled.componentInstance.form.controls['reason'].setValue('Cancelled synthetic values'); cancelled.close(false);
+      fixture.detectChanges(); await fixture.whenStable();
+      const saved = await open(); expect(saved.componentInstance).not.toBe(firstEditor);
+      expect(saved.componentInstance.form.controls['reason'].value).toBeNull();
+      expect(saved.componentInstance.data.fields.map(field => field.key)).toEqual(originalFields);
+      saved.componentInstance.form.patchValue(values); expect(saved.componentInstance.form.valid).toBeTrue();
+      await saved.componentInstance.save(); fixture.detectChanges(); await fixture.whenStable();
+      expect(api.writes.length).toBe(1);
+      const conflicted = await open();
+      conflicted.componentInstance.form.patchValue(values); expect(conflicted.componentInstance.form.valid).toBeTrue();
+      spyOn(api,'command').and.rejectWith(new HttpErrorResponse({ status:409,error:{ code:'VERSION_CONFLICT' } }));
+      await conflicted.componentInstance.save(); fixture.detectChanges();
+      expect(conflicted.componentInstance.issue()?.conflict).toBeTrue();
+      expect(document.querySelectorAll('mat-dialog-content mat-form-field').length).toBeGreaterThan(0);
+      conflicted.close('reload'); fixture.detectChanges(); await fixture.whenStable();
+      const fresh = await open(); expect(fresh.componentInstance.data.fields.map(field => field.key)).toEqual(originalFields);
+      fresh.close(false); fixture.detectChanges(); await fixture.whenStable();
+    });
+  }
+  it('validates stage semantics and transition rules before calling the API', () => {
+    const stages = [{ id:'open',code:'open',name:'Open',position:0,kind:'open',is_initial:true,is_active:true },{ id:'done',code:'done',name:'Done',position:1,kind:'completed',is_active:true }];
+    expect(stageProblem({ ...stages[0],requires_evidence:true })).not.toBeNull();
+    expect(stageProblem({ ...stages[0],requires_reason:true })).not.toBeNull();
+    expect(stageProblem({ ...stages[0],kind:'blocked' })).not.toBeNull();
+    expect(stageProblem({ ...stages[1],is_active:false })).not.toBeNull();
+    const edge = { from_stage_id:'open',to_stage_id:'done',allowed_roles:['admin'],is_active:true };
+    expect(transitionProblem(edge,stages)).toBeNull();
+    for (const invalid of [{ to_stage_id:'open' },{ from_stage_id:'done',to_stage_id:'open' },{ allowed_roles:['lider'] },{ allowed_roles:['admin','admin'] },{ allowed_roles:['gerente'] }]) expect(transitionProblem({ ...edge,...invalid },stages)).not.toBeNull();
+    expect(transitionProblem(edge,[stages[0],{ ...stages[1],is_active:false }])).not.toBeNull();
+    const transition = { from_code:'open',to_code:'done',allowed_roles:['admin'],is_active:true };
+    expect(workflowProblem(stages,[transition])).toBeNull();
+    expect(workflowProblem(stages,[transition,transition])).toContain('duplicadas');
+    expect(workflowProblem([stages[0],{ ...stages[1],position:0 }],[transition])).toContain('posiciones');
+    expect(workflowProblem([...stages,{ code:'blocked',position:2,kind:'blocked',is_active:true }],[transition])).toContain('camino');
+    expect(workflowProblem(stages,[{ ...transition,is_active:false }])).toContain('camino');
+  });
+  it('submits a complete graph with integer positions and preserves immutable fields/versions', async () => {
+    const fixture = await setup(WorkflowEditor), editor = fixture.componentInstance;
+    editor.addStage({ code:'open',name:'Open',position:'0',kind:'open',is_initial:true,is_active:true,version:4 });
+    editor.addStage({ code:'done',name:'Done',position:'1',kind:'completed',is_active:true,version:2 });
+    editor.addTransition({ from_code:'open',to_code:'done',allowed_roles:['admin'],is_active:true,version:3 });
+    editor.form.controls.reason.setValue('Synthetic explicit graph change');
+    fixture.detectChanges(); expect(editor.form.valid).toBeTrue();
+    expect(editor.stages.at(0).get('code')?.disabled).toBeTrue(); expect(editor.stages.at(0).get('kind')?.disabled).toBeTrue();
+    editor.stages.at(0).get('position')?.setValue(' 2 '); await editor.save();
+    expect(api.writes[0].path).toBe('/workflow');
+    const stages = api.writes[0].body['stages'] as Row[], transitions = api.writes[0].body['transitions'] as Row[];
+    expect(stages[0]['position']).toBe(2); expect(stages[0]['expected_version']).toBe(4); expect(stages[0]['is_initial']).toBeTrue();
+    expect(transitions[0]['expected_version']).toBe(3);
+  });
+  it('reopens the graph from current data without cancelled rows, old errors or busy state', async () => {
+    const fixture = await setup(AdminPage,'admin',{ section:'etapas' }), dialog = TestBed.inject(MatDialog);
+    api.response = path => ({ items:path === '/workflow-stages' ? [
+      { id:'open',code:'open',name:'Open',position:0,kind:'open',is_initial:true,is_active:true,version:4 },
+      { id:'done',code:'done',name:'Done',position:1,kind:'completed',is_active:true,version:2 },
+    ] : path === '/workflow-transitions' ? [{ from_stage_id:'open',to_stage_id:'done',allowed_roles:['admin'],is_active:true,version:3 }] : [] });
+    const open = async () => {
+      await fixture.componentInstance.workflow(); fixture.detectChanges(); await fixture.whenStable();
+      const ref = dialog.openDialogs[0] as MatDialogRef<WorkflowEditor>;
+      expect(document.querySelectorAll('mat-dialog-content .workflow-row').length).toBe(3);
+      expect(ref.componentInstance.issue()).toBeNull(); expect(ref.componentInstance.busy()).toBeFalse();
+      expect(ref.componentInstance.form.controls.reason.value).toBe(''); return ref;
+    };
+    const cancelled = await open(); cancelled.componentInstance.addStage(); cancelled.close(false);
+    fixture.detectChanges(); await fixture.whenStable();
+    const saved = await open(); expect(saved.componentInstance.stages.length).toBe(2);
+    saved.componentInstance.form.controls.reason.setValue('Synthetic explicit graph save'); await saved.componentInstance.save();
+    fixture.detectChanges(); await fixture.whenStable(); expect(api.writes.length).toBe(1);
+    const conflicted = await open(); conflicted.componentInstance.form.controls.reason.setValue('Synthetic graph conflict');
+    spyOn(api,'command').and.rejectWith(new HttpErrorResponse({ status:409,error:{ code:'VERSION_CONFLICT' } }));
+    await conflicted.componentInstance.save(); expect(conflicted.componentInstance.issue()?.conflict).toBeTrue();
+    conflicted.close('reload'); fixture.detectChanges(); await fixture.whenStable();
+    const fresh = await open(); fresh.close(false); fixture.detectChanges(); await fixture.whenStable();
+  });
+  it('keeps task completion confirmation content visible on reopening', async () => {
+    const fixture = await setup(TaskDetailPage,'admin',{ id:'synthetic-task' }), dialog = TestBed.inject(MatDialog);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const pending = fixture.componentInstance.completeChild(syntheticTask,{ id:'child',title:'Synthetic child',version:2 });
+      fixture.detectChanges(); await fixture.whenStable();
+      expect(document.querySelector('mat-dialog-content')?.textContent).toContain('Synthetic child');
+      expect(document.querySelector('mat-dialog-content')?.textContent).toContain('sin reapertura');
+      dialog.openDialogs[0].close(false); await pending; fixture.detectChanges(); await fixture.whenStable();
+    }
+    expect(api.writes).toEqual([]);
+  });
+  it('shows task and destination even when a stage needs no form fields', async () => {
+    const fixture = await setup(ExecutionPage,'admin',{}, { view:'kanban' }), dialog = TestBed.inject(MatDialog);
+    api.response = () => ({ stages:[{ id:'done',name:'Done',is_active:true }],transitions:[{ from_stage_id:'synthetic-open',to_stage_id:'done' }] });
+    const pending = TestBed.inject(Transition).open(syntheticTask,'done');
+    await fixture.whenStable(); fixture.detectChanges();
+    expect(document.querySelector('mat-dialog-content')?.textContent).toContain('Synthetic task');
+    expect(document.querySelector('mat-dialog-content')?.textContent).toContain('Done');
+    dialog.openDialogs[0].close(false); await pending; expect(api.writes).toEqual([]);
   });
   it('uses the parent and child captured versions for completion', async () => {
     const fixture = await setup(TaskDetailPage,'colaborador',{ id:'synthetic-task' }); const dialog = dialogData(fixture);

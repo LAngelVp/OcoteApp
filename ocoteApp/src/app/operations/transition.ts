@@ -28,6 +28,7 @@ export class Transition {
     }
     return firstValueFrom(this.dialog.open(Editor, { width: '640px', maxWidth: '96vw', data: {
       title: 'Cambiar a ' + text(target, 'name'), fields,
+      message: 'La tarea "' + text(row, 'title') + '" pasara a "' + text(target, 'name') + '".',
       submit: (values: Row) => this.api.command('/tasks/' + text(row, 'id') + '/stage-transitions', {
         ...values, expected_version: version(row), to_stage_id: target!['id'],
       }),

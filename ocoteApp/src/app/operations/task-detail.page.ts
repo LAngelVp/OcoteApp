@@ -120,9 +120,9 @@ export class TaskDetailPage implements OnInit {
       if (epoch === this.epoch) { this.history.set(cursor ? [...this.history(), ...page.items] : page.items); this.historyLoaded.set(true); this.historyNext.set(page.next_cursor ?? null); }
     } catch (error) { this.issue.set(problem(error)); } finally { this.historyBusy.set(false); }
   }
-  private async command(title: string, fields: Field[], path: string, base: Row, method: 'POST' | 'PATCH' = 'POST'): Promise<void> {
+  private async command(title: string, fields: Field[], path: string, base: Row, method: 'POST' | 'PATCH' = 'POST', message?: string): Promise<void> {
     const result = await firstValueFrom(this.dialog.open(Editor, { width: '640px', maxWidth: '96vw', data: {
-      title, fields, submit: (values: Row) => this.api.command(path, { ...values, ...base }, method),
+      title, fields, message, submit: (values: Row) => this.api.command(path, { ...values, ...base }, method),
     } }).afterClosed());
     if (result) { this.notice.set(result === 'reload' ? 'Datos recargados. Revisa las versiones antes de volver a editar.' : 'Cambio guardado.'); await this.load(); }
   }
@@ -160,6 +160,6 @@ export class TaskDetailPage implements OnInit {
     await this.command('Editar subtarea', [titleField(row)], '/subtasks/' + text(row,'id'), { expected_version:version(row),expected_task_version:version(task) }, 'PATCH');
   }
   async completeChild(task: Row, row: Row): Promise<void> {
-    await this.command('Completar definitivamente · ' + text(row,'title'), [], '/subtasks/' + text(row,'id') + '/completion', { expected_version:version(row),expected_task_version:version(task) });
+    await this.command('Completar definitivamente · ' + text(row,'title'), [], '/subtasks/' + text(row,'id') + '/completion', { expected_version:version(row),expected_task_version:version(task) }, 'POST', 'La subtarea "' + text(row,'title') + '" quedara completada sin reapertura.');
   }
 }

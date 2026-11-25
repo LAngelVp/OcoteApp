@@ -11,7 +11,7 @@ import { Api, Page, Row, text, version } from '../core/api';
 import { Feedback } from '../shared/feedback';
 import { Editor, Field, options, reason } from '../shared/editor';
 import { problem, Problem } from '../core/problem';
-import { WorkflowEditor } from './workflow.editor';
+import { stageProblem, transitionProblem, WorkflowEditor } from './workflow.editor';
 
 interface Resource { title: string; api: string; columns: [string, string][]; readonly?: boolean; }
 const resources: Record<string, Resource> = {
@@ -38,7 +38,7 @@ const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'numb
     <div class="actions"><button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
       @if (section() === 'etapas' || section() === 'transiciones' || section() === 'configuracion') { <button mat-stroked-button (click)="workflow()"><mat-icon>account_tree</mat-icon>Editar grafo</button> }
       @if (section() === 'prioridades' || section() === 'horizontes') { <button mat-stroked-button (click)="reorder()"><mat-icon>swap_vert</mat-icon>Ordenar</button> }
-      @if (config() && !config()?.readonly) { <button mat-flat-button [disabled]="section() === 'parametros' && !settingKey" (click)="edit()"><mat-icon>add</mat-icon>Crear</button> }
+      @if (config() && !config()?.readonly) { <button mat-flat-button [disabled]="section() === 'parametros' && (!settingKey || loading())" (click)="edit()"><mat-icon>add</mat-icon>Crear</button> }
     </div></header><ocote-feedback [issue]="issue()" />
     @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
     @if (section() === 'configuracion') {
@@ -51,7 +51,7 @@ const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'numb
       @if (loading()) { <p role="status">Cargando registros...</p> }
       @else if (!rows().length) { <section class="empty-state"><mat-icon>inbox</mat-icon><h2>Sin registros</h2><p>No hay elementos disponibles.</p></section> }
       @else { <div class="table-wrap" role="region" [attr.aria-label]="config.title" tabindex="0"><table class="data-table"><thead><tr>@for (column of config.columns; track column[0]) { <th scope="col">{{ column[1] }}</th> }<th scope="col">Acciones</th></tr></thead>
-        <tbody>@for (row of rows(); track row['id'] ?? row['key']) { <tr>@for (column of config.columns; track column[0]) { <td>{{ display(row, column[0]) }}</td> }
+        <tbody>@for (row of rows(); track rowKey(row)) { <tr>@for (column of config.columns; track column[0]) { <td>{{ display(row, column[0]) }}</td> }
           <td><div class="actions">@if (!config.readonly) { <button mat-icon-button aria-label="Editar registro" matTooltip="Editar" (click)="edit(row)"><mat-icon>edit</mat-icon></button> }
             @if (section() === 'usuarios') { <button mat-icon-button aria-label="Restablecer contrasena" matTooltip="Restablecer contrasena" (click)="resetPassword(row)"><mat-icon>key</mat-icon></button> }
             @if (config.readonly) { <button mat-icon-button aria-label="Consultar detalle" matTooltip="Consultar detalle" (click)="selected.set(row)"><mat-icon>visibility</mat-icon></button> }
@@ -80,6 +80,7 @@ export class AdminPage implements OnInit {
   private epoch = 0;
   settingKey = '';
   readonly array = (value: unknown) => Array.isArray(value) ? value.join(', ') : '';
+  rowKey(row: Row): string { return text(row, 'id') || text(row, 'key'); }
   availableKeys(): string[] { return keys.filter(key => !this.rows().some(row => row['key'] === key)); }
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params => {
@@ -95,7 +96,10 @@ export class AdminPage implements OnInit {
         const status = await this.api.get('/configuration-status'); if (epoch === this.epoch) this.status.set(status);
       } else if (config) {
         const page = await this.api.get<Page>(config.api, { limit: '50', ...(cursor ? { cursor } : {}) });
-        if (epoch === this.epoch) { this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); }
+        if (epoch === this.epoch) {
+          this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor);
+          if (this.section() === 'parametros' && page.items.some(row => row['key'] === this.settingKey)) this.settingKey = '';
+        }
       } else throw new Error('Unknown route');
     } catch (error) { if (epoch === this.epoch) { this.rows.set([]); this.status.set(null); this.issue.set(problem(error)); } }
     finally { if (epoch === this.epoch) this.loading.set(false); }
@@ -107,14 +111,13 @@ export class AdminPage implements OnInit {
     if (key === 'created_at' && typeof value === 'string') return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' }).format(new Date(value));
     return String(value ?? '—');
   }
-  private async fields(row?: Row): Promise<Field[]> {
+  private async fields(row?: Row, stages: Row[] = []): Promise<Field[]> {
     const section = this.section(); let fields: Field[];
     if (section === 'parametros') {
       const key = row ? text(row, 'key') : this.settingKey;
       const numeric = key === 'evidence_max_bytes' || key === 'export_max_rows';
-      fields = [{ key: 'value', label: key, type: key === 'organization_timezone' ? 'select' : numeric ? 'number' : 'text', required: true,
-        ...(numeric ? { min: 1, max: key === 'evidence_max_bytes' ? 10485760 : 10000 } : { max: 160 }),
-        options: key === 'organization_timezone' ? [{ value: 'America/Mexico_City', label: 'America/Mexico_City' }] : undefined }];
+      fields = [{ key: 'value', label: key, type: numeric ? 'number' : 'text', required: true,
+        ...(numeric ? { min: 1, max: key === 'evidence_max_bytes' ? 10485760 : 10000 } : { max: key === 'organization_timezone' ? 100 : 160 }) }];
     } else if (section === 'usuarios') {
       const departments = await this.api.all('/departments');
       fields = [...(row ? [] : [{ key: 'email', label: 'Correo', type: 'email', required: true, max: 254 } as Field,
@@ -124,8 +127,8 @@ export class AdminPage implements OnInit {
         { key: 'department_id', label: 'Departamento', type: 'select', requiredWhen: { key: 'role', values: ['lider','colaborador'] }, options: options(departments.filter(department => department['is_active'] || department['id'] === row?.['department_id'])) }, active()];
     } else if (section === 'transiciones') {
       fields = [...(row ? [] : [
-        { key: 'from_stage_id', label: 'Etapa origen', type: 'select', required: true, options: options(await this.api.all('/workflow-stages')) } as Field,
-        { key: 'to_stage_id', label: 'Etapa destino', type: 'select', required: true, options: options(await this.api.all('/workflow-stages')) } as Field,
+        { key: 'from_stage_id', label: 'Etapa origen', type: 'select', required: true, options: options(stages.filter(stage => stage['kind'] !== 'completed')) } as Field,
+        { key: 'to_stage_id', label: 'Etapa destino', type: 'select', required: true, options: options(stages) } as Field,
       ]), { key: 'allowed_roles', label: 'Roles permitidos', type: 'multi', required: true, options: roles.filter(role => role.value !== 'gerente') }, active()];
     } else {
       const catalog = ['etapas', 'prioridades', 'horizontes'].includes(section);
@@ -140,11 +143,22 @@ export class AdminPage implements OnInit {
   async edit(row?: Row): Promise<void> {
     const config = this.config(); if (!config || config.readonly) return;
     const section = this.section(), settingKey = row ? text(row, 'key') : this.settingKey;
+    if (section === 'parametros' && !keys.includes(settingKey)) return;
     try {
-      const fields = await this.fields(row);
+      const stages = section === 'transiciones' ? await this.api.all('/workflow-stages') : [];
+      const fields = await this.fields(row, stages);
       if (section !== this.section()) return;
       const ref = this.dialog.open(Editor, { width: '640px', maxWidth: '96vw', data: {
         title: (row ? 'Editar · ' : 'Crear · ') + config.title, fields,
+        validate: (values: Row) => {
+          if (section === 'etapas') return stageProblem({ ...row, ...values });
+          if (section === 'transiciones') return transitionProblem({ ...row, ...values }, stages);
+          if (section === 'parametros' && settingKey === 'organization_timezone') {
+            try { new Intl.DateTimeFormat('es-MX', { timeZone: String(values['value'] ?? '').trim() }); }
+            catch { return 'Indica una zona IANA valida.'; }
+          }
+          return null;
+        },
         submit: (values: Row) => this.api.command(config.api + (row ? '/' + encodeURIComponent(config.api === '/settings' ? text(row, 'key') : text(row, 'id')) : ''),
           { ...values, ...(row ? { expected_version: version(row) } : config.api === '/settings' ? { key: settingKey } : {}) }, row ? 'PATCH' : 'POST'),
       } });
