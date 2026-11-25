@@ -11,10 +11,11 @@ import { Session } from '../core/session';
 import { Problem, problem } from '../core/problem';
 import { Editor, Field, options, reason } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
+import { Pager, Pagination } from '../shared/pager';
 import { label, progress } from '../shared/presentation';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">PLANIFICACION</p><h1>{{ record() ? record()!['title'] : title }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (!identity && session.has('planning:manage')) { <button mat-flat-button (click)="edit()"><mat-icon>add</mat-icon>{{ plans ? 'Crear plan' : 'Crear objetivo' }}</button> }
@@ -40,8 +41,8 @@ import { label, progress } from '../shared/presentation';
       @if (!rows().length) { <section class="empty-state"><mat-icon>flag</mat-icon><h2>Sin {{ title.toLowerCase() }}</h2><p>No hay registros para este alcance y filtro.</p></section> }
       @else { <div class="table-wrap" role="region" [attr.aria-label]="title" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Titulo</th><th scope="col">Horizonte</th><th scope="col">Inicio</th><th scope="col">Fin</th><th scope="col">Avance</th>@if (plans) { <th scope="col">Estado</th> }</tr></thead><tbody>
         @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="[plans ? '/planes' : '/objetivos', row['id']]">{{ row['title'] }}</a></td><td>{{ label(row['horizon_type']) }}</td><td>{{ row['start_date'] }}</td><td>{{ row['due_date'] }}</td><td class="numeric">{{ progress(row['progress_percent']) }}</td>@if (plans) { <td>{{ label(row['status']) }}</td> }</tr> }
-      </tbody></table></div><div class="pager"><button mat-button [disabled]="!cursor()" (click)="load()">Primera pagina</button><button mat-stroked-button [disabled]="!next()" (click)="load(next()!)">Siguiente</button></div> }
-    }`,
+      </tbody></table></div> }
+    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`,
 })
 export class PlanningPage implements OnInit {
   private readonly api = inject(Api);
@@ -62,8 +63,9 @@ export class PlanningPage implements OnInit {
   readonly loading = signal(false);
   readonly issue = signal<Problem | null>(null);
   readonly notice = signal('');
-  readonly next = signal<string | null>(null);
-  readonly cursor = signal('');
+  readonly pagination = new Pagination();
+  readonly next = this.pagination.next;
+  readonly cursor = this.pagination.cursor;
   readonly label = label;
   readonly progress = progress;
   private epoch = 0;
@@ -72,6 +74,7 @@ export class PlanningPage implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params => { this.identity = params.get('id') ?? ''; void this.load(); });
     if (!this.plans && !this.identity) void this.api.all('/annual-plans').then(rows => this.planOptions.set(rows)).catch(error => this.issue.set(problem(error)));
   }
+  resize(size: number): void { if (this.pagination.resize(size)) void this.load(); }
   async load(cursor = ''): Promise<void> {
     const epoch = ++this.epoch; this.loading.set(true); this.issue.set(null); this.record.set(null); this.parent.set(null);
     try {
@@ -80,8 +83,8 @@ export class PlanningPage implements OnInit {
         const parent = this.plans ? null : await this.api.get('/annual-plans/' + text(row, 'annual_plan_id'));
         if (epoch === this.epoch) { this.record.set(row); this.parent.set(parent); }
       } else {
-        const page = await this.api.get<Page>(this.endpoint, { limit: '50', ...(cursor ? { cursor } : {}), ...(!this.plans && this.planFilter ? { annual_plan_id: this.planFilter } : {}) });
-        if (epoch === this.epoch) { this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); }
+        const page = await this.api.get<Page>(this.endpoint, { limit: String(this.pagination.size()), ...(cursor ? { cursor } : {}), ...(!this.plans && this.planFilter ? { annual_plan_id: this.planFilter } : {}) });
+        if (epoch === this.epoch) { this.rows.set(page.items); this.pagination.accept(cursor, page.next_cursor); }
       }
     } catch (error) { if (epoch === this.epoch) { this.rows.set([]); this.issue.set(problem(error)); } }
     finally { if (epoch === this.epoch) this.loading.set(false); }

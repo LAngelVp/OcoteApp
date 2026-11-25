@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { firstValueFrom } from 'rxjs';
-import { Api, Row, text, version } from '../core/api';
+import { Api, Page, Row, text, version } from '../core/api';
 import { Editor, Field, options, reason } from '../shared/editor';
 
 @Injectable({ providedIn: 'root' })
@@ -22,13 +22,19 @@ export class Transition {
       if (selected !== true || !target) return;
     }
     const fields: Field[] = target['requires_reason'] ? [reason()] : [];
+    let message = 'La tarea "' + text(row, 'title') + '" pasara a "' + text(target, 'name') + '".';
     if (target['requires_evidence']) {
-      const files = await this.api.all('/tasks/' + text(row, 'id') + '/evidence');
-      fields.push({ key: 'evidence_ids', label: 'Evidencias', type: 'multi', required: true, options: options(files, 'original_name') });
+      const path = '/tasks/' + text(row, 'id') + '/evidence';
+      const page = await this.api.get<Page & { uploads_configured: boolean }>(path, { limit: '100' });
+      const files = page.next_cursor ? [...page.items, ...await this.api.all(path, { cursor: page.next_cursor })] : page.items;
+      fields.push({ key: 'evidence_ids', label: 'Evidencias adjuntas a la tarea', type: 'multi', required: true, options: options(files, 'original_name'),
+        hint: files.length ? 'Archivos previamente adjuntos y verificados de esta tarea.' : 'No hay evidencias adjuntas disponibles para seleccionar.' });
+      if (!files.length) message += ' No hay evidencias verificadas adjuntas a esta tarea. Adjunta un archivo desde el detalle de la tarea antes de continuar.';
+      if (page.uploads_configured === false) message += ' Las cargas no estan habilitadas: falta configurar el almacenamiento privado y/o ClamAV. Contacta al operador; no se puede omitir el requisito de evidencia.';
     }
     return firstValueFrom(this.dialog.open(Editor, { width: '640px', maxWidth: '96vw', data: {
       title: 'Cambiar a ' + text(target, 'name'), fields,
-      message: 'La tarea "' + text(row, 'title') + '" pasara a "' + text(target, 'name') + '".',
+      message,
       submit: (values: Row) => this.api.command('/tasks/' + text(row, 'id') + '/stage-transitions', {
         ...values, expected_version: version(row), to_stage_id: target!['id'],
       }),

@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Api, Page, Row, text, version } from '../core/api';
 import { Feedback } from '../shared/feedback';
 import { RecordDetails } from '../shared/record-details';
+import { Pager, Pagination } from '../shared/pager';
 import { Editor, Field, options, reason } from '../shared/editor';
 import { commandMessage, problem, Problem } from '../core/problem';
 import { stageProblem, transitionProblem, WorkflowEditor } from './workflow.editor';
@@ -33,7 +34,7 @@ const active = (): Field => ({ key: 'is_active', label: 'Activo', type: 'check' 
 const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'number', required: true, min: 0, max: 2147483647 });
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">ADMINISTRACION</p><h1>{{ config()?.title ?? 'Configuracion' }}</h1></div>
     <div class="actions"><button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
       @if (section() === 'configuracion') { <button mat-stroked-button (click)="workflow()"><mat-icon>account_tree</mat-icon>Editar grafo</button> }
@@ -59,8 +60,8 @@ const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'numb
             @if (canChangeActivity(row)) { <button mat-icon-button [attr.aria-label]="row['is_active'] ? 'Desactivar registro' : 'Activar registro'" [matTooltip]="row['is_active'] ? 'Desactivar' : 'Activar'" (click)="changeActivity(row)"><mat-icon>{{ row['is_active'] ? 'block' : 'check_circle' }}</mat-icon></button> }
             @if (section() === 'usuarios') { <button mat-icon-button aria-label="Restablecer contrasena" matTooltip="Restablecer contrasena" (click)="resetPassword(row)"><mat-icon>key</mat-icon></button> }
           </div></td></tr> }</tbody></table></div>
-        <div class="pager"><button mat-button [disabled]="!cursor()" (click)="load()">Primera pagina</button><button mat-stroked-button [disabled]="!next()" (click)="load(next()!)">Siguiente</button></div>
       }
+      <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />
       @if (selected(); as row) { <section class="detail-section" aria-labelledby="record-detail-title"><div class="page-heading"><h2 id="record-detail-title">Detalle del registro</h2><button mat-icon-button aria-label="Cerrar detalle" matTooltip="Cerrar detalle" (click)="selected.set(null)"><mat-icon>close</mat-icon></button></div><ocote-record-details [record]="row" [summary]="true" /></section> }
     } }
     @if (section() === 'configuracion' && loading()) { <p role="status">Cargando configuracion...</p> }`,
@@ -78,8 +79,9 @@ export class AdminPage implements OnInit {
   readonly loading = signal(false);
   readonly issue = signal<Problem | null>(null);
   readonly notice = signal('');
-  readonly next = signal<string | null>(null);
-  readonly cursor = signal('');
+  readonly pagination = new Pagination();
+  readonly next = this.pagination.next;
+  readonly cursor = this.pagination.cursor;
   private epoch = 0;
   settingKey = '';
   readonly array = (value: unknown) => Array.isArray(value) ? value.join(', ') : '';
@@ -114,18 +116,19 @@ export class AdminPage implements OnInit {
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params => {
       const section = params.get('section') ?? 'configuracion';
       this.section.set(section); this.config.set(resources[section] ?? null); this.rows.set([]); this.status.set(null);
-      this.selected.set(null); this.notice.set(''); this.settingKey = ''; void this.load();
+      this.selected.set(null); this.notice.set(''); this.settingKey = ''; this.pagination.reset(); void this.load();
     });
   }
+  resize(size: number): void { if (this.pagination.resize(size)) void this.load(); }
   async load(cursor = ''): Promise<void> {
     const epoch = ++this.epoch, config = this.config(); this.loading.set(true); this.issue.set(null); this.selected.set(null);
     try {
       if (this.section() === 'configuracion') {
         const status = await this.api.get('/configuration-status'); if (epoch === this.epoch) this.status.set(status);
       } else if (config) {
-        const page = await this.api.get<Page>(config.api, { limit: '50', ...(cursor ? { cursor } : {}) });
+        const page = await this.api.get<Page>(config.api, { limit: String(this.pagination.size()), ...(cursor ? { cursor } : {}) });
         if (epoch === this.epoch) {
-          this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor);
+          this.rows.set(page.items); this.pagination.accept(cursor, page.next_cursor);
           if (this.section() === 'parametros' && page.items.some(row => row['key'] === this.settingKey)) this.settingKey = '';
         }
       } else throw new Error('Unknown route');

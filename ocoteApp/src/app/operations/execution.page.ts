@@ -11,6 +11,7 @@ import { Session } from '../core/session';
 import { problem, Problem } from '../core/problem';
 import { Field } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
+import { Pager, Pagination } from '../shared/pager';
 import { label, progress } from '../shared/presentation';
 import { executionCatalogs } from './tasks.page';
 import { Transition } from './transition';
@@ -24,7 +25,7 @@ export function civilDate(value: string, following = false): Date {
 function safeContent(value: string): HTMLElement { const content = document.createElement('span'); content.textContent = value; return content; }
 
 @Component({
-  standalone: true, imports: [RouterLink, DragDropModule, MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback],
+  standalone: true, imports: [RouterLink, DragDropModule, MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ view === 'kanban' ? 'Kanban' : 'Timeline' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>list</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar vista" matTooltip="Recargar" [disabled]="loading() || moving()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" /><p class="sr-only" role="status" aria-live="polite">{{ notice() }}</p>
     <div class="filters">@for (filter of filters(); track filter.key) { <mat-form-field><mat-label>{{ filter.label }}</mat-label><mat-select [value]="query[filter.key] || ''" [disabled]="moving()" (selectionChange)="filterChanged(filter.key, $event.value)"><mat-option value="">Todos</mat-option>@for (option of filter.options; track option.value) { <mat-option [value]="option.value">{{ option.label }}</mat-option> }</mat-select></mat-form-field> }</div>
@@ -52,7 +53,7 @@ function safeContent(value: string): HTMLElement { const content = document.crea
     @if (view === 'timeline') {
       @if (loading()) { <p role="status">Cargando cronologia...</p> } @else if (!rows().length) { <p class="empty-state">Sin elementos para este alcance y filtros.</p> }
       <div class="table-wrap" role="region" aria-label="Fechas de Timeline" tabindex="0"><table class="data-table"><thead><tr><th>Elemento</th><th>Inicio</th><th>Compromiso original</th><th>Vigente</th><th>Cierre real</th><th>Puntualidad</th></tr></thead><tbody>@for (row of rows(); track row['id']) { <tr><td>@if (row['task_id']) { <a [routerLink]="['/tareas',row['task_id']]">{{ row['title'] }}</a> } @else { {{ row['title'] }} }</td><td>{{ row['start_date'] }}</td><td>{{ row['original_due_date'] || 'No aplica' }}</td><td>{{ row['due_date'] }}</td><td>{{ instant(row['completed_at']) }}</td><td>{{ label(row['punctuality_status']) }}</td></tr> }</tbody></table></div>
-      <div class="pager"><button mat-button [disabled]="!cursor() || loading()" (click)="load()">Primera pagina</button><button mat-stroked-button [disabled]="!next() || loading()" (click)="load(next()!)">Siguiente</button></div>
+      <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />
     }`,
   styles: [`.kanban{display:flex;gap:16px;overflow:auto;align-items:flex-start;padding:20px 3px;min-height:300px}.kanban-lane{flex:0 0 280px;max-width:85vw;border-top:3px solid var(--ocote-secondary);background:var(--ocote-surface-secondary)}.kanban-lane>header,.task-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.kanban-lane>header{padding:12px}.kanban-lane h2{font-size:18px;margin:0}.lane-body{min-height:160px;padding:0 8px 8px}.task-card{background:var(--ocote-surface);border:1px solid var(--ocote-border);border-radius:8px;padding:12px;margin-bottom:8px;overflow-wrap:anywhere}.task-card a{font-weight:600;min-width:0}.task-card button{flex-shrink:0}.task-card dl{display:flex;gap:16px;font-size:14px;margin:12px 0}.task-card dd{margin-bottom:0}.task-card progress{width:120px}.lane-empty{padding:24px 8px}.timeline-host{height:440px;max-width:100%;background:var(--ocote-surface)}.toolbar mat-form-field{width:200px;max-width:100%}.timeline-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}.original-key{color:var(--ocote-primary-dark)}.completed-key{color:var(--ocote-success)}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.cdk-drag-preview{box-shadow:0 4px 12px #0003}.cdk-drag-placeholder{opacity:.3}`],
 })
@@ -71,8 +72,9 @@ export class ExecutionPage implements OnInit, AfterViewInit, OnDestroy {
   readonly laneBusy = signal('');
   readonly issue = signal<Problem | null>(null);
   readonly notice = signal('');
-  readonly next = signal<string | null>(null);
-  readonly cursor = signal('');
+  readonly pagination = new Pagination();
+  readonly next = this.pagination.next;
+  readonly cursor = this.pagination.cursor;
   readonly kind = signal('task');
   readonly group = signal('');
   readonly query: Record<string, string> = {};
@@ -101,6 +103,7 @@ export class ExecutionPage implements OnInit, AfterViewInit, OnDestroy {
   responsible(row: Row): string { return text(this.assignees.find(person => person['id'] === row['assignee_id']) ?? {}, 'display_name') || 'Responsable no disponible'; }
   filterChanged(key: string, value: string): void { if (value) this.query[key] = value; else delete this.query[key]; void this.load(); }
   changeKind(kind: string): void { this.kind.set(kind); void this.load(); }
+  resize(size: number): void { if (this.view === 'timeline' && this.pagination.resize(size)) void this.load(); }
   async load(cursor = ''): Promise<void> {
     const epoch = ++this.epoch;
     this.loading.set(true); this.issue.set(null);
@@ -109,8 +112,8 @@ export class ExecutionPage implements OnInit, AfterViewInit, OnDestroy {
         const page = await this.api.get<{ columns: Lane[] }>('/kanban', { ...this.query, limit:'25' });
         if (epoch === this.epoch) this.lanes.set(page.columns);
       } else {
-        const page = await this.api.get<Page & { organization_timezone: string }>('/timeline', { ...this.query, kind:this.kind(), limit:'50', ...(cursor ? { cursor } : {}) });
-        if (epoch === this.epoch) { this.rows.set(page.items); this.timezone = page.organization_timezone; this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); this.render(); }
+        const page = await this.api.get<Page & { organization_timezone: string }>('/timeline', { ...this.query, kind:this.kind(), limit:String(this.pagination.size()), ...(cursor ? { cursor } : {}) });
+        if (epoch === this.epoch) { this.rows.set(page.items); this.timezone = page.organization_timezone; this.pagination.accept(cursor, page.next_cursor); this.render(); }
       }
     } catch (error) { if (epoch === this.epoch) { this.lanes.set([]); this.rows.set([]); this.render(); this.issue.set(problem(error)); } }
     finally { if (epoch === this.epoch) this.loading.set(false); }

@@ -21,6 +21,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { civilDate, ExecutionPage } from './operations/execution.page';
 import { Evidence } from './operations/evidence';
 import { Transition } from './operations/transition';
+import { Pager, Pagination } from './shared/pager';
+import { By } from '@angular/platform-browser';
 
 const permissions: Record<Role,string[]> = {
   admin:['administration:manage','planning:manage','tasks:manage','tasks:transition','dates:decide','date-requests:create'],
@@ -33,8 +35,9 @@ const syntheticRequest: Row = { id:'synthetic-request',task_id:'synthetic-task',
 
 class BrowserApi {
   reads: string[] = [];
+  queries: { path:string;query:Record<string,string> }[] = [];
   writes: { path:string;body:Row;method:string }[] = [];
-  response: (path:string) => unknown = path => {
+  response: (path:string,query?:Record<string,string>) => unknown = path => {
     if (path === '/catalogs/workflow') return { stages:[{ id:'synthetic-open',name:'Abierta',kind:'open' }],transitions:[] };
     if (path === '/tasks/synthetic-task') return syntheticTask;
     if (path === '/due-date-requests/synthetic-request') return syntheticRequest;
@@ -45,8 +48,8 @@ class BrowserApi {
     if (path === '/annual-plans/synthetic-plan') return { id:'synthetic-plan',version:1,title:'Synthetic plan',progress_percent:null,status:'draft',start_date:'2027-11-15',due_date:'2028-02-20' };
     return { items:[],next_cursor:null };
   };
-  async get<T = Row>(path:string): Promise<T> { this.reads.push(path); return this.response(path) as T; }
-  async all(path:string): Promise<Row[]> { this.reads.push(path); return (this.response(path) as { items?:Row[] }).items ?? []; }
+  async get<T = Row>(path:string,query:Record<string,string> = {}): Promise<T> { this.reads.push(path); this.queries.push({ path,query }); return this.response(path,query) as T; }
+  async all(path:string,query:Record<string,string> = {}): Promise<Row[]> { this.reads.push(path); return (this.response(path,query) as { items?:Row[] }).items ?? []; }
   async command(path:string,body:Row,method = 'POST'): Promise<Row> { this.writes.push({ path,body,method }); return {}; }
 }
 
@@ -93,6 +96,61 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     const fixture = await setup(TasksPage,'colaborador');
     expect(api.reads).not.toContain('/annual-plans'); expect(api.reads).not.toContain('/objectives'); expect(api.reads).not.toContain('/users');
     expect(fixture.nativeElement.textContent).toContain('Mis tareas'); expect(api.writes).toEqual([]);
+  });
+  for (const [component,params,data,endpoint] of [
+    [AdminPage,{ section:'departamentos' },{},'/departments'],
+    [PlanningPage,{}, { kind:'plans' },'/annual-plans'],
+    [PlanningPage,{}, { kind:'objectives' },'/objectives'],
+    [TasksPage,{}, {},'/tasks'],
+    [RequestsPage,{}, {},'/due-date-requests'],
+    [ExecutionPage,{}, { view:'timeline' },'/timeline'],
+  ] as [Type<unknown>,Row,Row,string][]) {
+    it('paginates ' + endpoint + ' at five rows and resets cursors on size changes without writes', async () => {
+      const fixture = await setup(component,'admin',params,data);
+      const instance = fixture.componentInstance as { pagination:Pagination;load:(cursor?:string) => Promise<void>;rows:() => Row[] };
+      if (component === TasksPage) (fixture.componentInstance as TasksPage).query['objective_id'] = 'scoped';
+      if (component === RequestsPage) (fixture.componentInstance as RequestsPage).status = 'pending';
+      if (component === PlanningPage && data['kind'] === 'objectives') (fixture.componentInstance as PlanningPage).planFilter = 'scoped';
+      const original = api.response;
+      api.response = (path,query) => path === endpoint ? {
+        items:Array.from({ length:Number(query?.['limit'] ?? 5) },(_,index) => ({ ...syntheticTask,id:'row-' + (query?.['cursor'] ?? 'first') + '-' + index,name:'Synthetic',code:'synthetic' })),
+        next_cursor:query?.['cursor'] ? null : 'second',organization_timezone:'America/Mexico_City',
+      } : original(path,query);
+      await instance.load(); fixture.detectChanges();
+      expect(instance.rows().length).toBe(5); expect(api.queries.filter(read => read.path === endpoint).at(-1)?.query['limit']).toBe('5');
+      const pager = fixture.debugElement.query(By.directive(Pager)).componentInstance as Pager;
+      pager.navigate.emit('second'); await fixture.whenStable(); fixture.detectChanges();
+      expect(instance.pagination.number()).toBe(2); expect(instance.pagination.previous()).toBe('');
+      expect(instance.rows()[0]['id']).toContain('second');
+      pager.navigate.emit(''); await fixture.whenStable(); fixture.detectChanges(); expect(instance.pagination.number()).toBe(1);
+      pager.navigate.emit('second'); await fixture.whenStable(); fixture.detectChanges();
+      for (const size of [10,20,50,5]) {
+        pager.sizeChange.emit(size); await fixture.whenStable(); fixture.detectChanges();
+        expect(instance.pagination.number()).toBe(1); expect(instance.pagination.previous()).toBeNull();
+        expect(instance.rows().length).toBe(size);
+        const query = api.queries.filter(read => read.path === endpoint).at(-1)!.query;
+        expect(query['limit']).toBe(String(size)); expect(query['cursor']).toBeUndefined();
+        if (component === TasksPage) expect(query['objective_id']).toBe('scoped');
+        if (component === RequestsPage) expect(query['status']).toBe('pending');
+        if (component === PlanningPage && data['kind'] === 'objectives') expect(query['annual_plan_id']).toBe('scoped');
+      }
+      expect(api.writes).toEqual([]);
+    });
+  }
+  it('replaces subtask pages without changing the server task progress or version', async () => {
+    const fixture = await setup(TaskDetailPage,'admin',{ id:'synthetic-task' }), component = fixture.componentInstance;
+    const original = api.response;
+    api.response = (path,query) => path.endsWith('/subtasks') ? { items:Array.from({ length:Number(query?.['limit'] ?? 5) },(_,index) => ({ id:'child-' + (query?.['cursor'] ?? 'first') + '-' + index,title:'Synthetic child',status:'pending' })),next_cursor:query?.['cursor'] ? null : 'second' } : original(path,query);
+    await component.load(); fixture.detectChanges();
+    const task = component.task(); expect(component.children().length).toBe(5);
+    await component.loadChildren('second'); fixture.detectChanges(); expect(component.children().length).toBe(5);
+    expect(component.children()[0]['id']).toContain('second'); expect(component.childPagination.number()).toBe(2);
+    const pager = fixture.debugElement.query(By.directive(Pager)).componentInstance as Pager;
+    pager.sizeChange.emit(20); await fixture.whenStable(); fixture.detectChanges();
+    expect(component.children().length).toBe(20); expect(component.childPagination.number()).toBe(1);
+    expect(component.task()).toBe(task); expect(task?.['progress_percent']).toBe(100); expect(task?.['version']).toBe(7);
+    const query = api.queries.filter(read => read.path.endsWith('/subtasks')).at(-1)!.query;
+    expect(query).toEqual({ limit:'20' }); expect(api.writes).toEqual([]);
   });
   it('keeps an empty admin installation empty and reports incomplete configuration', async () => {
     const fixture = await setup(AdminPage,'admin',{ section:'configuracion' });
@@ -613,6 +671,28 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     expect(data.fields.find(field => field.key === 'evidence_ids')?.options?.[0].value).toBe('file');
     await data.submit({ evidence_ids:['file'],reason:'Synthetic explicit reason' });
     expect(api.writes[0].body).toEqual({ evidence_ids:['file'],reason:'Synthetic explicit reason',expected_version:7,to_stage_id:'done' });
+  });
+  for (const configured of [false,true]) {
+    it('explains an empty evidence selector and keeps the transition blocked, uploads configured ' + configured, async () => {
+      const fixture = await setup(ExecutionPage,'admin',{}, { view:'kanban' });
+      api.response = path => path === '/catalogs/workflow' ? { stages:[{ id:'done',name:'Terminada',requires_evidence:true,requires_reason:true }],transitions:[{ from_stage_id:'synthetic-open',to_stage_id:'done' }] } : { items:[],next_cursor:null,uploads_configured:configured };
+      const pending = TestBed.inject(Transition).open(syntheticTask,'done'); await fixture.whenStable(); fixture.detectChanges();
+      const dialog = TestBed.inject(MatDialog), editor = dialog.openDialogs[0].componentInstance as Editor;
+      expect(document.querySelector('mat-dialog-content')?.textContent).toContain('No hay evidencias verificadas adjuntas a esta tarea.');
+      expect(editor.data.message?.includes('Las cargas no estan habilitadas')).toBe(!configured);
+      expect(editor.data.fields.find(field => field.key === 'evidence_ids')?.options).toEqual([]);
+      editor.form.patchValue({ reason:'Current transition justification' }); expect(editor.form.invalid).toBeTrue();
+      await editor.save(); expect(api.writes).toEqual([]); dialog.openDialogs[0].close(false); await pending;
+    });
+  }
+  it('keeps all previously attached evidence selectable across server pages', async () => {
+    await setup(ExecutionPage,'admin',{}, { view:'kanban' });
+    api.response = (path,query) => path === '/catalogs/workflow' ? { stages:[{ id:'done',name:'Terminada',requires_evidence:true }],transitions:[{ from_stage_id:'synthetic-open',to_stage_id:'done' }] } : { items:[{ id:query?.['cursor'] ? 'second-file' : 'first-file',original_name:'synthetic.pdf' }],next_cursor:query?.['cursor'] ? null : 'files-next',uploads_configured:true };
+    const open = spyOn(TestBed.inject(MatDialog),'open').and.returnValue({ afterClosed:() => of(false) } as MatDialogRef<unknown>);
+    await TestBed.inject(Transition).open(syntheticTask,'done');
+    const data = open.calls.mostRecent().args[1]!.data as EditData;
+    expect(data.fields.find(field => field.key === 'evidence_ids')?.options?.map(option => option.value)).toEqual(['first-file','second-file']);
+    expect(data.message).not.toContain('No hay evidencias'); expect(api.writes).toEqual([]);
   });
   it('F5 renders Timeline data as text and preserves original/current dates in its table', async () => {
     const fixture = await setup(ExecutionPage,'admin',{}, { view:'timeline' });

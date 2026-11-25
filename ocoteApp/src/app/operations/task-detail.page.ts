@@ -14,12 +14,13 @@ import { Editor, Field, options, reason } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
 import { instant, label, nested, progress } from '../shared/presentation';
 import { RecordDetails } from '../shared/record-details';
+import { Pager, Pagination } from '../shared/pager';
 import { dateField, descriptionField, titleField } from './tasks.page';
 import { Evidence } from './evidence';
 import { Transition } from './transition';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ task()?.['title'] ?? 'Tarea' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>arrow_back</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar tarea" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando tarea...</p> }
     @if (task(); as row) {
@@ -52,7 +53,7 @@ import { Transition } from './transition';
               </mat-menu> }
             </div> }</td></tr> }
         </tbody></table></div> }
-        @if (childNext()) { <button mat-stroked-button [disabled]="childBusy()" (click)="moreChildren()">Mas subtareas</button> }
+        <ocote-pager [state]="childPagination" [busy]="loading() || childBusy()" (navigate)="loadChildren($event)" (sizeChange)="resizeChildren($event)" />
       </section>
       <ocote-evidence [task]="row" (refresh)="load()" />
       <section class="detail-section"><header class="page-heading"><h2>Historial</h2><button mat-stroked-button [disabled]="historyBusy()" (click)="loadHistory()"><mat-icon>history</mat-icon>Consultar historial</button></header>
@@ -76,7 +77,8 @@ export class TaskDetailPage implements OnInit {
   readonly children = signal<Row[]>([]);
   readonly history = signal<Row[]>([]);
   readonly historyLoaded = signal(false);
-  readonly childNext = signal<string | null>(null);
+  readonly childPagination = new Pagination();
+  readonly childNext = this.childPagination.next;
   readonly historyNext = signal<string | null>(null);
   readonly childBusy = signal(false);
   readonly historyBusy = signal(false);
@@ -97,22 +99,26 @@ export class TaskDetailPage implements OnInit {
   ngOnInit(): void { this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params => { this.identity = params.get('id') ?? ''; void this.load(); }); }
   async load(): Promise<void> {
     const epoch = ++this.epoch, path = '/tasks/' + encodeURIComponent(this.identity);
-    this.loading.set(true); this.issue.set(null); this.task.set(null); this.history.set([]); this.historyLoaded.set(false); this.historyNext.set(null);
+    this.loading.set(true); this.childBusy.set(false); this.childPagination.reset(); this.issue.set(null); this.task.set(null); this.history.set([]); this.historyLoaded.set(false); this.historyNext.set(null);
     try {
       const [task, children, workflow, assignees] = await Promise.all([
-        this.api.get(path), this.api.get<Page>(path + '/subtasks', { limit: '50' }),
+        this.api.get(path), this.api.get<Page>(path + '/subtasks', { limit: String(this.childPagination.size()) }),
         this.api.get<{ stages: Row[]; transitions: Row[] }>('/catalogs/workflow'), this.api.all('/catalogs/assignees'),
       ]);
-      if (epoch === this.epoch) { this.task.set(task); this.children.set(children.items); this.childNext.set(children.next_cursor ?? null); this.workflow = workflow; this.assignees = assignees; }
+      if (epoch === this.epoch) { this.task.set(task); this.children.set(children.items); this.childPagination.accept('', children.next_cursor); this.workflow = workflow; this.assignees = assignees; }
     } catch (error) { if (epoch === this.epoch) this.issue.set(problem(error)); }
     finally { if (epoch === this.epoch) this.loading.set(false); }
   }
-  async moreChildren(): Promise<void> {
-    if (this.childBusy() || !this.childNext()) return;
+  resizeChildren(size: number): void {
+    if (!this.childBusy() && !this.loading() && this.childPagination.resize(size)) void this.loadChildren();
+  }
+  async loadChildren(cursor = ''): Promise<void> {
+    if (this.childBusy() || this.loading()) return;
     this.childBusy.set(true); const epoch = this.epoch;
-    try { const page = await this.api.get<Page>('/tasks/' + encodeURIComponent(this.identity) + '/subtasks', { cursor: this.childNext()!, limit: '50' });
-      if (epoch === this.epoch) { this.children.update(rows => [...rows, ...page.items]); this.childNext.set(page.next_cursor ?? null); }
-    } catch (error) { this.issue.set(problem(error)); } finally { this.childBusy.set(false); }
+    this.issue.set(null);
+    try { const page = await this.api.get<Page>('/tasks/' + encodeURIComponent(this.identity) + '/subtasks', { ...(cursor ? { cursor } : {}), limit: String(this.childPagination.size()) });
+      if (epoch === this.epoch) { this.children.set(page.items); this.childPagination.accept(cursor, page.next_cursor); }
+    } catch (error) { if (epoch === this.epoch) this.issue.set(problem(error)); } finally { if (epoch === this.epoch) this.childBusy.set(false); }
   }
   async loadHistory(cursor = ''): Promise<void> {
     if (this.historyBusy()) return;

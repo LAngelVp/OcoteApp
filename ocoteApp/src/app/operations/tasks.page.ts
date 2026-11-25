@@ -11,6 +11,7 @@ import { Session } from '../core/session';
 import { Problem, problem } from '../core/problem';
 import { Editor, Field, options } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
+import { Pager, Pagination } from '../shared/pager';
 import { label, nested, progress } from '../shared/presentation';
 
 export const titleField = (row?: Row): Field => ({ key: 'title', label: 'Titulo', required: true, max: 200, value: row?.['title'] });
@@ -32,7 +33,7 @@ export async function executionCatalogs(api: Api, role: string) {
 }
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ session.user()?.role === 'colaborador' ? 'Mis tareas' : 'Tareas' }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar tareas" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (session.has('tasks:manage')) { <button mat-flat-button (click)="create()"><mat-icon>add</mat-icon>Crear tarea</button> }
@@ -44,7 +45,7 @@ export async function executionCatalogs(api: Api, role: string) {
       @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/tareas', row['id']]">{{ row['title'] }}</a><small>{{ nested(row, 'objective')['title'] }}</small></td>
       <td>{{ stageName(row) }}</td><td>{{ nested(row, 'priority')['name'] }}</td><td>{{ assigneeName(row) }}</td><td>{{ row['original_due_date'] }}</td><td>{{ row['due_date'] }}</td>
       <td><span class="status" [class.bad]="row['is_overdue'] || row['punctuality_status'] === 'late'">{{ label(row['punctuality_status']) }}</span>@if (row['due_date_delta_days']) { <small>{{ row['due_date_delta_days'] }} dias frente al original</small> }</td><td class="numeric">{{ progress(row['progress_percent']) }}@if (row['pending_closure']) { <small>Pendiente de cierre</small> }</td></tr> }
-    </tbody></table></div><div class="pager"><button mat-button [disabled]="!cursor()" (click)="load()">Primera pagina</button><button mat-stroked-button [disabled]="!next()" (click)="load(next()!)">Siguiente</button></div> }`,
+    </tbody></table></div> }<ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />`,
 })
 export class TasksPage implements OnInit {
   private readonly api = inject(Api);
@@ -56,8 +57,9 @@ export class TasksPage implements OnInit {
   readonly filters = signal<Field[]>([]);
   readonly loading = signal(false);
   readonly issue = signal<Problem | null>(null);
-  readonly next = signal<string | null>(null);
-  readonly cursor = signal('');
+  readonly pagination = new Pagination();
+  readonly next = this.pagination.next;
+  readonly cursor = this.pagination.cursor;
   readonly label = label;
   readonly nested = nested;
   readonly progress = progress;
@@ -80,10 +82,11 @@ export class TasksPage implements OnInit {
     } catch (error) { this.issue.set(problem(error)); }
   }
   filterChanged(key: string, value: string): void { if (value) this.query[key] = value; else delete this.query[key]; void this.load(); }
+  resize(size: number): void { if (this.pagination.resize(size)) void this.load(); }
   async load(cursor = ''): Promise<void> {
     const epoch = ++this.epoch; this.loading.set(true); this.issue.set(null);
-    try { const page = await this.api.get<Page>('/tasks', { ...this.query, limit: '50', ...(cursor ? { cursor } : {}) });
-      if (epoch === this.epoch) { this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); }
+    try { const page = await this.api.get<Page>('/tasks', { ...this.query, limit: String(this.pagination.size()), ...(cursor ? { cursor } : {}) });
+      if (epoch === this.epoch) { this.rows.set(page.items); this.pagination.accept(cursor, page.next_cursor); }
     } catch (error) { if (epoch === this.epoch) { this.rows.set([]); this.issue.set(problem(error)); } }
     finally { if (epoch === this.epoch) this.loading.set(false); }
   }

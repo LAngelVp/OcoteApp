@@ -10,11 +10,12 @@ import { Api, Page, Row, text, version } from '../core/api';
 import { Session } from '../core/session';
 import { Problem, problem } from '../core/problem';
 import { Feedback } from '../shared/feedback';
+import { Pager, Pagination } from '../shared/pager';
 import { Editor, reason } from '../shared/editor';
 import { instant, label } from '../shared/presentation';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager],
   template: `<header class="page-heading"><div><p class="eyebrow">COMPROMISOS</p><h1>Solicitudes de fecha</h1></div><button mat-icon-button aria-label="Recargar solicitudes" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando solicitudes...</p> }
     @if (record(); as row) {
@@ -39,8 +40,8 @@ import { instant, label } from '../shared/presentation';
       @if (!loading()) { @if (!rows().length) { <section class="empty-state"><mat-icon>event_repeat</mat-icon><h2>Sin solicitudes</h2><p>No hay solicitudes para este alcance y filtro.</p></section> }
       @else { <div class="table-wrap" role="region" aria-label="Solicitudes de fecha" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Solicitud</th><th scope="col">Anterior</th><th scope="col">Propuesta</th><th scope="col">Estado</th><th scope="col">Registro</th></tr></thead><tbody>
         @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/solicitudes-fecha',row['id']]">Revisar {{ row['subtask_id'] ? 'subtarea' : 'tarea' }}</a><small class="code">{{ row['id'] }}</small></td><td>{{ row['previous_due_date'] }}</td><td>{{ row['proposed_due_date'] }}</td><td>{{ label(row['status']) }}</td><td>{{ instant(row['created_at']) }}</td></tr> }
-      </tbody></table></div><div class="pager"><button mat-button [disabled]="!cursor()" (click)="load()">Primera pagina</button><button mat-stroked-button [disabled]="!next()" (click)="load(next()!)">Siguiente</button></div> } }
-    }`,
+      </tbody></table></div> } }
+    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`,
 })
 export class RequestsPage implements OnInit {
   private readonly api = inject(Api);
@@ -55,8 +56,9 @@ export class RequestsPage implements OnInit {
   readonly loading = signal(false);
   readonly issue = signal<Problem | null>(null);
   readonly notice = signal('');
-  readonly next = signal<string | null>(null);
-  readonly cursor = signal('');
+  readonly pagination = new Pagination();
+  readonly next = this.pagination.next;
+  readonly cursor = this.pagination.cursor;
   readonly statuses = ['pending','approved','rejected','cancelled'];
   readonly label = label;
   readonly instant = instant;
@@ -68,6 +70,7 @@ export class RequestsPage implements OnInit {
     const row = this.record(), context = this.context(), task = this.task;
     return !!row && !!context && !!task && (version(task) !== row['task_version_at_request'] || !!task['completed_at'] || !!context['completed_at'] || !!row['subtask_id'] && version(context) !== row['subtask_version_at_request']);
   }
+  resize(size: number): void { if (this.pagination.resize(size)) void this.load(); }
   async load(cursor = ''): Promise<void> {
     const epoch = ++this.epoch; this.loading.set(true); this.issue.set(null); this.record.set(null); this.context.set(null); this.task = null;
     try {
@@ -79,8 +82,8 @@ export class RequestsPage implements OnInit {
         const context = row['subtask_id'] ? await this.api.get('/subtasks/' + text(row,'subtask_id')) : task;
         if (epoch === this.epoch) { this.context.set(context); this.task = task; }
       } else {
-        const page = await this.api.get<Page>('/due-date-requests', { limit:'50',...(cursor ? { cursor } : {}),...(this.status ? { status:this.status } : {}) });
-        if (epoch === this.epoch) { this.rows.set(page.items); this.next.set(page.next_cursor ?? null); this.cursor.set(cursor); }
+        const page = await this.api.get<Page>('/due-date-requests', { limit:String(this.pagination.size()),...(cursor ? { cursor } : {}),...(this.status ? { status:this.status } : {}) });
+        if (epoch === this.epoch) { this.rows.set(page.items); this.pagination.accept(cursor, page.next_cursor); }
       }
     } catch (error) { if (epoch === this.epoch) { this.rows.set([]); this.issue.set(problem(error)); } }
     finally { if (epoch === this.epoch) this.loading.set(false); }
