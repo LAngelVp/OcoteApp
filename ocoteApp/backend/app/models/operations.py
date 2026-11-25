@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -69,6 +69,20 @@ class TaskHistory(Identity, Base):
     after_data: Mapped[dict] = mapped_column(JSONB)
     reason: Mapped[str | None] = mapped_column(Text)
     request_id: Mapped[UUID]
+
+
+class EvidenceFile(Identity, Base):
+    __tablename__ = "evidence_files"
+    task_id: Mapped[UUID] = mapped_column(ForeignKey("tasks.id", ondelete="RESTRICT"))
+    uploaded_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    original_name: Mapped[str] = mapped_column(String(255))
+    storage_key: Mapped[str] = mapped_column(String(32), unique=True)
+    media_type: Mapped[str] = mapped_column(String(100))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    sha256: Mapped[str] = mapped_column(String(64))
+    scan_engine: Mapped[str] = mapped_column(String(32))
+    scan_version: Mapped[str] = mapped_column(String(200))
+    scanned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class DueDateRequest(Mutable, Base):

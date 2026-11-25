@@ -715,7 +715,7 @@ def test_civil_dates_reject_timestamp_and_alternate_forms(value):
         )
 
 
-def test_f3_migration_preserves_existing_synthetic_f2_data():
+def test_f5_migration_preserves_existing_synthetic_f2_data_through_f3():
     import os
 
     if os.environ.get("OCOTE_RUN_PG_TESTS") != "1":
@@ -723,7 +723,7 @@ def test_f3_migration_preserves_existing_synthetic_f2_data():
     from sqlalchemy.orm import Session
 
     from app.models.identity import Department, HorizonType
-    from tools import f2_local, f3_local
+    from tools import f2_local, f3_local, f5_local
 
     with f2_local.isolated_database() as name:
         f2_local.upgrade(name, f3_local.SOURCE)
@@ -735,11 +735,18 @@ def test_f3_migration_preserves_existing_synthetic_f2_data():
             url = f3_local.MigrationSettings().migration_database_url.get_secret_value()
             with f3_local.local.role_connection(url, name) as connection:
                 before = f3_local.snapshot(connection)
-                f3_local.upgrade(name)
-                after = f3_local.snapshot(connection)
-                f3_local.verify_upgrade(before, after)
-                f3_local.upgrade(name)
-                assert f3_local.snapshot(connection) == after
+                f2_local.upgrade(name, f5_local.SOURCE)
+                middle = f2_local.snapshot(connection)
+                assert set(middle["tables"]) - set(before["tables"]) == f3_local.NEW_TABLES
+                assert not any(middle["rows"][table] for table in f3_local.NEW_TABLES)
+                for table, rows in before["rows"].items():
+                    if table != "alembic_version":
+                        assert middle["rows"][table] == rows
+                f2_local.upgrade(name)
+                after = f2_local.snapshot(connection)
+                f5_local.verify_upgrade(middle, after)
+                f2_local.upgrade(name)
+                assert f2_local.snapshot(connection) == after
         finally:
             engine.dispose()
 

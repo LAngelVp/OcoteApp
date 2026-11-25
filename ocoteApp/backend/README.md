@@ -1,6 +1,6 @@
-# OCOTE Backend: Nucleo Operativo F3
+# OCOTE Backend: Nucleo Operativo y Evidencia F5
 
-Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F3 local/sintetico implementado/verificado, sin F4-F7 ni UI. Bootstrap posterior del operador observado y preservado; configuracion pendiente. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). [Evidencia F3](../docs/03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local); responsable/excepciones hasta2026-12-24 conservados, no produccion.
+Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F5 autorizada/implementada/verificada tecnicamente local/sintetico, cierre operativo pendiente. Bootstrap preservado; configuracion/aceptacion funcional y almacenamiento/ClamAV reales pendientes, cargas cerradas. F6-F7 no autorizados. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). [Evidencia F5](../docs/03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local); responsable/excepciones hasta2026-12-24 conservados, no produccion.
 
 ## Inventario
 
@@ -24,7 +24,7 @@ Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F3 local/sintetico implementado
 | [tools/f1_local.py](tools/f1_local.py)                                                                                                                     | Aprovisionamiento y ensayo exclusivamente local/explicito; no ocote-admin ni actualizador cliente |
 | [tests/test_foundation.py](tests/test_foundation.py), [tests/test_rehearsal.py](tests/test_rehearsal.py), [tests/test_postgres.py](tests/test_postgres.py) | Salud/config/errores, backup bloqueante y PostgreSQL opt-in con fixtures revertidas               |
 
-backend/.venv, backend/.env, backend/.local y database/backups son locales ignorados, nunca contenido distribuible. No se modificaron la aplicacion Angular servida ni los tres helpers existentes; el prototipo frontend vive solo en una fixture de pruebas.
+backend/.venv, backend/.env, backend/.local y database/backups son locales ignorados, nunca contenido distribuible. F5 agrega [revision0004](alembic/versions/20261124_0004_evidence.py), [almacen/ClamAV](app/core/evidence.py), [servicio](app/services/evidence.py), [API de vistas/evidencia](app/routers/execution.py), [pruebas](tests/test_execution.py) y [protocolo separado](tools/f5_local.py). Revisiones0001/0002/0003, helpers F1-F3 y configuracion auth permanecen intactos.
 
 ## Entorno Reproducible
 
@@ -64,9 +64,9 @@ El .env local tiene contrasenas aleatorias distintas/ACL privada; nunca distribu
 
 ## Bootstrap Y Configuracion F2
 
-ocoteAppDatabase/head20261124_0003 tiene17 tablas/cuatro releases terminales; seis F3 vacias y configuracion pendiente. Sin defaults/seeds/demos ni admin inventado por desarrollo. Durante cierre se observo bootstrap del operador (auth.env,1 usuario/1audit_event); no repetir ni sobrescribir. `ready` solo infraestructura, no configuracion completa. Sin claves auth falla503, no las genera al arrancar; altas operativas sin configuracion409.
+ocoteAppDatabase/head20261124_0004 tiene18 tablas/cinco releases terminales; seis F3/evidence_files vacias y configuracion pendiente. Sin defaults/seeds/demos ni admin inventado por desarrollo. Bootstrap del operador preservado; no repetir ni sobrescribir. `ready` solo infraestructura, no configuracion completa ni disponibilidad del antivirus. Sin claves auth falla503, no las genera al arrancar; altas operativas sin configuracion409.
 
-Solo operador local autorizado, con custodia/canal definidos y preflight correcto. Elegir un origen HTTPS loopback real y confiable: el siguiente puerto es ejemplo de operador, no proxy/certificado instalado por esta tarea.
+Solo operador local autorizado, con custodia/canal definidos y preflight correcto. En este checkout el origen HTTPS loopback ya observado es https://localhost:8443: preservarlo. Proxy de desarrollo F4 descrito en guia04, certificado autofirmado no homologado como TLS cliente.
 
 El checkout actual ya presenta bootstrap: confirmar custodia/identidad por canal del operador y completar configuracion, **no ejecutar de nuevo init-auth/bootstrap-admin**. El bloque siguiente es exclusivamente referencia para una instalacion nueva autorizada, nunca para resetear claves/usuario existentes.
 
@@ -78,13 +78,13 @@ backend/.venv/Scripts/python backend/tools/bootstrap.py bootstrap-admin --execut
 
 `init-auth` crea RSA3072, secreto CSRF y auth.env en backend/.local con ACL privada/O_EXCL; no sobrescribe claves ni backend/.env. Variables generadas: AUTH_ORIGIN, JWT_PRIVATE_KEY_FILE, CSRF_SECRET_FILE. Issuer/audience tecnicos ocote-local/ocote-spa; cambiarlos exige revisar sesiones. No enviar claves a agentes. `bootstrap-admin` exige claves validas, cero usuarios y ausencia de mantenimiento; pide email/nombre y password dos veces con getpass, Argon2id/auditoria en una transaccion con lock. Nunca password por argumento/log ni reset por repeticion; si ya hay usuarios, usar recuperacion aprobada, no recrear admin.
 
-Luego admin configura explicitamente por API autenticada: cuatro claves POST /api/v1/settings (organization_name, organization_timezone oficial America/Mexico_City, evidence_max_bytes 1..10485760, export_max_rows 1..10000); prioridades incluyendo normal activa; exactamente cinco codes annual/semiannual/quarterly/monthly/custom con custom activo. Etiquetas/posiciones/limites son decisiones del operador, no valores sembrados. POST /api/v1/workflow introduce grafo completo atomicamente: etapas con code/name/position/kind/is_initial/requisitos/reason, aristas por from_code/to_code/allowed_roles y motivo global; existentes exigen expected_version por fila, sin omitir/borrar registros. GET /api/v1/configuration-status reporta faltantes; instalacion vacia es valida pero no habilita F3.
+Luego admin configura explicitamente por UI F4 o API autenticada: cuatro claves POST /api/v1/settings (organization_name, organization_timezone oficial America/Mexico_City, evidence_max_bytes 1..10485760, export_max_rows 1..10000); prioridades incluyendo normal activa; exactamente cinco codes annual/semiannual/quarterly/monthly/custom con custom activo. Etiquetas/posiciones/limites son decisiones del operador, no valores sembrados. POST /api/v1/workflow introduce grafo completo atomicamente: etapas con code/name/position/kind/is_initial/requisitos/reason, aristas por from_code/to_code/allowed_roles y motivo global; existentes exigen expected_version por fila, sin omitir/borrar registros. GET /api/v1/configuration-status reporta faltantes; instalacion vacia es valida pero no habilita F3. Visitar UI no crea datos ni repite bootstrap.
 
-Sesion: POST auth/login (origen exacto), GET auth/csrf con cookie/origen, POST auth/refresh y auth/logout con cookie/origen/X-CSRF-Token, GET auth/me con Bearer y POST auth/change-password con password actual/nueva. Rutas bajo /api/v1. Access solo memoria SPA futura; refresh nunca JSON/localStorage. RS256/claves controladas, 10min access/7dias absolutos refresh; revocar familia invalida access inmediatamente. Cookie Secure/HttpOnly/SameSite Strict/Path /api/v1/auth: no bajar Secure para usar HTTP. Uvicorn HTTP siguiente solo sirve smoke tecnico o upstream privado de proxy HTTPS autorizado; navegador con sesion requiere TLS configurado aparte.
+Sesion: POST auth/login (origen exacto), GET auth/csrf con cookie/origen, POST auth/refresh y auth/logout con cookie/origen/X-CSRF-Token, GET auth/me con Bearer y POST auth/change-password con password actual/nueva. Rutas bajo /api/v1. Access/CSRF solo memoria SPA F4; refresh nunca JSON/localStorage. RS256/claves controladas,10min access/7dias absolutos refresh; revocar familia invalida access inmediatamente. Cookie Secure/HttpOnly/SameSite Strict/Path /api/v1/auth: no bajar Secure para usar HTTP. Web Locks serializan login/refresh/logout entre pestanas; sin soporte falla cerrado. Origin POST/Referer GET generados por navegador, proxy conserva origen. Uvicorn HTTP siguiente solo smoke/upstream privado, no origen de login del navegador.
 
 Administracion: GET/POST y PATCH departments/users/workflow-stages/workflow-transitions/priorities/horizon-types; reset-password, settings, reorder, workflow atomico y configuration-status. Audit-events/releases sanitizados solo lectura, releases detalle y alias release-history; listas limit1..100/cursor UUID/next_cursor, UUID ascendente. Mutaciones reason/version,409 sin overwrite; catalogos por alcance y auth/me solo facultades F1-F3. Sin DELETE.
 
-Argon2id local: memoria65536KiB, tiempo3, paralelismo2; no benchmark productivo. Login y refresh <=10/cuenta/min y <=50/cliente/min compartidos, hashing efimero de claves/cliente, memoria acotada por proceso; 429/Retry-After60. No limite distribuido ni soporte multiples workers homologado. JSON <=1MiB; logs sin cuerpos/passwords/tokens/DSN. HTTPS real, custodia, bootstrap y configuracion de origen siguen pendientes; las pruebas usan transporte HTTPS TestClient y secretos sinteticos aislados.
+Argon2id local: memoria65536KiB, tiempo3, paralelismo2; no benchmark productivo. Login y refresh <=10/cuenta/min y <=50/cliente/min compartidos, hashing efimero de claves/cliente, memoria acotada por proceso;429/Retry-After60. No limite distribuido ni soporte multiples workers homologado. JSON <=1MiB; logs sin cuerpos/passwords/tokens/DSN. Bootstrap existente preservado, custodia/configuracion/aceptacion del operador pendientes. Backend usa HTTPS TestClient/secretos aislados; navegador F4 mocks y HTTPS loopback autofirmado, no E2E autenticado real ni TLS productivo.
 
 ## API Operativa F3
 
@@ -92,7 +92,23 @@ Prefijo /api/v1: GET/POST annual-plans/objectives/tasks y GET/PATCH por id; peri
 
 POST tasks/{id}/due-date-requests y subtasks/{id}/due-date-requests captura versiones sin mutar tarea. A/G/L solicitan por alcance; A/G approve/reject, approve nunca solicitante; cancel propio L o A/G. Pending unica por destino; versiones obsoletas/terminales/cerrados409. Validacion al solicitar y aprobar; fecha+historia+decision atomicas, original intacta. GET due-date-requests/detalle y tasks/{id}/history requieren alcance sobre tarea, no solo UUID.
 
-Fechas ISO YYYY-MM-DD civiles estrictas, rangos inclusivos y timestamps UTC del servidor. Periodos/fechas/schedules/asignaciones/decisiones con reason; status-changes opcional. Progreso proporcional con subtareas;100 pendiente no cierra tarea. Dos puntualidades por zona BD. Originales/historia/cierre inmutables. Listas limit1..100/cursor/next_cursor y filtros plan/departamento/objetivo/asignado/etapa/prioridad/puntualidad antes de paginar; historia created_at/id y cursor de misma tarea. Evidencia requerida o IDs ficticios422 hasta F5. Sin DELETE/UI/evidencia/Kanban/Timeline/analytics/evaluaciones/exports.
+Fechas ISO YYYY-MM-DD civiles estrictas, rangos inclusivos y timestamps UTC del servidor. Periodos/fechas/schedules/asignaciones/decisiones con reason; status-changes opcional. Progreso proporcional con subtareas;100 pendiente no cierra tarea. Dos puntualidades por zona BD. Originales/historia/cierre inmutables. Listas limit1..100/cursor/next_cursor y filtros plan/departamento/objetivo/asignado/etapa/prioridad/puntualidad antes de paginar; historia created_at/id y cursor de misma tarea. F5 valida evidence_ids reales de la misma tarea: faltantes422/ajenos404, versiones obsoletas409. Sin DELETE/analytics/evaluaciones/exports.
+
+## Evidencias Y Vistas F5
+
+GET /api/v1/kanban devuelve columns con stage/count/items/next_cursor; filtros operativos antes del conteo, limit1..100 y lane_id/cursor por columna. Conserva etapas activas vacias ordenadas. C recibe solo sus tareas/conteos propios; G no transiciona. GET /api/v1/timeline exige kind=plan/objective/task/subtask y devuelve items/next_cursor/organization_timezone; C solo task/subtask. La zona procede de BD; fechas civiles inclusivas, cierre UTC convertido a zona organizacional. UI no mueve fechas por drag.
+
+GET /tasks/{id}/evidence pagina metadata sin storage_key/rutas ni detalle del scanner; informa upload_limit_bytes y uploads_configured (presencia, no garantia de salud). POST binario requiere expected_version en query, X-File-Name codificado con encodeURIComponent y Content-Type PDF/PNG/JPEG concordante con extension/firma. A/L/C por alcance, plan/tarea abiertos; G solo lectura. Limite duro10MiB del middleware y evidence_max_bytes vigente BD. Archivo en cuarentena privada, fsync, ClamAV y rename atomico; solo resultado limpio publica y crea fila+version+historia/auditoria. Fallo de commit conocido compensa solo archivo nuevo; commit incierto conserva para reconciliacion, nunca borra evidencias historicas. No job de reconciliacion ni purga automaticos implementados.
+
+GET /evidence/{id}/content autoriza alcance y verifica tamano/hash antes de attachment/nosniff/no-store. Registra solicitud de descarga en audit_events con command=evidence_download_requested, sin contenido/ruta. evidence_files es append-only incluso para migrador; runtime solo SELECT/INSERT. Etapa que exige evidencia verifica existencia/pertenencia/integridad y registra IDs/reglas/versiones en historia. Sin DELETE, tampoco por admin; gestion significa adjuntar/listar/descargar y conservar RN-04/D05.
+
+Configuracion tecnica **explicita del operador**, no sembrada ni escrita por esta tarea:
+
+- EVIDENCE_STORAGE_ROOT: directorio absoluto existente **fuera del checkout/webroot/releases**, con subdirectorios quarantine y objects existentes en el mismo volumen. ACL solo identidad de API/SYSTEM/Administradores en Windows; POSIX sin permisos grupo/otros. Rechaza enlaces/junctions y claves no generadas por servidor. API nunca crea esa configuracion. ACL Windows se valida con APIs nativas, no exige PowerShell (bloqueado por politica1260 en este equipo); la politica no se modifica.
+- EVIDENCE_CLAMAV_PORT: puerto elegido/configurado por el operador de un clamd mantenido en127.0.0.1. VERSION e INSTREAM por socket con timeout, respuesta acotada y resultado limpio exacto. VERSION/fecha de definiciones comprobable en UTC, antiguedad maxima24h y tolerancia futura5min; verificar reloj/configuracion UTC del scanner durante homologacion real. Nunca exponer clamd a red compartida.
+- EVIDENCE_SCAN_TIMEOUT: limite tecnico5s por intercambio por defecto, rango1..8; no setting empresarial. Error/ausencia/timeout/resultado desconocido/definiciones caducadas503; malware422, tipo415, tamano413. Sin fallback permisivo ni archivo descargable rechazado.
+
+Actualmente ambas opciones obligatorias estan ausentes. No se instalo/configuro antivirus ni se certifico motor/definiciones reales; cargas operativas deshabilitadas. Pruebas inyectan scanner sintetico identificado, no demuestran antimalware real. Antes de habilitar cargas: operador configura ACL/servicio y verifica limpio, muestra de deteccion autorizada, definiciones viejas/servicio caido/timeout, autorizacion y restauracion coherente BD+archivos. No introducir archivos no confiables ni datos reales bajo la excepcion vigente.
 
 ## Salud Y Arranque
 
@@ -102,11 +118,11 @@ backend/.venv/Scripts/python -m uvicorn app.main:create_app --factory --app-dir 
 
 GET /api/v1/health/live es publico/minimo y no consulta BD. GET /api/v1/health/ready exige X-Health-Token y devuelve 200 solo con conectividad a la base exacta y la unica head del artefacto; revision ausente/desconocida/multiple o fallo de BD devuelve 503 sin detalles. Una marca backend/.local/maintenance.json mantiene ready en 503. Token ausente/incorrecto: 403 antes de acceder a BD. Cada respuesta incluye X-Request-ID; errores usan application/problem+json sin eco de entradas, SQL, credenciales ni trazas.
 
-Swagger/OpenAPI HTTP no estan expuestos. El proxy futuro debe restringir ready al monitor, no reenviar logs de cabeceras/DSN/query ni exponer el servicio directamente; el token tecnico no es autenticacion RF-02. El ensayo HTTP local se cerro y no se dejo Uvicorn en ejecucion. El arranque NO ejecuta create_all, Alembic, seeds ni conexion a la BD; nunca se migra desde la API.
+Swagger/OpenAPI HTTP no estan expuestos. Proxy cliente futuro restringira ready al monitor, sin logs de cabeceras/DSN/query ni exposicion directa; token tecnico no es autenticacion RF-02. Ensayo HTTP F1 se cerro entonces; en F4 ya existia API local activa y se preservo, Angular proxy loopback no es paquete cliente. El arranque NO ejecuta create_all, Alembic, seeds ni conexion a la BD; nunca se migra desde la API.
 
 ## Migracion Y Ensayo Local
 
-Tres revisiones20261124_0001/0002/0003 inmutables. F1 crea release_history; F2 agrega nueve tablas y F3 seis, sin seeds:17 totales incluyendo alembic_version, no19 objetivo. Downgrade bloqueado: fix-forward o restore aislado aprobado, nunca stamp. Las instrucciones F1/F2 siguientes son historicas; no ejecutar sus comandos en origen F3 ni adaptar helpers.
+Cuatro revisiones20261124_0001/0002/0003/0004 inmutables. F1 crea release_history; F2 agrega nueve tablas, F3 seis y F5 evidence_files, sin seeds:18 totales incluyendo alembic_version, no19 objetivo. Downgrade bloqueado: fix-forward o restore aislado aprobado, nunca stamp. Instrucciones F1-F3 siguientes son historicas; no ejecutar sus comandos contra origen F5 ni adaptar helpers.
 
 Comandos de inspeccion, sin migrar:
 
@@ -158,7 +174,7 @@ Exige identidad original, unica head tecnica, solo las dos tablas tecnicas y cer
 
 [f3_local.py](tools/f3_local.py) ya ejecuto apply0002 ->0003: lock persistente/mantenimiento, before restaurado y migrado/no-op en UUID aislado antes de DDL origen, upgrade/no-op origen y cuatro restores before/after/recorded/terminal. Preserva F2/legacy/releases previas y verifica grants aparte. Fallo mantiene maintenance/journal, no reintentar apply en origen0003 ni retirar marca manualmente. Backups privados/hashes en roadmap9.
 
-Para probar F3 desde cero sin tocar origen, con credencial administrativa introducida/exportada directamente en terminal como arriba:
+El siguiente comando F3 es historico: su helper se preserva y no se adapta al head F5. Para el checkout vigente usar check-migration F5 de la seccion siguiente:
 
 ```bash
 bash scripts/init-dev.sh --check
@@ -167,6 +183,20 @@ unset PGPASSWORD
 ```
 
 Crea/elimina solo ocote_f2_test_<UUID>/ocote_f2_restore_<UUID>, prefijo aprobado reutilizado sin alterar helpers F1/F2. No actualizador cliente ni orden para repetir apply. Restore --no-acl no prueba recuperar grants; suite/protocolo verifican runtime aparte. recorded contiene running/reconciliar journal; terminal incluye intento terminal. Manifest no firmado/instantanea, no checkout final, cifrado/copia off-host ni recovery de host.
+
+### Migracion Local F5
+
+[f5_local.py](tools/f5_local.py) aplico0003 ->0004 una vez, intento f81efebb-718d-4899-bfec-c34eca858caf, F5_LOCAL_VERIFIED/version2. Operador confirmo API/escritores detenidos y herramienta exigio cero sesiones ajenas. Lock persistente/mantenimiento, before restaurado y migrado/no-op aislado, upgrade/no-op origen y cuatro backups/restores before/after/recorded/terminal (cinco restores contando ensayo de upgrade). Datos/bootstrap/configuracion/legacy y cuatro releases previas identicos; runtime evidencia SELECT/INSERT comprobado. Terminal capturado antes de reapertura; fallo conserva mantenimiento y solo avanza el intento running propio, nunca terminales historicas.
+
+No repetir apply en origen0004, ni aplicar helpers historicos. Con autorizacion PG y credencial administrativa temporal introducida/exportada por el operador, solo ensayo aislado vigente:
+
+```bash
+bash scripts/init-dev.sh --check
+backend/.venv/Scripts/python backend/tools/f5_local.py check-migration --execute
+unset PGPASSWORD
+```
+
+Solo crea/elimina destinos ocote_f2_test_<UUID>/ocote_f2_restore_<UUID>. Backups/journal protegidos en database/backups/f5-<attempt>/, no Git ni copia de host recuperable. Before F5 no habia tabla/archivos de evidencia; ningun archivo de negocio fue creado por el ensayo. Con archivos operativos futuros, backup/restore coherente BD+archivos es puerta adicional obligatoria, no cubierta por este dump vacio. Manifest es instantanea tecnica sin firma, no hash del checkout final ni actualizador cliente.
 
 ## Verificacion Y Limites
 
@@ -178,8 +208,8 @@ backend/.venv/Scripts/python -m pip check
 git diff --check
 ```
 
-Sin opt-in: **46 passed,44 skipped**, sin conectar PostgreSQL. Con OCOTE_RUN_PG_TESTS=1: **90 passed**, requiere PGPASSWORD administrativa temporal local/configuracion/head0003. F1 usa rollback en origen; F2/F3 bases UUID aisladas, migrador para Alembic y runtime para API/sinteticos, eliminadas al terminar. Superusuario solo prepara/elimina destinos, nunca API. Sin SQLite ni fixtures de negocio en origen. Ruff format/check(31 archivos) y pip check limpios. Incluye scopes/formulas/originales, carreras cierre-subtarea/aprobacion y periodo-alta, atomicidad/versiones y fallos antes de DDL. Deprecacion TestClient/httpx y TS6 rootDir ajeno al cambio permanecen; no build Angular repetido. [Resultados/hashes/limites](../docs/03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local).
+F5 sin opt-in: **56 passed,49 skipped**, sin conectar PostgreSQL. Con OCOTE_RUN_PG_TESTS=1: **105 passed,1 warning conocido**,146.69s; requiere PGPASSWORD administrativa temporal local/configuracion/head0004. F1 rollback en origen; F2/F3/F5 UUID aisladas, migrador para Alembic y runtime para API/sinteticos, eliminadas al terminar. Superusuario solo prepara/elimina destinos, nunca API. Sin SQLite ni fixtures de negocio en origen. Ruff/pip check limpios; ACL nativa Windows positiva/Everyone negativa probadas en temporal. Incluye archivo ajeno/invalido/excesivo/malware sintetico/servicio ausente/tamper/fallo commit/409, historia/append-only y filtros/vistas. Deprecacion TestClient/httpx y diagnostico TS6 rootDir ajeno permanecen. Angular59 ChromeHeadless/build392.40kB iniciales98.05kB estimados, chunk lazy de vistas639.74kB, sin ampliar budgets/dependencias. [Resultados/limites](../docs/03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local).
 
-D01/formulas del nucleo ratificadas; D03/D08 gerenciales siguen F6. Base D05/objetivos D06 en [guia05](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepciones sin suplente/D07 soporte/61 alertas conservadas por F3 hasta2026-12-24, solo local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS/capacidad, cifrado/copia off-host/scheduler/firma/homologacion pendientes, no SLA/remediacion. Python3.12.0 no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Sin almacenamiento/integraciones. Frontend/lock/builds historicos intactos.
+D01/formulas del nucleo ratificadas; D03/D08 gerenciales siguen F6. Base D05/objetivos D06 en [guia05](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepciones sin suplente/D07 soporte/61 alertas conservadas por F5 hasta2026-12-24, solo local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS productivo/capacidad, cifrado/copia off-host/scheduler/firma/homologacion pendientes, no SLA/remediacion. Python3.12.0 no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Adaptador de almacenamiento implementado, configuracion/ClamAV reales e integraciones externas pendientes. Revisiones0001/0002/0003 y package-lock conservan SHA-256 de actas; helpers historicos sin diff.
 
-Siguiente paso: confirmar custodia/origen HTTPS/bootstrap ya observado sin repetir/sobrescribir; completar settings/catalogos/grafo explicitos y configuration-status. Despues solicitar autorizacion F4 y validar muestra accesible OCOTE/licencia tipografica/Material18.2. **F4-F7 no autorizados**; no pantallas/evidencia/evaluaciones/nube por anticipado. PostgreSQL queda activo, sin API/dev server iniciado ni temporales/mantenimiento.
+Siguiente paso: confirmar custodia/bootstrap sin repetir/sobrescribir, completar settings/catalogos/grafo por UI/API y configuration-status, configurar/probar almacenamiento/ClamAV reales y aceptar F4/F5 con sesion del operador. Cierre operativo F5 pendiente; **F6 exige nueva autorizacion y D03/D08**, F7 no iniciado. PostgreSQL queda activo; API F5 iniciada en127.0.0.1:8000 tras parada confirmada por el operador; Angular en127.0.0.1:8443, abrir https://localhost:8443/login. AUTH_ORIGIN/Secure intactos. Sin seeds/configuracion de negocio, reset ni restore sobre origen.

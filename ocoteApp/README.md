@@ -14,9 +14,9 @@ Leer [AGENTS.md](AGENTS.md), entrada comun para desarrolladores y agentes de IA,
 4. [docs/04-entorno-y-portabilidad.md](docs/04-entorno-y-portabilidad.md): PostgreSQL, credencial exclusivamente local, Git y otra computadora.
 5. [docs/05-paquetizacion-instalacion-y-actualizaciones.md](docs/05-paquetizacion-instalacion-y-actualizaciones.md): paquete cliente, instalaciones local/nube, bootstrap, exports/integraciones y protocolo central de release/contingencia.
 
-Estado al 2026-11-24 local: **F3 backend autorizado, implementado y verificado**, head20261124_0003/17 tablas/cuatro releases terminales. [Evidencia F3](docs/03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local): 90 pruebas PostgreSQL; sin opt-in 46 passed/44 skipped; Ruff/pip limpios y cuatro restores. Seis tablas F3 vacias, sin seeds; bootstrap posterior del operador preservado, configuracion pendiente. Windows/PG18.4 local/sintetico, sin produccion/nube. Excepciones D06 sin suplente y D07 soporte Angular/61 alertas hasta **2026-12-24**, responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Angular sin modulos OCOTE; F4-F7 no autorizados.
+Estado al 2026-11-24 local: **F5 autorizada, implementada y verificada tecnicamente local/sintetico; cierre operativo pendiente**. [Evidencia F5](docs/03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local): Kanban, Timeline y evidencia privada fail-closed; 59 pruebas ChromeHeadless/build y backend105 passed/Ruff/pip. Head20261124_0004/18 tablas/cinco releases terminales, datos y cuatro releases previas preservados. Sin seeds ni configuracion inventada. Aceptacion funcional/configuracion del operador y almacenamiento/ClamAV real pendientes: cargas operativas deshabilitadas. Excepciones D06 sin suplente y D07 soporte Angular/61 alertas hasta **2026-12-24**, responsable LUIS ANGEL VALLEJO - DESARROLLADOR, solo Windows/PG18.4 local/sintetico. F6-F7 no autorizados; no produccion/nube.
 
-Fundacion documental 2.0 con incrementos F2/F3: 19 tablas objetivo y permisos por rol/alcance; operacion/solicitudes implementadas, UI/evidencia/exports/evaluacion futuras. Colaborador nunca recibe agregados/evaluaciones. Integraciones externas fuera de MVP. America/Mexico_City solo bootstrap, formulas del nucleo/cierre ratificados; D03/D08 gerenciales pendientes F6. D05/D06 son base/objetivos de diseno, no SLA ni aprobacion productiva.
+Fundacion documental 2.0 con incrementos F2-F5: 19 tablas objetivo y permisos por rol/alcance; API/UI, solicitudes y evidencia implementadas, exports/evaluacion futuras. Colaborador nunca recibe agregados ajenos/evaluaciones. Integraciones externas fuera de MVP. America/Mexico_City solo bootstrap, formulas del nucleo/cierre ratificados; D03/D08 gerenciales pendientes F6. D05/D06 son base/objetivos de diseno, no SLA ni aprobacion productiva.
 
 Cliente objetivo: PostgreSQL 18 local portable/contenedor o gestionado remoto; guia 05 exige roles separados, TLS/red/pooling, paquete firmado, backup y restore ensayados. No hay proveedor/SO cliente homologado ni instalador/ocote-admin disponible; no usar helper de desarrollo para produccion o nube.
 
@@ -55,17 +55,20 @@ El cierre F1 verifico 33 pruebas backend (7 PostgreSQL), lint/pip check, backup/
 
 F2 verifico **58 pruebas backend**, Ruff/pip check, upgrade/no-op y tres restores aislados; sin opt-in, 33 passed/25 skipped. Referencias/JSON/fences de documentacion validos, revision F1 y package-lock intactos. No build/tests Angular repetidos ni remediacion de D07; diagnostico de editor rootDir/TS6 en tsconfig no modificado registrado en acta F2.
 
-## Frontend existente
+## Frontend F4-F5 local
 
-Node compatible con Angular 18.2 y npm; revisar D07 antes de cambiar versiones o lockfile.
+Node compatible con Angular 18.2 y npm; dependencias y lockfile conservados. No ejecutar npm ci salvo instalacion necesaria y revisada bajo D07. Usar la API local existente en 127.0.0.1:8000; [arranque backend](backend/README.md#salud-y-arranque) solo si no esta ya activa y esta autorizado. No repetir bootstrap ni cambiar AUTH_ORIGIN para sortear errores.
 
 ```bash
-npm ci
-npm start
+npm start -- --host 127.0.0.1 --port 8443 --ssl --no-open
+npm run build
+CHROME_BIN='C:/Program Files/Google/Chrome/Application/chrome.exe' npm test -- --watch=false --browsers=ChromeHeadless --progress=false --reporters=dots
 ```
 
-Servidor de desarrollo por defecto: http://localhost:4200/ (muestra el scaffold, no una aplicacion OCOTE implementada; no queda servidor iniciado). Comandos disponibles: npm run build y npm test; Karma requiere navegador. El cierre ejecuto build de produccion y `CHROME_BIN='<Chrome local>' npm test -- --watch=false --browsers=ChromeHeadless`: 6 passed. [Prototipo de compatibilidad](src/app/f1-compat.spec.ts) solo de pruebas, no pantalla ni feature productiva.
+Abrir **https://localhost:8443/login**, no la URL con IP: es el origen HTTPS exacto ya configurado por el operador. [proxy.conf.json](proxy.conf.json) conserva Origin y envia /api a loopback:8000. El certificado autofirmado de ng serve requiere confianza/aceptacion local del operador; no cambiar cookies Secure ni afirmar TLS productivo. HTTP:4200 no sirve para probar sesion. Solo loopback, sin red compartida.
+
+Access/CSRF solo memoria, refresh HttpOnly del navegador, Web Locks obligatorios para rotacion entre pestanas; sin Web Locks falla cerrado. Guardas y acciones siguen auth/me, sin sustituir el alcance del servidor. Administracion presenta estado incompleto y formularios vacios, nunca configura por defecto. UI conserva originales/versiones y un 409 requiere descartar/recargar explicitamente. Tema/fuentes/licencias F4 se reutilizan. Kanban conserva columnas vacias y ofrece arrastre y boton equivalentes; Timeline muestra fechas inclusivas/original/cierre y tabla, sin editar por drag. Evidencias se adjuntan explicitamente en detalle y se descargan como adjuntos; sin DELETE. [Configuracion privada y limites](backend/README.md#evidencias-y-vistas-f5).
 
 ## Siguiente fase
 
-Operador confirma [bootstrap/custodia y configuracion](backend/README.md#bootstrap-y-configuracion-f2) existentes sin sobrescribir: origen HTTPS loopback, parametros/catalogos/grafo explicitos y configuration-status completo. Despues solicitar autorizacion expresa F4 y validar muestra accesible OCOTE/licencia tipografica/Material18.2; no implementar pantallas por anticipado. D03/D08 gerenciales siguen F6. Mantener RN-07 y excepciones hasta 2026-12-24 sin renovacion automatica.
+Operador confirma [custodia/bootstrap y configuracion](backend/README.md#bootstrap-y-configuracion-f2) existentes sin sobrescribir y completa parametros/catalogos/grafo por administracion. Configura almacenamiento externo al checkout y ClamAV mantenido; prueba carga limpia/rechazo/indisponibilidad reales y acepta los recorridos F4/F5 con su sesion antes del cierre operativo. Las pruebas sinteticas no sustituyen esa puerta. **F6 requiere nueva autorizacion expresa** y ratificacion D03/D08; conservar RN-07 y excepciones hasta 2026-12-24 sin renovacion automatica. No repetir apply F5: ya ejecutado; usar solo check-migration aislado del runbook.

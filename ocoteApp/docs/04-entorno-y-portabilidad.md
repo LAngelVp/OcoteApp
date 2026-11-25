@@ -1,18 +1,18 @@
 # OCOTE: entorno local y portabilidad
 
-Version documental: 2.0 con F3 local, 2026-11-24. Retoma local; entrega en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F5 local, 2026-11-24. Retoma local; entrega en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F5](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
 
 ## 1. Estado real y limites
 
 | Elemento       | Estado comprobado                                                                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Frontend       | Angular 18.2 SPA/SCSS en raiz; Material/CDK, ngx-echarts/ECharts y vis-timeline con prototipo/build probados; pantalla inicial, no modulos OCOTE |
-| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; health, identidad/admin F2 y nucleo F3; no F4-F7 |
+| Frontend       | Angular18.2 SPA/SCSS en raiz; F4/F5 con Kanban/Timeline/evidencias,59 ChromeHeadless/build y revision sintetica; aceptacion pendiente |
+| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; F1-F3/F5,105 pruebas PG; privado/ClamAV fail-closed sin configurar, no F6-F7 |
 | Binarios       | database/postgres/bin; postgres --version devuelve PostgreSQL 18.4 Windows                                                  |
 | Cluster        | database/data, inicializado previamente; PG_VERSION contiene 18                                                             |
 | Logs           | database/logs/postgres.log; no versionados                                                                                  |
 | Endpoint       | 127.0.0.1:5432 por defecto; comprobado listen_addresses=127.0.0.1 y autenticacion host SCRAM-SHA-256                        |
-| Base objetivo  | ocoteAppDatabase exacta; head20261124_0003, 17 tablas/cuatro releases terminales; seis F3 vacias y bootstrap posterior preservado |
+| Base objetivo  | ocoteAppDatabase exacta; head20261124_0004,18 tablas/cinco releases terminales; seis F3/evidence_files vacias y bootstrap preservado |
 | Usuario local  | postgres, superusuario SOLO para preparacion/desarrollo local                                                               |
 | Password local | `holamundo`, credencial conocida y debil, EXCLUSIVA de desarrollo local; NUNCA produccion, red compartida o datos reales    |
 
@@ -20,7 +20,7 @@ La propuesta documental anterior mencionaba PostgreSQL 16; la evidencia es 18.4/
 
 La base anterior ocote permanece intacta: no se renombra, copia, importa ni borra automaticamente. En otro equipo puede no existir. Si contiene datos utiles, inventariar y planificar su traslado con respaldo/aprobacion; crear ocoteAppDatabase no migra su contenido. Libpq/createdb reciben el nombre exacto; en SQL manual de administracion un identificador de esta base requeriria comillas dobles ("ocoteAppDatabase"), nunca asumir que un nombre sin comillas conserva mayusculas.
 
-F1/F2 cerrados y F3 autorizado/implementado/verificado solo local/sintetico. Bootstrap posterior del operador observado (auth.env, 1 usuario/1 audit_event), no repetir ni sobrescribir; configuracion pendiente segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni runtime. Excepciones sin suplente/D07 soporte/61 alertas conservadas hasta 2026-12-24; sin red compartida/entradas no confiables. F4-F7 no autorizados; no produccion/nube.
+F1-F3 consolidados y F4/F5 autorizadas/implementadas/verificadas tecnicamente solo local/sintetico; cierre operativo/aceptacion del operador pendientes. Bootstrap/configuracion preexistentes preservados, no repetir ni sobrescribir; configuracion explicita pendiente segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni runtime. Excepciones sin suplente/D07 soporte/61 alertas conservadas por F5 hasta2026-12-24; sin red compartida/entradas no confiables. F6-F7 no autorizados; no produccion/nube. Almacenamiento externo al checkout y ClamAV son decisiones tecnicas explicitas del operador, actualmente ausentes: cargas cerradas, [puerta y parametros](../backend/README.md#evidencias-y-vistas-f5).
 
 ## 2. Credenciales y configuracion
 
@@ -160,7 +160,7 @@ Las rutas no deben depender de C:/Users de un desarrollador; el helper las deriv
 
 ## 6. Backup y restauracion portables
 
-F1-F3 ejecutaron backup/restores aislados, evidencia/hashes en roadmap9. Comandos F1/F2 son historicos: **no usarlos en origen F3**, ni provision/rehearse/verify-existing. f2_local aplico0002 y f3_local0003 una vez; no repetir apply ni editar revisiones. f3_local check-migration solo destino UUID aislado. Fragmento siguiente es entrenamiento, no gate de release. Backup integral futuro coordina BD/evidencia; volumen no equivale a backup.
+F1-F3/F5 ejecutaron backup/restores aislados, evidencia vigente/hashes en roadmap11. Comandos F1-F3 son historicos: **no usarlos en origen F5**, ni provision/rehearse/verify-existing. apply0002/0003/0004 ya ejecutados; no repetir ni editar revisiones. f5_local check-migration solo UUID aislado autorizado. Fragmento siguiente es entrenamiento, no gate de release. Ensayo F5 sin archivos publicados no prueba backup integral BD/evidencia; volumen no equivale a backup.
 
 Con credencial exportada temporalmente o PGPASSFILE, y desde raiz:
 
@@ -202,4 +202,14 @@ La suite usa mocks en carpetas temporales con espacios, no el cluster real: 16 p
 
 Evidencia historica del helper, anterior a F1: PostgreSQL 18.4/cluster 18 ya activo en loopback. init-dev creo ocoteAppDatabase porque faltaba; repeticion y --check desde fuera del checkout exitosos, sin renombrar/borrar ocote. Entonces el objetivo estaba vacio y no habia backend ni restore. La evidencia posterior vigente de revision/roles/restore, sin leer datos legacy ni resetear el origen, esta en acta F1; no otros SO ni protocolo cliente homologados.
 
-Siguiente paso exacto: operador confirma custodia/origen HTTPS/bootstrap existente y completa configuracion explicita. Nucleo F3 ratificado; D03/D08 gerenciales siguen F6. Despues obtener autorizacion expresa F4 y validar muestra accesible OCOTE/licencia tipografica/Material18.2; no crear pantallas por anticipado. Mensaje heredado del helper sobre F1 no sustituye estado vigente.
+### SPA HTTPS local F4
+
+API ya existente en127.0.0.1:8000; no iniciar otra ni regenerar auth.env. Si no esta activa y se autoriza arrancarla, seguir runbook backend. Con node_modules existente/revisado, sin reinstalar ni actualizar lock:
+
+```bash
+npm start -- --host 127.0.0.1 --port 8443 --ssl --no-open
+```
+
+Abrir https://localhost:8443/login: AUTH_ORIGIN observado es exactamente https://localhost:8443, no https://127.0.0.1:8443 ni HTTP:4200. Angular escuchaIPv4 para evitar el listenerIPv6 localhost inaccesible observado; conserva Host/Origin localhost en navegador. Proxy /api a loopback8000 con changeOrigin=false, sin logs de cuerpos/cabeceras. Certificado ng serve autofirmado requiere aceptacion/confianza local del operador; la automatizacion solo lo acepto en su sesion, sin instalar CA ni configurar TLS productivo. Si puerto ajeno ocupado, no matar proceso ni cambiar origen auth: coordinar puerto/certificado con operador. Web Locks requieren navegador compatible/contexto seguro; ausencia falla cerrada. Sin cookies/token por storage, sin bajar Secure ni CORS permisivo.
+
+Siguiente paso: operador confirma custodia/bootstrap sin overwrite y completa configuracion explicita, almacenamiento privado externo/ClamAV mantenido y ensayos reales D05, acepta recorridos F4/F5 con su sesion antes del cierre operativo. F6 exige autorizacion nueva/D03/D08. Mensaje heredado del helper sobre F1 no sustituye estado vigente. PostgreSQL queda activo/head0004; API F5 en8000 tras parada confirmada del operador, Angular HTTPS8443/origen intacto; sin seeds/cargas de negocio ni restore sobre origen.

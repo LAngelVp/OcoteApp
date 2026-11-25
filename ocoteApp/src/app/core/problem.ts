@@ -1,0 +1,82 @@
+import { HttpErrorResponse } from '@angular/common/http';
+
+const messages: Record<string, string> = {
+  INVALID_CREDENTIALS: 'Correo o contrasena incorrectos.',
+  TOKEN_EXPIRED: 'La sesion ha vencido. Inicia sesion nuevamente.',
+  SESSION_REVOKED: 'La sesion ya no esta disponible.',
+  REFRESH_REUSED: 'La sesion fue revocada por seguridad.',
+  FORBIDDEN: 'No tienes permiso para esta accion.',
+  CSRF_FAILED: 'No se pudo verificar la sesion. Inicia sesion nuevamente.',
+  RESOURCE_NOT_FOUND: 'El recurso no existe o no esta disponible para tu cuenta.',
+  VERSION_CONFLICT: 'El registro cambio. Recarga sus datos y revisa tus cambios antes de guardar.',
+  DEPENDENCY_CONFLICT: 'Existen datos relacionados que impiden este cambio.',
+  CONFIGURATION_INCOMPLETE: 'La configuracion operativa esta incompleta. Contacta al administrador.',
+  OCCUPIED_STAGE: 'No puedes desactivar una etapa que contiene tareas.',
+  EVIDENCE_REQUIRED: 'Esta etapa requiere evidencia y aun no esta disponible.',
+  EVIDENCE_STORAGE_OR_SCANNER_UNAVAILABLE: 'El almacenamiento privado o el antivirus no esta disponible. No se publico el archivo.',
+  MALWARE_DETECTED: 'El antivirus rechazo el archivo. No se publico.',
+  INVALID_EVIDENCE: 'Selecciona evidencias distintas de esta tarea.',
+  SESSION_COORDINATION_UNAVAILABLE: 'Se requiere un navegador con Web Locks en un contexto seguro para verificar la sesion.',
+  DEPARTMENT_REQUIRED: 'Lider y colaborador requieren un departamento.',
+  INVALID_DEPARTMENT: 'Selecciona un departamento activo y permitido.',
+  INVALID_SETTING: 'El tipo o limite del parametro no es valido.',
+  SETTING_NOT_EDITABLE: 'Este parametro no puede editarse.',
+  TIMEZONE_LOCKED: 'La zona organizacional esta bloqueada por actividad registrada.',
+  INVALID_TRANSITION_ROLES: 'La transicion requiere admin y no admite gerente.',
+  WORKFLOW_INCOMPLETE: 'El grafo requiere una etapa inicial abierta y una terminal activa.',
+  INVALID_INITIAL_STAGE: 'La etapa inicial debe ser abierta y no exigir motivo ni evidencia.',
+  INVALID_TRANSITION: 'La transicion no esta permitida por el grafo vigente.',
+  TERMINAL_HAS_NO_EXIT: 'Una etapa completada no admite transiciones de salida.',
+  INACTIVE_STAGE: 'La transicion referencia una etapa inactiva.',
+  WORKFLOW_HAS_NO_TERMINAL_PATH: 'Todas las etapas activas necesitan un camino hacia la terminal.',
+  INVALID_HORIZON: 'Selecciona un horizonte activo de los cinco codigos permitidos.',
+  PROTECTED_CATALOG_ENTRY: 'La entrada normal o custom debe permanecer activa y conservar su codigo.',
+  PROTECTED_STAGE: 'La etapa inicial o terminal esta protegida.',
+  DEPARTMENT_HAS_ACTIVE_USERS: 'Reasigna o desactiva los usuarios antes de desactivar el departamento.',
+  LAST_ACTIVE_ADMIN: 'No puedes desactivar ni cambiar el rol del ultimo administrador activo.',
+  USER_HAS_OPEN_TASKS: 'Reasigna las tareas abiertas antes de cambiar el departamento, rol o actividad del usuario.',
+  INVALID_CATALOG_ORDER: 'El orden debe incluir entradas validas sin posiciones duplicadas.',
+  WORKFLOW_CONFLICT: 'El grafo cambio o faltan filas existentes. Descarta y recarga antes de editarlo.',
+  IMMUTABLE_WORKFLOW_SEMANTICS: 'Codigo, clase e identidad inicial de la etapa no pueden modificarse.',
+  DUPLICATE_TRANSITION: 'La transicion ya existe.',
+  PLAN_NOT_EDITABLE: 'El plan no admite cambios en su estado actual.',
+  TASK_COMPLETED: 'Una tarea completada es de solo lectura.',
+  SUBTASK_COMPLETED: 'Una subtarea completada es de solo lectura.',
+  INVALID_INTERVAL: 'Las fechas deben estar ordenadas y contenidas en el periodo padre y sus compromisos originales.',
+  INVALID_ASSIGNEE: 'Selecciona un responsable activo del departamento del objetivo.',
+  INVALID_PRIORITY: 'Selecciona una prioridad activa.',
+  INVALID_PLAN_TRANSITION: 'El estado del plan solo avanza de borrador a activo y despues a cerrado.',
+  EVIDENCE_UNAVAILABLE_F3: 'Esta etapa requiere evidencia y no esta habilitada en esta fase.',
+  REASON_REQUIRED: 'La etapa destino requiere un motivo de 10 a 2000 caracteres.',
+  PENDING_SUBTASKS: 'Completa todas las subtareas antes de cerrar la tarea.',
+  UNCHANGED_DATE: 'La fecha propuesta debe ser distinta de la vigente.',
+  REQUEST_TERMINAL: 'La solicitud ya tiene una decision definitiva.',
+  SELF_APPROVAL_FORBIDDEN: 'Solicitante y aprobador deben ser personas distintas.',
+};
+
+export interface Problem { message: string; requestId?: string; conflict: boolean; }
+export function problem(error: unknown): Problem {
+  if (!(error instanceof HttpErrorResponse)) {
+    return { message: 'No se pudo completar la operacion. Revisa la conexion y vuelve a intentar.', conflict: false };
+  }
+  const body: unknown = error.error;
+  const data = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const code = typeof data['code'] === 'string' ? data['code'] : '';
+  const identifier = data['request_id'];
+  const requestId = typeof identifier === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(identifier) ? identifier : undefined;
+  return {
+    message: messages[code] ?? ({
+      0: 'No hay conexion con el servicio.',
+      401: 'La sesion no es valida. Inicia sesion nuevamente.',
+      403: 'No tienes permiso para esta accion.',
+      404: 'El recurso no esta disponible.',
+      409: 'El cambio no es compatible con el estado actual. Recarga y revisa los datos; no se ha sobrescrito el registro.',
+      413: 'El archivo esta vacio o excede el limite permitido.',
+      415: 'El tipo, la extension o el contenido del archivo no estan permitidos.',
+      422: 'Revisa los campos, fechas, motivo y requisitos del comando. No se guardaron cambios.',
+      429: 'Demasiados intentos. Espera antes de volver a intentar.',
+      503: 'Servicio temporalmente no disponible. Contacta al operador.',
+    } as Record<number, string>)[error.status] ?? 'No se pudo completar la operacion. Contacta al operador.',
+    requestId, conflict: error.status === 409,
+  };
+}

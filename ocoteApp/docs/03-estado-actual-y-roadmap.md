@@ -1,8 +1,8 @@
 # OCOTE: estado actual y roadmap
 
-Version documental: 2.0 con incremento F3 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. Sin F4-F7 ni instalador cliente.
+Version documental: 2.0 con incremento F5 local. Fecha de corte: 2026-11-24 local / 2026-11-25 UTC. Sin F6-F7 ni instalador cliente.
 
-Estado vigente: **F3 autorizado, implementado y verificado local/sintetico**, segun [seccion 9](#9-nucleo-operativo-f3-local). Configuracion pendiente; bootstrap posterior del operador observado y preservado. F4-F7 no autorizados. Excepciones hasta 2026-12-24 en [seccion 7](#7-cierre-formal-f1-local). Secciones 1/5 son F0, 6/7 F1 y 8 F2 historicos: sus puertas fueron sustituidas solo por autorizacion posterior expresa. No son inventario vigente ni aprobacion productiva.
+Estado vigente: **F5 autorizada, implementada y verificada tecnicamente local/sintetico, cierre operativo pendiente**, segun [seccion 11](#11-kanban-timeline-y-evidencias-f5-local). Aceptacion/configuracion y almacenamiento/ClamAV reales pendientes; cargas cerradas, bootstrap preservado, sin seeds. F6-F7 no autorizados. Excepciones hasta2026-12-24 en [seccion 7](#7-cierre-formal-f1-local), conservadas expresamente por F5. Secciones1/5 son F0,6/7 F1,8 F2,9 F3 y10 F4 historicos: puertas sustituidas solo por autorizacion posterior expresa, no inventario vigente ni aprobacion productiva.
 
 Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y datos](02-arquitectura.md), [entorno local](04-entorno-y-portabilidad.md), [entrega/actualizaciones](05-paquetizacion-instalacion-y-actualizaciones.md). RF-01..12 y RN-01..06 se conservan; se agregan RF-13..15 y RN-07 sin renumerar D01-D08/F0-F7.
 
@@ -15,7 +15,7 @@ Referencias normativas: [SDD](01-spec-driven-development.md), [arquitectura y da
 | Proyecto                | [package.json](../package.json), nombre ocote-app, version 0.0.0                                                                                     | Angular creado en raiz, no monorepo con herramientas adicionales                                              |
 | Framework               | Dependencias Angular ^18.2.x; CLI/build ^18.2.21; TypeScript ~5.5.2                                                                                  | Linea 18.2 declarada, no certificacion de versiones resueltas ni build exitoso                                |
 | Render y estilos        | [angular.json](../angular.json): builder application, browser src/main.ts, SCSS, sin opciones server/SSR                                             | SPA sin SSR configurada                                                                                       |
-| Componente              | [app.component.ts](../src/app/app.component.ts) y [app.component.html](../src/app/app.component.html)                                                | Componente standalone con titulo ocoteApp y plantilla inicial de Angular; sin funcionalidad OCOTE             |
+| Componente              | app.component.ts/app.component.html en el diagnostico F0; plantilla inicial retirada por F4, ver seccion10                                           | Componente standalone con titulo ocoteApp y plantilla inicial de Angular en F0; no inventario vigente          |
 | Tema                    | [styles.scss](../src/styles.scss)                                                                                                                    | Material 3 define-theme con azure/blue y tipografia Roboto, no tema OCOTE aplicado                            |
 | Animaciones             | [app.config.ts](../src/app/app.config.ts)                                                                                                            | provideAnimationsAsync ya registrado                                                                          |
 | Bibliotecas             | Material/CDK/animations ^18.2.14, ngx-echarts ^18.0.0, echarts ^6.1.0, vis-timeline ^8.5.6 declarados                                                | Instalacion/declaracion no prueba integracion ni compatibilidad efectiva                                      |
@@ -398,3 +398,86 @@ Cobertura: 0/1/4 subtareas, progreso y pending_closure, medianoche/puntualidades
 La migracion comprobo quince tablas F2/F3 vacias y no ejecuto bootstrap/seeds. Durante cierre se detecto bootstrap_admin del operador a UTC04:00:35.500686 (posterior al protocolo): auth.env presente, un usuario/un audit_event; no se modificaron ni revirtieron. Otras trece tablas F2/F3 vacias, incluidas las seis F3; settings/catalogos/workflow pendientes. terminal.dump no cubre esas escrituras posteriores.
 
 Siguiente puerta F4: operador confirma custodia/origen HTTPS y bootstrap existente sin repetir/sobrescribir, completa configuracion explicita y verifica configuration-status segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). Requiere autorizacion expresa F4, muestra accesible con tokens OCOTE, licencia/autoalojamiento tipografico y mapeo publico Material18.2; no habilitar fases posteriores por anticipado.
+
+## 10. Sistema visual y flujos Angular F4 local
+
+Autorizacion expresa del titular2026-11-24: RF-01..05/RF-11 y RN-01..06 de interfaz, mas configuracion explicita/solicitudes sobre contratos F2/F3. F4 implementada y verificada tecnicamente local/sintetico; **aceptacion funcional del operador pendiente**, no cierre productivo ni permiso F5. Sustituye la puerta F4 anterior, no evidencias historicas. Sin seeds/defaults ni fixtures de negocio en origen. Conserva excepcion hasta2026-12-24 bajo LUIS ANGEL VALLEJO - DESARROLLADOR, sin renovacion automatica: D06 sin suplente y D07 soporte Angular/61 alertas separados (2criticas/19altas/33moderadas/7bajas). Solo loopback/sintetico, sin red compartida/entradas no confiables. F5-F7 no autorizados.
+
+### Alcance entregado
+
+- [Rutas lazy](../src/app/app.routes.ts), [shell](../src/app/shell.ts) y [sesion](../src/app/core/session.ts): login/perfil/password/logout/restore, access/CSRF solo memoria, refresh cookie Secure/HttpOnly/SameSite Strict/Path auth, Web Locks obligatorios entre pestanas, single-flight, BroadcastChannel de cierre. 401 un retry/segundo401 expira;409 no retry; logout503 conserva identidad/error. Sin credenciales/secretos en SPA/storage.
+- [Administracion](../src/app/admin/admin.page.ts) y [grafo atomico](../src/app/admin/workflow.editor.ts): departamentos/usuarios/passwords, catalogos/cinco horizontes, parametros tipados, etapas/aristas y reordenamientos, versiones/motivos, auditoria/releases lectura. Instalacion vacia permanece vacia hasta decisiones explicitas del admin, no alta automatica al visitar.
+- [Planes/objetivos](../src/app/operations/planning.page.ts), [tareas](../src/app/operations/tasks.page.ts), [detalle/subtareas/historia](../src/app/operations/task-detail.page.ts), [solicitudes](../src/app/operations/requests.page.ts): rangos inclusivos/cruces de anio, contencion servidor, originales visibles/inmutables, cambios auditados/versionados, cierres explicitos, progreso/puntualidad servidor y motivo. A/G planifican; A/L gestionan; G no transiciona; C solo asignadas/contexto minimo, sin planes/solicitudes/agregados. Sin DELETE.
+- [Editor](../src/app/shared/editor.ts) con formularios reactivos: validacion civil ISO real, limites/enteros/motivo, departamento L/C requerido;409 conserva valores y bloquea hasta descarte/recarga explicitos;422 conserva formulario, errores sanitizados/referencia. [Presentacion](../src/app/shared/presentation.ts) distingue fecha civil de timestamps UTC mostrados en America/Mexico_City.
+- [Tema](../src/styles.scss), [tokens](../src/_ocote-tokens.scss), [paletas](../src/_ocote-palettes.scss), marca y fuentes locales. Sin Kanban/Timeline/evidencia/analitica/evaluaciones/exports; etapas que exigen evidencia no se habilitan como si F5 existiera.
+
+### Verificacion ejecutada
+
+| Comprobacion | Resultado y alcance |
+| --- | --- |
+| npm run build | Produccion exitosa, initial369.43kB/transfer94.73kB estimada, sin warning de budget; budgets/dependencias/lock sin cambios |
+| ChromeHeadless158 Windows | **49 passed**:3 raiz,3 compatibilidad F1,13 sesion,8 editor,22 vistas/roles/contratos/guardas F4. Ultimo ajuste solo Sass: compilacion Sass, build y radios computados8px posteriores correctos |
+| Backend PostgreSQL opt-in | **90 passed,1 warning conocido** TestClient/httpx;209.07s. F1 rollback y F2/F3 UUID aislados eliminados por suite; no fixtures de negocio en origen ni SQLite |
+| Ruff / pip check | All checks passed / No broken requirements found; codigo y lock Python sin cambios |
+| init-dev --check antes/despues | PG18.4 ya activo, identidad/base exactas y directorios correctos; no instala/migra/crea seeds ni arranca otro cluster |
+| Navegador HTTPS/proxy | Salud200/CSRF sin cookie401 reales; AUTH_ORIGIN existente https://localhost:8443 preservado. Vistas autenticadas con interceptores sinteticos de navegador, no escrituras de negocio a API real |
+| Roles/409 entre capas | G sin mover etapa; L sin fecha directa; C sin planes/solicitudes/admin y URL plan denegada. 409 retuvo fecha/motivo, expected_version7, sin original en payload; Guardar bloqueado, detalle sensible oculto/request_id visible |
+| Dos pestanas reales | Web Locks disponibles, recarga concurrente con fixture produjo2 rotaciones adicionales y maximo1 refresh simultaneo; no tokens en localStorage/sessionStorage, cookie HttpOnly no visible por document.cookie |
+| Responsive/teclado | Capturas/revision1440/768/360 de tareas/detalle/configuracion/dialogos; sin overflow de pagina, tablas con scroll contenido. Foco corregido sobre Material:3px azul/offset3px/halo blanco2px.25 Tab mantuvieron foco en grafo. Zoom CSS200% de configuracion sin overflow; no ensayo exhaustivo de zoom nativo/lector |
+| Assets/contraste | Marca no vacia, Source Sans3/Material Icons cargadas localmente; pares de texto/estado/foco >=4.5:1 segun matriz SDD. No auditoria WCAG exhaustiva ni prueba de todas las combinaciones posibles |
+| Integridad | SHA-256 de0001/0002/0003 y package-lock identicos a actas; backend ejecutable/helpers/configuracion auth sin diff. Sin nuevas revisiones/provision/reset/restore origen ni cambios de legacy/releases historicas |
+| Documentacion |9 fuentes sincronizadas,177 referencias locales/anclas,9 JSON,39 fences balanceados,19 entidades ER e IDs RF/RN/D/F conservados; git diff --check limpio. Validacion estructural basica, no AST/render Mermaid ni prueba semantica exhaustiva |
+
+Comandos frontend reproducibles en README; backend: OCOTE_RUN_PG_TESTS=1 con PGPASSWORD administrativo temporal del operador, pytest -q backend/tests, ruff check backend, pip check y preflight. No imprimir secretos ni introducirlos en SPA/agente. Helpers mock no repetidos porque no cambiaron. No audit npm ni upgrade: siguen61 alertas bajo excepcion, no remediadas por build.
+
+### Material, fuentes y entorno
+
+Schematic local @angular/material:m3-theme, light, primary#B85A1E/secondary y tertiary#2E5A44/neutral#5C534A. primary M3 tono40#9B4505, secondary/tertiary tono40#3B6750 y on-colors blancos; mapas completos secundarios anidados/publicos, no opcion inexistente color.secondary ni variables privadas. mat.core una vez, tipografia Source Sans3/densidad0, overrides publicos button/dialog container-shape8px comprobados. Tokens de marca permanecen exactos; matriz de contrastes en SDD5.
+
+Source Sans3 VF Upright WOFF2 desde adobe-fonts/source-sans commit87b37a2daaed80fcb8e8ccb0085c4d72ddade12e, OFL1.1 en [licencia](../public/fonts/Source-Sans-LICENSE.md). MaterialIcons-Regular TTF desde google/material-design-icons commitd7a78a2ad434d5d38e1b8708c9dd9847cc3ada9b, Apache2.0 en [licencia](../public/fonts/Material-Icons-LICENSE). Descarga oficial fijada/firma de formato y texto de licencia comprobados; fuentes autoalojadas sin CDN runtime. Pine mark propio, no asset de negocio.
+
+Servidor Angular iniciado por esta tarea solo en127.0.0.1:8443 con --ssl; abrir **https://localhost:8443/login**, origen exacto del operador. Bind localhost inicial soloIPv6 no conectaba; se sustituyo exclusivamente nuestro proceso por bindIPv4. API existente127.0.0.1:8000 y PostgreSQL se preservaron. [Proxy](../proxy.conf.json) mantiene Origin, /api a API loopback, logs silenciosos. Certificado autofirmado aceptado solo en sesion automatizada mediante CDP; no confianza del sistema ni TLS cliente/productivo homologado. Fixtures/rutas/cookie sintetica retirados; navegador final en login real, storage vacio. No se solicito/uso password del operador ni se altero su bootstrap/configuracion.
+
+### Limites y siguiente puerta
+
+Backend/migraciones/roles/protocolo de release F3 no cambiaron. Ultima observacion de datos de origen es seccion9; no se recontaron por documentacion ni se revirtieron escrituras del operador. Pruebas API aisladas y mocks UI no son un E2E autenticado con identidad/configuracion reales del operador. Pendientes: aceptar muestra/recorridos con su sesion, completar configuracion explicitamente y confirmar custodia. No certificar lector de pantalla, todos los navegadores, zoom nativo, accesibilidad integral, soporte Angular o seguridad productiva por estas pruebas.
+
+**F5 bloqueado hasta nueva autorizacion expresa**, aceptacion funcional F4 y configuration-status completo. Antes de cargas: D05 privado/autorizado, PDF/PNG/JPEG max10MiB, cuarentena/antimalware mantenido fail-closed y pruebas; no activar evidencia por MIME solamente. D03/D08 siguen F6, paquete/instalacion/nube F7. Responsable/fecha de excepciones no cambian; sin suplente independiente antes del vencimiento o nueva decision expresa no hay renovacion automatica.
+
+## 11. Kanban Timeline y evidencias F5 local
+
+Autorizacion expresa del titular2026-11-24 para RF-06/RF-07/RF-08 y revision aditiva0004 con protocolo de release. **Implementada y verificada tecnicamente local/sintetico; cierre operativo pendiente**, no aceptacion/configuracion F4 ni scanner real presumidos. Sin seeds/defaults/identidades ni fixtures en origen. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR, excepcion local/sintetica hasta2026-12-24 conservada. F6-F7 no autorizados; helpers/revisiones0001/0002/0003/legacy/releases historicas intactos. Sin DELETE de evidencia publicada segun RN-04/D05.
+
+### Implementacion y ensayo
+
+[Revision0004](../backend/alembic/versions/20261124_0004_evidence.py), [almacen/ClamAV](../backend/app/core/evidence.py), [servicio](../backend/app/services/evidence.py), [API](../backend/app/routers/execution.py), [pruebas](../backend/tests/test_execution.py), [protocoloF5](../backend/tools/f5_local.py), [Kanban/Timeline](../src/app/operations/execution.page.ts), [evidencias](../src/app/operations/evidence.ts) y [transicion compartida](../src/app/operations/transition.ts).
+
+Kanban pagina cada carril activo/vacio con filtros y conteos de alcance previo; C solo propias, G sin mover/cargar. Drag y boton usan mismo comando versionado/motivo/IDs. No movimiento optimista: cancelacion/409 conserva tarjeta. Timeline readonly usa vis-timeline fuera de NgZone, fechas civiles inclusivas, baseline/cierre en zona BD, niveles por permiso, grupos y tabla equivalente; sin drag de fechas. Fuentes/activos/tokens OCOTE y dependencias conservados.
+
+PDF/PNG/JPEG con limite BD y10MiB duro, MIME/extension/firma/hash; cuarentena privada fuera del checkout, ACL nativa Windows y rechazo de enlaces/junctions. Solo ClamAV limpio/fresco publica. Scanner sintetico inyectado en tests, nunca fallback runtime. Atomicidad fila/version/historia/auditoria con compensacion de archivo nuevo por rollback cierto; commit incierto exige reconciliacion del operador, sin job automatico ni purga. Descarga autorizada attachment/nosniff/no-store con integridad y solicitud auditada. ACL por PowerShell fallo con politica1260; se sustituyo por API nativa sin cambiar la politica ni relajar ACL. Prueba real Everyone rechazada en temporal privado.
+
+Operador confirmo detener API/escritores tras detectar3 conexiones; herramienta exigio cero conexiones antes de comenzar. Origen0003 ->0004 con ocote_migrador, lock persistente/mantenimiento y journal ACL privado. Before restaurado/migrado/no-op en UUID aislado antes de DDL origen; upgrade/no-op origen; cuatro dumps/restores before/after/recorded/terminal y ensayo restaurado adicional (cinco restores). Intento **f81efebb-718d-4899-bfec-c34eca858caf**, request_id162e4de4-6dff-467d-ace6-fa36f98009c6, succeeded/F5_LOCAL_VERIFIED/version2. UTC2026-11-25T05:42:42.261693Z a05:43:02.157764Z;20.312s. No repetir apply sobre origen0004.
+
+| Dump privado | Bytes | SHA-256 | Restore |
+| --- | --- | --- | --- |
+| before.dump | 85378 | 96526447b2121a31d10152acf087375cfa1699bd7551b13a1f55b6c9b8b80bd9 | 1.250s |
+| after.dump | 91021 | 19fbde27af02cf11299d280e8a0567bc8eb25361b00737f318206da91373f0b2 | 1.581s |
+| recorded.dump | 91241 | e3fece68f12fcb12a625043db8ff118a2b6199cb0a7bcaa14a531bb9899c28e8 | 1.288s |
+| terminal.dump | 91232 | a0b7cf09d682194f3db5c82ea6a33d0c3cdec14e0ea178c4a5666f9a3350c2c9 | 1.491s |
+
+Artefactos en database/backups/f5-<attempt>/ ignorados, no publicados. Manifest es instantanea sin firma, no checkout final. Solo datos preexistentes preservados, sin evidencia publicada en origen; dump BD vacio de archivos **no prueba restore BD+evidencia operativa ni recuperacion de host/cifrado/off-host**. Cuatro releases anteriores se compararon sin cambio y nueva terminal capturada antes de reapertura. Head0004 unica/18 tablas/cinco releases terminales; seis F3/evidence_files vacias. Mantenimiento retirado solo tras exito; ocote/OIDs/roles preservados.
+
+### Verificacion y limites
+
+| Comprobacion | Resultado |
+| --- | --- |
+| PostgreSQL opt-in | **105 passed**,146.69s;1 warning TestClient/httpx conocido. Fixtures F2/F3/F5 solo UUID eliminados; F1 rollback tecnico origen |
+| Sin opt-in | **56 passed/49 skipped**,5.15s, sin conectar PG |
+| Calidad | Ruff/pip check limpios, sin instalar/actualizar dependencias |
+| Angular | **59 ChromeHeadless passed**, build392.40kB inicial/98.05kB transferencia estimada; chunk lazy vistas639.74kB. Sin ampliar budgets; prueba de zona API Pacific/Auckland distinta del navegador |
+| Navegador sintetico | 1440/360: Kanban3 carriles con vacios, drag/motivo/cancelar, boton/evidencia/409 con motivo conservado y Guardar bloqueado; Timeline no vacio, baseline/cierre, zoom efectivo/tabla; archivos/nombres/hash en movil sin desbordamiento. Fuentes/imagen locales cargadas |
+| Entorno real | Preflight PG18.4/base exacta, ready/roles/head0004 siete pruebas positivas; API F5 en127.0.0.1:8000 tras parada confirmada, Angular HTTPS loopback8443/origen intacto |
+
+No raiz EVIDENCE_STORAGE_ROOT ni EVIDENCE_CLAMAV_PORT configurados en el entorno, ni instalacion/escaneo ClamAV reales ensayados. Cargas operativas deshabilitadas por servidor/UI; los tests identifican dobles sinteticos y no prueban motor real, definiciones, antimalware mantenido ni E2E autenticado con identidad/configuracion del operador. No nuevas entradas no confiables/datos reales bajo excepcion. No homologacion AA integral/lector/navegadores, TLS productivo, seguridad de dependencias ni SLA por pasar estas pruebas.
+
+Siguiente puerta: operador completa configuracion existente sin overwrite, valida configuration-status, raiz privada externa/ACL/ClamAV mantenido y pruebas reales limpio/deteccion autorizada/caida/timeout/definiciones viejas/restore coherente; acepta F4/F5 con su propia sesion. Solo despues cerrar operativamente F5. **F6 requiere nueva autorizacion expresa y ratificacion D03/D08**; F7, exports/analytics/evaluacion/nube no implementados. D06 sin suplente y D07 separados conservan responsable/fecha2026-12-24 sin renovacion automatica.

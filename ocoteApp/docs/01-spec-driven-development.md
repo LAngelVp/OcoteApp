@@ -30,7 +30,7 @@ Una discrepancia bloquea la fase afectada: se resuelve en los documentos afectad
 | D04 | Etapas/transiciones globales y catalogos en BD; cierre irreversible; roles/formulas no configurables | Semanticas F2 y cierre/fechas F3 confirmados; sin seeds. Evidencia pendiente F5 |
 | D05 | Evidencia privada PDF/PNG/JPEG con techo 10 MiB; exportacion interna JSON/CSV; sin conexiones a sistemas externos en MVP                                         | Base de privacidad/retencion aprobada el 2026-11-24 en guia 05, seccion 3.1; no habilita datos reales, cargas ni aprobacion legal; escaneo fail-closed antes de F5 |
 | D06 | Desarrollo portable 18.4; cliente soporta PostgreSQL 18 local/contenedor o gestionado remoto; base exacta ocoteAppDatabase                                       | Objetivos de diseno RPO <=24 h/RTO <=4 h y responsable LUIS ANGEL VALLEJO - DESARROLLADOR aprobados; sin suplente bajo excepcion local hasta 2026-12-24; restore local probado, homologacion productiva pendiente |
-| D07 | Angular18.2 restringido; no actualizar automaticamente | Soporte/61 alertas son riesgos separados conservados por F3 local/sintetico hasta 2026-12-24; roadmap7/9 |
+| D07 | Angular18.2 restringido; no actualizar automaticamente | Soporte/61 alertas son riesgos separados conservados por F4 local/sintetico hasta 2026-12-24; roadmap7/10 |
 | D08 | Evaluaciones finales inmutables, corte al generar y cohorte por original | Calendario/cortes/responsables pendientes F6; no evaluaciones habilitadas por F3 |
 
 Ratificaciones expresas del titular el 2026-11-24: D01; base D05 y objetivos/responsable D06; excepciones D06 sin suplente y D07 por fin de soporte y, separadamente tras audit, 61 alertas npm. La autorizacion posterior F2 confirma D02/D04 en los terminos siguientes. Detalle en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06), [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local) y [evidencia F2](03-estado-actual-y-roadmap.md#8-identidad-y-administracion-f2-local). No firmas de seguridad/legal/TI productiva ni aprobaciones D03/D08. Una puerta sin decision permanece cerrada; vencer excepcion no la renueva.
@@ -52,6 +52,24 @@ El titular autoriza implementar, migrar y verificar F3 exclusivamente local/sint
 No se introducen defaults/seeds de negocio ni identidades en origen. El admin debe completar bootstrap y configuracion F2 explicitamente; comandos operativos fallan cerrados si faltan parametros/catalogos/flujo. Las pruebas crean sus fixtures solo en destinos UUID aislados. No se modifican helpers locales, base ocote ni releases historicas validas. Etapas que requieren evidencia rechazan entradas con 422 hasta F5, sin aceptar URLs/IDs ficticios ni crear evidence_files. Cada mutacion tarea/subtarea e historia comparte transaccion; una carrera/version obsoleta no deja cambios parciales.
 
 Implementacion y bootstrap posterior observado en [evidencia F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local). Fechas ISO YYYY-MM-DD estrictas, timestamps UTC; listas limit1..100/cursor/next_cursor y filtros antes de paginar. Historia created_at/id con cursor de misma tarea. Status-changes admite reason opcional; periodos/fechas/asignacion/decisiones lo exigen. GET auth/me anuncia solo facultades F1-F3; ningun agregado para C. No repetir/sobrescribir bootstrap existente ni confundir ready con configuracion completa.
+
+### Autorizacion F4 del 2026-11-24
+
+El titular autoriza sistema visual y flujos Angular RF-01..05/RF-11 y RN-01..06 de interfaz, incluidos configuracion explicita, solicitudes de fecha y perfil. F4 debe poder presentar una instalacion vacia para que admin la configure: no se inventan ni precargan valores/filas de negocio. Access y CSRF solo en memoria; refresh/logout coordinados entre pestanas mediante Web Locks, sin fallback concurrente inseguro. Origin lo genera el navegador; GET csrf mismo origen envia Referer verificable. Conflictos409 conservan formulario y exigen recarga explicita/version nueva, nunca reenvio automatico de comandos.
+
+Se mantienen backend/head0003, migraciones/helpers/legacy/releases historicas, bootstrap existente y restricciones locales/sinteticas. La excepcion hasta2026-12-24 bajo LUIS ANGEL VALLEJO - DESARROLLADOR cubre esta F4 expresamente autorizada, sin renovacion ni remediacion implicita. F5-F7 no autorizados: ninguna UI Kanban/Timeline/carga de evidencia/analitica/evaluaciones/exports/nube. Evidencia y limites F4 se registran en roadmap10; muestras visuales y tipografia/Material se verifican durante este incremento, no se presumen aprobadas por autorizarlo.
+
+### Autorizacion F5 del 2026-11-24
+
+El titular autoriza expresamente implementar y verificar RF-06/RF-07/RF-08 local/sintetico, incluida revision aditiva0004 bajo backup/migracion/no-op/restauracion aislada. Conserva responsable LUIS ANGEL VALLEJO - DESARROLLADOR y excepcion hasta2026-12-24, sin produccion/nube ni entradas no confiables. No altera0001/0002/0003, helpers, legacy ocote, releases validas ni bootstrap/configuracion de negocio. F6-F7 no autorizados. Autorizar desarrollo no afirma que el operador haya completado configuracion/aceptacion F4.
+
+Contratos F5: GET /api/v1/kanban conserva carriles activos vacios/ordenados, filtros y paginacion por etapa con alcance previo al conteo; C solo sus propias tareas, nunca conteos ajenos. Transicion sigue POST /tasks/{id}/stage-transitions con expected_version/motivo/evidence_ids y sin orden manual persistido. GET /api/v1/timeline pagina proyecciones por tipo plan/objective/task/subtask con mismos filtros; C solo tareas/subtareas asignadas y contexto minimo, no agregados ni consultas de modulos de planificacion. Fechas civiles no se convierten por zona del navegador; cierre UTC se presenta en America/Mexico_City. Sin drag de fechas.
+
+GET/POST /tasks/{id}/evidence y GET /evidence/{id}/content usan autorizacion de tarea; subida solo A/L/C con tarea/plan abiertos y version capturada. Contenido binario acotado, nombre informativo saneado, MIME/extension/firma PDF/PNG/JPEG concordantes y SHA-256; limite vigente evidence_max_bytes leido de BD. Almacen privado y scanner son configuracion tecnica explicita, nunca catalogos/settings sembrados. Cuarentena antes de escanear, publicar solo resultado limpio confirmado; scanner ausente/error/timeout/desconocido devuelve503, malware422, tipo415/tamano413, sin fila disponible ni transicion parcial. No se simula un antivirus real con una comprobacion de firmas. El entorno de pruebas puede inyectar dobles sinteticos identificados como tales, no habilitan cargas operativas por si solos.
+
+Conservacion RN-04/D05: no DELETE ni purga de evidencias publicadas en MVP, tampoco por admin; gestion significa adjuntar/listar/descargar con alcance, no borrar historia. Evidencias validas se conservan al cerrar; descarga autenticada attachment/nosniff sin rutas internas/storage_key. Registro de archivo+version+task_history/audit_events en una transaccion con compensacion del archivo nuevo si falla commit. Solo evidence_files en F5 (18 tablas incluyendo alembic_version); la tabla restante del objetivo19 corresponde a F6 y no se adelanta.
+
+Estado tecnico F5 en [roadmap11](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local):0004 aplicada con protocolo y datos conservados, API/UI verificadas local/sintetico. Raiz privada **fuera del checkout/releases**, ACL nativa Windows/POSIX y subdirectorios quarantine/objects existentes, ClamAV loopback explicitamente configurado. No existen aun esa configuracion/servicio verificados en el entorno: cargas operativas cerradas, no afirmar antivirus real por los dobles de prueba. Guardar scan_engine=clamav, scan_version y scanned_at <= created_at como atestacion tecnica privada append-only; no exponerlos en metadata publica. GET timeline incluye organization_timezone desde BD; UI transforma el instante de cierre a esa zona, no usa override de entorno. Descarga registra solicitud auditada sin ruta/contenido. Aceptacion/configuracion F4/F5 y ensayo D05 real pendientes, no cierre operativo ni autorizacion F6/F7.
 
 MVP: autenticacion, configuracion en BD, planes/objetivos, tareas/subtareas con prioridad, solicitudes/aprobaciones de fecha, evidencia, auditoria, Kanban/Timeline, analitica, exportacion interna y evaluacion. Interfaz en espanol, responsive y accesible.
 
@@ -212,7 +230,7 @@ Pruebas de borde obligatorias: anio bisiesto, cruces de anio, anual movil, rango
 
 ### Tokens normativos
 
-La tabla es el registro canonico de valores. Los otros documentos remiten a esta seccion. Los tokens `--ocote-*` seran la interfaz comun de Material, estilos SCSS, Kanban, Timeline y ECharts; no se duplican hexadecimales dispersos en componentes.
+La tabla es el registro canonico de valores. Los otros documentos remiten a esta seccion. F4 implementa tokens `--ocote-*` y estilos SCSS/Material; Kanban, Timeline y ECharts futuros los reutilizaran. No se duplican hexadecimales dispersos en componentes.
 
 | Token CSS propuesto         | Nombre / rol           | Valor     | Uso                                              |
 | --------------------------- | ---------------------- | --------- | ------------------------------------------------ |
@@ -241,12 +259,26 @@ La tabla es el registro canonico de valores. Los otros documentos remiten a esta
 ### Mapeo SCSS de Angular Material 18.2
 
 - Se adopta Material 3, coherente con `mat.define-theme` ya presente en el scaffold; no mezclar con APIs de paletas Material 2 ni con APIs de futuras versiones.
-- En F4 se definira una fuente SCSS de tokens y paletas tonales M3 completas generadas con herramientas compatibles con Angular Material 18.2. Una paleta no es un solo hexadecimal: requiere tonos, neutros, neutral-variant y error segun la API de esa version.
+- F4 define [tokens](../src/_ocote-tokens.scss) y [paletas tonales completas](../src/_ocote-palettes.scss), generadas por el schematic instalado @angular/material:m3-theme18.2 con primary Resina, secondary/tertiary Bosque y neutral Musgo. Incluyen tonos, neutros, neutral-variant y error, no un solo hexadecimal.
 - Configuracion conceptual: `color.theme-type = light`, `color.primary = paleta Resina`, `color.tertiary = paleta Bosque`, tipografia y densidad explicitas. Incluir `mat.core()` una sola vez y emitir los temas usados en un solo punto global.
 - `secondary` es un rol de diseno; no es una opcion raiz `color.secondary` de `mat.define-theme`. Alinear secondary M3 con Bosque mediante el mapa tonal compatible y los roles de sistema/overrides admitidos en 18.2. Verificarlo en un prototipo compilable, sin depender de una opcion inexistente.
 - Material calcula roles a partir de tonos; no se promete que su tono primario generado sea exactamente el hexadecimal de marca. Los tokens de marca mantienen los valores exactos y los roles efectivos/on-colors se documentaran en la matriz visual F4. Ningun override privado `--mdc-*` sin API publica.
-- El futuro archivo de tokens exportara variables CSS bajo `:root` y alimentara el tema desde los mismos valores SCSS. Material, librerias y vistas no mantendran copias independientes. Esta especificacion no agrega aun archivos SCSS.
-- Tipografia propuesta: Source Sans 3 autoalojada con licencia verificada, tamanos base 16 px y tablas minimo 14 px; fallback sans-serif. Jerarquia compacta, sin espaciado negativo ni escalado tipografico por ancho de viewport. Densidad Material 0 inicialmente; radios maximos de 8 px.
+- [styles.scss](../src/styles.scss) exporta variables CSS bajo :root, emite mat.core una vez y el tema global; conserva mapas tonales generados y tokens de marca como superficies distintas, no los sobrescribe para forzar un tono. Material, librerias y vistas no mantienen copias independientes. button-overrides/dialog-overrides publicos18.2 limitan container-shape a8px, sin variables privadas.
+- Source Sans3 variable autoalojada, base16px/tablas14px, fallback sans-serif, densidad0; jerarquia compacta, sin espaciado negativo ni escalado por viewport. Licencia OFL en [Source-Sans-LICENSE.md](../public/fonts/Source-Sans-LICENSE.md); iconos Material Icons Apache2.0 en [Material-Icons-LICENSE](../public/fonts/Material-Icons-LICENSE). No solicitudes a Google Fonts en runtime.
+
+Matriz efectiva F4 (contraste relativo sRGB):
+
+| Pareja | Contraste | Uso |
+| --- | --- | --- |
+| Blanco / primary de marca #B85A1E | 4.65:1 | Marca/progreso; no sustituir tono Material |
+| Blanco / primary M3 tono40 #9B4505 | 6.47:1 | Accion primaria Material |
+| Blanco / secondary y tertiary M3 tono40 #3B6750 | 6.48:1 | Roles Bosque del mapa publico |
+| Blanco / Bosque de marca #2E5A44 | 7.89:1 | Navegacion |
+| Carbon / blanco; Musgo / Niebla | 17.25:1; 6.85:1 | Texto principal/secundario |
+| Blanco / success; blanco / danger | 5.00:1; 5.96:1 | Estado con etiqueta |
+| Carbon / warning; foco / blanco | 6.24:1; 7.16:1 | Alerta y contorno3px/separacion blanca2px |
+
+La revision tecnica F4 cubre teclado/foco/dialogos, capturas360/768/1440, fuentes/iconos/imagen y zoom CSS200% sin desbordamiento de pagina. No equivale a auditoria WCAG exhaustiva, lector de pantalla ni aceptacion de negocio; limites en roadmap10.
 
 ### Aplicacion y accesibilidad
 

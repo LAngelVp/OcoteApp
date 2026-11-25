@@ -33,8 +33,16 @@ class JsonLimitMiddleware:
             return
         headers = dict(scope["headers"])
         path = scope["path"]
+        parts = path.strip("/").split("/")
+        upload = (
+            scope["method"] == "POST"
+            and len(parts) == 5
+            and parts[:3] == ["api", "v1", "tasks"]
+            and parts[4] == "evidence"
+        )
         if (
-            path not in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}
+            not upload
+            and path not in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}
             and headers.get(b"content-type", b"").split(b";", 1)[0].strip().lower()
             != b"application/json"
         ):
@@ -48,7 +56,7 @@ class JsonLimitMiddleware:
             if message["type"] == "http.disconnect":
                 return
             body.extend(message.get("body", b""))
-            if len(body) > 1048576:
+            if len(body) > (10485760 if upload else 1048576):
                 await problem(Request(scope), 413, "PAYLOAD_TOO_LARGE", "Request body too large.")(
                     scope, receive, send
                 )

@@ -59,7 +59,7 @@ def administrative_event(db, request, user, record, before, command, reason=None
     )
 
 
-def history(db, request, user, task, before, event, reason=None, subtask=None):
+def history(db, request, user, task, before, event, reason=None, subtask=None, details=None):
     db.flush()
     db.add(
         TaskHistory(
@@ -68,7 +68,7 @@ def history(db, request, user, task, before, event, reason=None, subtask=None):
             actor_id=user.id,
             event_type=event,
             before_data=before,
-            after_data=state(subtask or task),
+            after_data={**state(subtask or task), **jsonable_encoder(details or {})},
             reason=reason,
             request_id=UUID(request.state.request_id),
         )
@@ -475,8 +475,15 @@ def change_task(db, user, identity, body, request, command):
         )
         if not target or not target.is_active or not edge or user.role not in edge.allowed_roles:
             raise CommandError(422, "INVALID_TRANSITION")
-        if target.requires_evidence or body.evidence_ids:
-            raise CommandError(422, "EVIDENCE_UNAVAILABLE_F3")
+        if target.requires_evidence and not body.evidence_ids:
+            raise CommandError(422, "EVIDENCE_REQUIRED")
+        if body.evidence_ids:
+            from app.services.evidence import available
+
+            if len(body.evidence_ids) != len(set(body.evidence_ids)):
+                raise CommandError(422, "INVALID_EVIDENCE")
+            for identity in body.evidence_ids:
+                available(db, user, identity, request, task_id=task.id)
         if target.requires_reason and body.reason is None:
             raise CommandError(422, "REASON_REQUIRED")
         if target.kind == "completed":
@@ -508,7 +515,20 @@ def change_task(db, user, identity, body, request, command):
             except CommandError:
                 raise CommandError(409, "DEPENDENCY_CONFLICT") from None
     bump(db, task)
-    history(db, request, user, task, before, command, getattr(body, "reason", None))
+    details = None
+    if command == "stage_changed":
+        details = {
+            "evidence_ids": body.evidence_ids,
+            "stage_rules": {
+                field: getattr(target, field)
+                for field in ("id", "version", "kind", "requires_reason", "requires_evidence")
+            },
+            "transition_id": edge.id,
+            "transition_version": edge.version,
+        }
+    history(
+        db, request, user, task, before, command, getattr(body, "reason", None), details=details
+    )
     return task_view(db, task, user)
 
 

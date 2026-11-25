@@ -1,6 +1,6 @@
 # OCOTE: arquitectura y modelo de datos
 
-Version documental: 2.0 con F3 autorizado el 2026-11-24. Modelo objetivo de 19 tablas; 17 actuales contando alembic_version, seis F3 vacias. No F4-F7 ni despliegue productivo/nube. Estado y evidencia vigentes en roadmap seccion 9; diccionarios futuros no implican tablas creadas.
+Version documental: 2.0 con F5 local autorizada el 2026-11-24. Modelo objetivo de19 tablas;18 actuales contando alembic_version, head0004. F5 backend/UI tecnicamente verificados; aceptacion/configuracion y almacenamiento/ClamAV reales pendientes, cargas cerradas. F6-F7 no autorizados, sin produccion/nube. Estado/evidencia en roadmap11; diccionarios futuros no implican tablas creadas.
 
 La [especificacion SDD](01-spec-driven-development.md) gobierna RN-01 a RN-07, RF-01 a RF-15 y tokens. El [roadmap](03-estado-actual-y-roadmap.md) distingue evidencia de propuesta y fija puertas D01-D08. La [guia de entrega](05-paquetizacion-instalacion-y-actualizaciones.md) gobierna paquetes, instalacion local/nube e integraciones y es fuente unica del protocolo de release.
 
@@ -23,7 +23,7 @@ F3: configuracion compartida y locks departamento -> usuarios UUID ordenados -> 
 | Base objetivo | Nombre exacto ocoteAppDatabase, incluidas mayusculas                            | init-dev solo desarrollo loopback; aprovisionamiento cliente separado y autorizado                     |
 | Seguridad     | Argon2id y JWT access/refresh con rotacion                                      | Sin contrasenas reversibles ni tokens en localStorage                                                  |
 | Despliegue    | Reverse proxy HTTPS, SPA estatica, FastAPI y PostgreSQL privado                 | Mismo origen; la LAN no se considera confiable                                                         |
-| Tema          | Tokens de seccion 5 de la SDD y paletas M3 verificadas                          | No generar aqui codigo de estilos ni paletas incompletas                                               |
+| Tema          | Tokens canonicos SDD/paletas M3 completas aplicados en F4                    | Sass publico18.2; no variables privadas, mapas incompletos ni otras versiones                           |
 
 ### Vista logica
 
@@ -54,6 +54,8 @@ Una Session por peticion/unidad de trabajo; commit unico despues de historia y c
 6. Refresh: verificar JWT y cookie, obtener fila de `refresh_sessions` por hash SHA-256 de jti aleatorio de al menos 256 bits y bloquearla con SELECT FOR UPDATE. Marcar usada y crear sucesora atomicamente. `family_id` se conserva y el `sid` identifica esa familia. Solo un uso puede tener exito.
 7. Reutilizacion: revocar toda la familia y registrar evento; confirmar revocacion antes de devolver 401, sin que el manejador de errores la deshaga. Angular serializa refresh, incluida coordinacion entre pestanas; dos refresh simultaneos con la misma cookie se tratan como reutilizacion por seguridad.
 8. Logout revoca familia; logout sin cookie valida limpia cookie y devuelve 204. Cambio de password, rol/departamento o desactivacion incrementa `users.token_version` y revoca todas las familias. No permitir desactivar o quitar rol al ultimo admin activo, ni desactivar usuario con tareas abiertas sin reasignarlas; serializar cambios de administradores para evitar dos bajas simultaneas.
+
+F4 implementa este cliente en [session.ts](../src/app/core/session.ts): HttpClient/interceptor relativo, access/CSRF privados en memoria, restore mediante CSRF fresco/refresh/me, single-flight por pestana y Web Lock exclusivo por origen alrededor de login/refresh/logout. GET csrf usa Referer same-origin y los POST Origin del navegador; no se fabrican cabeceras prohibidas. Sin Web Locks rechaza cerrado. BroadcastChannel solo comunica cierre, nunca tokens. 401 reintenta una vez tras refresh; un segundo401 o refresh revocado limpia identidad. Logout503 conserva identidad/error; cookie expirada401 limpia estado local. Cookie y secretos no entran en storage/SPA. Guardas y visibilidad por auth/me no sustituyen politicas servidor.
 
 Refresh usa filas con `id` propio y `family_id` comun; `sid` siempre apunta al identificador de familia, no a una fila rotada. La familia inicial se genera en el servidor al login. No se conserva el JWT completo en BD.
 
@@ -260,12 +262,15 @@ Catalogo: `task_created`, `task_updated`, `stage_changed`, `assignment_changed`,
 | task_id        | UUID FK tasks.id                                            |
 | uploaded_by    | UUID FK users.id                                            |
 | original_name  | VARCHAR(255), saneado y solo informativo                    |
-| storage_key    | VARCHAR(255) UNIQUE, generado por servidor                  |
+| storage_key    | VARCHAR(32) UNIQUE, hexadecimal generado por servidor F5    |
 | media_type     | VARCHAR(100), CHECK application/pdf, image/png o image/jpeg |
 | size_bytes     | BIGINT CHECK entre 1 y 10485760                             |
 | sha256         | CHAR(64), hexadecimal                                       |
+| scan_engine    | VARCHAR(32), CHECK clamav, atestacion tecnica privada        |
+| scan_version   | VARCHAR(200), no vacio, no publicado en metadata             |
+| scanned_at     | TIMESTAMPTZ, CHECK <= created_at                             |
 
-Indice `(task_id, created_at, id)`. Archivo en almacenamiento privado, nunca en `public/`; descarga `Content-Disposition: attachment` y `X-Content-Type-Options: nosniff`. Historia de transicion registra los `evidence_ids` usados y foto de reglas de etapa. Persistir archivo con staging/rename atomico y compensacion si falla BD; archivos huerfanos se reconcilian por job operacional, nunca se confirma una fila antes de disponer del archivo definitivo. Politica antimalware/retencion es puerta D05.
+Indice `(task_id, created_at, id)`. F50004 implementa tabla/triggers append-only y runtime SELECT/INSERT. Archivo privado **fuera del checkout/releases**, ACL API/SYSTEM/Administradores o POSIX0700, no symlinks/junctions; descarga attachment/nosniff/no-store autorizada con tamano/hash y solicitud auditada. Historia conserva evidence_ids/foto de reglas/versiones. Staging privado/fsync/ClamAV loopback mantenido/rename atomico; solo limpio confirmado publica, error/desconocido/ausente503 sin fila/transicion. Compensacion de archivo nuevo tras rollback cierto; commit incierto conserva para reconciliacion autorizada, **sin job automatico implementado** ni borrado de publicados. Raiz/puerto scanner no configurados en este equipo: puerta operativa D05 pendiente. Pruebas usan dobles sinteticos identificados, no antivirus real.
 
 ### refresh_sessions
 
@@ -431,7 +436,7 @@ Toda release sigue la [guia de entrega, seccion 7](05-paquetizacion-instalacion-
 
 ## 5. Organizacion objetivo del proyecto
 
-Leyenda: Angular, docs/, scripts/, instrucciones agenticas y database/ existen; los binarios, data y logs son locales ignorados por Git. backend/, deploy/ y carpetas funcionales frontend son propuesta futura, no scaffolding generado.
+Leyenda: Angular F4/F5, backend F1-F3/F5, docs/, scripts/ e instrucciones existen. database/ es local/ignorado; deploy/ sigue objetivo F7. Arbol simplificado, no orden para crear carpetas futuras.
 
 ```text
 ocoteApp/
@@ -446,21 +451,28 @@ ocoteApp/
   package-lock.json
   tsconfig*.json
   public/
+    fonts/                   [fuentes locales y licencias]
+    ocote-mark.svg
+  proxy.conf.json            [solo desarrollo loopback]
   src/
     main.ts
     index.html
     styles.scss
+    _ocote-tokens.scss
+    _ocote-palettes.scss
     app/
       app.component.*
       app.config.ts
       app.routes.ts
-      core/                  [F4: sesion, permisos, HTTP, layout]
+      core/                  [F4: sesion, permisos, HTTP, problemas sanitizados]
       shared/                [F4: controles y estados comunes]
-      features/              [F4-F6: modulos de negocio lazy]
-    styles/                  [F4: tokens y tema Material]
+      auth/                  [F4: login/perfil]
+      admin/                 [F4: configuracion/recursos/grafo atomico]
+      operations/            [F4: planes/objetivos/tareas/solicitudes/historia]
+      shell.ts               [F4: navegacion por permisos]
   backend/                   [F1 en adelante]
     pyproject.toml
-    archivo-lock             [herramienta Python elegida en F1]
+    requirements.lock
     .env.example
     alembic.ini
     alembic/
@@ -474,11 +486,8 @@ ocoteApp/
       schemas/               [DTOs Pydantic]
       services/              [reglas, transacciones y metricas]
       models/                [SQLAlchemy]
-    tests/
-      unit/
-      integration/
-      contract/
-  deploy/                    [F1/F7: proxy, contenedores, runbooks]
+    tests/                   [suites tecnicas/identidad/operaciones existentes]
+  deploy/                    [objetivo F7, no existe actualmente]
   scripts/
     init-dev.sh              [entrada de retoma y resumen local]
     db-start.sh              [helper local idempotente]
@@ -497,6 +506,8 @@ ocoteApp/
 
 No guardar binarios PostgreSQL, data, logs, evidencias, `.env`, `.venv` ni backups en Git. La convencion de desarrollo es database/ dentro del workspace pero ignorada: un clon no la reconstruye. Para produccion se recomienda almacenamiento fuera del checkout. La guia operativa define aprovisionamiento manual y restauracion sin sobrescribir data existente.
 
+F4 carga shell/paginas standalone lazy y usa formularios reactivos Material con campos allowlist, fechas civiles estrictas y comandos especificos con versiones. No hay JSON ejecutable ni editor de roles/formulas. 409 conserva valores/bloquea reenvio hasta descartar/recargar; problem+json se traduce por codigo, nunca muestra detail/SQL/entradas, request_id restringido. Listas cursor/limit50, pickers recorren paginas autorizadas y no inventan catalogos. C solo consulta tareas/contexto minimo; G no recibe accion de mover etapa. Progreso/puntualidades provienen del servidor, originales nunca forman parte de PATCH/comandos. Tabla/historia son texto escapado; sin evidencias/F5 ni agregados/F6.
+
 ## 6. Despliegue local y PostgreSQL gestionado
 
 ```mermaid
@@ -509,7 +520,7 @@ flowchart TB
   Files --> Backup
 ```
 
-- Desarrollo comprobado: PG18.4 Windows, database/postgres/bin, cluster18 database/data, logs database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0003/17 tablas/cuatro releases terminales; roles separados, migracion/no-op/cuatro restores y grants en [F3](03-estado-actual-y-roadmap.md#9-nucleo-operativo-f3-local). ocote conservada; bootstrap posterior del operador preservado, configuracion pendiente, seis F3 vacias. No homologacion productiva.
+- Desarrollo comprobado: PG18.4 Windows, database/postgres/bin, cluster18 database/data, logs database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0004/18 tablas/cinco releases terminales; roles separados, migracion/no-op/backups/restores/grants en [F5](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local). ocote conservada; bootstrap/configuracion existentes preservados, seis F3/evidence_files vacias. No homologacion productiva ni scanner real aprobado.
 - Arranque/verificacion: `bash scripts/init-dev.sh` y luego `bash scripts/init-dev.sh --check`. Delega en db-start.sh: valida pg_ctl status, pg_isready, version mayor y SHOW data_directory antes de consultar/crear ocoteAppDatabase con mayusculas exactas. Nunca hace initdb, migrations/seeds, reset, stop ni configuracion persistente. Solo al arrancar fija loopback/puerto; init-dev muestra estado de backend/.venv, backend/alembic y node_modules.
 - Produccion in-house (D06 pendiente): portable bajo usuario dedicado o contenedor con volumen persistente; FastAPI separado y proxy sirviendo `dist/ocote-app/browser` segun salida verificada del build. SPA fallback a index.html solo fuera de `/api`; errores API no devuelven HTML. Validar version minor soportada y parcheada antes de desplegar.
 - `initdb` solo para una instalacion nueva sin cluster, mediante decision explicita del operador; jamas para reparar una falla de arranque. Portable no significa copiar data mientras el servidor esta activo ni incluir la BD en Angular.
@@ -527,11 +538,11 @@ flowchart TB
 
 ### Operacion y recuperacion
 
-Base D05/D06 aprobada 2026-11-24: RPO <=24 h/RTO <=4 h objetivos, no SLA; backups diarios/por release, retencion minima30 dias y restore mensual/por release. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion sin suplente hasta2026-12-24 conservada por F3 local/sintetico, sin responsable suspender operaciones. Privacidad/cuarentena/escaneo fail-closed antes de F5/cifrado/custodia en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Sin scheduler/escaneo/cifrado off-host implementados ni datos reales autorizados. Restore mismo cluster no demuestra recuperacion de host/carga/RPO/RTO productivos.
+Base D05/D06 aprobada 2026-11-24: RPO <=24 h/RTO <=4 h objetivos, no SLA; backups diarios/por release, retencion minima30 dias y restore mensual/por release. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion sin suplente hasta2026-12-24 conservada por F5 local/sintetico, sin responsable suspender operaciones. Privacidad/cuarentena/escaneo fail-closed antes de habilitar cargas F5/cifrado/custodia en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Adaptador privado/ClamAV implementado; scanner/configuracion reales, scheduler/cifrado/copia off-host pendientes, sin datos reales autorizados. Restore mismo cluster no demuestra recuperacion de host/carga/RPO/RTO productivos.
 
 Respaldar BD y evidencias como conjunto consistente: pausar escrituras durante la captura MVP, `pg_dump` y manifest de archivos/hash, claves/configuracion protegidas por separado. Restore en entorno aislado con comprobacion de FK, revision Alembic, conteos, archivos y login; conservar evidencia de duracion y resultado. Volumen persistente no equivale a backup y un backup sin prueba de restore no satisface DoD.
 
-Salud F1 implementada: GET `/api/v1/health/live` minimo sin BD; GET `/api/v1/health/ready` exige X-Health-Token (403 si falta/es incorrecto), 200 con base/head compatibles o 503 por fallo/revision/mantenimiento. Logs sanitizados con request_id, duracion y codigo. Almacenamiento/evidencia no existe todavia: su verificacion, metricas de errores/latencia/conexiones/espacio/ultimo backup/TLS y alertas con responsable quedan para fases correspondientes, no se afirman implementados.
+Salud F1 implementada: GET `/api/v1/health/live` minimo sin BD; GET `/api/v1/health/ready` exige X-Health-Token (403 si falta/es incorrecto), 200 con base/head compatibles o 503 por fallo/revision/mantenimiento. Logs sanitizados con request_id, duracion y codigo. Ready no demuestra scanner/almacen operativo: F5 los verifica por solicitud y falla cerrado. Monitorizacion continua de almacenamiento/errores/latencia/conexiones/espacio/ultimo backup/TLS y alertas con responsable pendientes, no se afirman implementadas.
 
 ## 7. Verificacion arquitectonica antes de produccion
 

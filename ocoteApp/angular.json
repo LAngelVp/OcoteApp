@@ -32,6 +32,7 @@
               }
             ],
             "styles": [
+              "node_modules/vis-timeline/styles/vis-timeline-graph2d.min.css",
               "src/styles.scss"
             ],
             "scripts": []
@@ -62,6 +63,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "ocoteApp:build:production"
@@ -91,6 +95,7 @@
               }
             ],
             "styles": [
+              "node_modules/vis-timeline/styles/vis-timeline-graph2d.min.css",
               "src/styles.scss"
             ],
             "scripts": []

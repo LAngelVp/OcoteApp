@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from collections import defaultdict, deque
 from datetime import timedelta
@@ -64,6 +65,8 @@ def database(request: Request):
         raise ServiceUnavailable()
     with request.app.state.session_factory() as db:
         db.autoflush = False
+        committed = False
+        uncertain = False
         try:
             operational = request.url.path.split("/")[3:4] in [
                 ["annual-plans"],
@@ -71,13 +74,18 @@ def database(request: Request):
                 ["tasks"],
                 ["subtasks"],
                 ["due-date-requests"],
+                ["evidence"],
+                ["kanban"],
+                ["timeline"],
             ]
             config_lock(db, exclusive=not operational and request.method not in {"GET", "HEAD"})
             yield db
             db.commit()
+            committed = True
         except CommandError as error:
             if error.persist:
                 db.commit()
+                committed = True
             else:
                 db.rollback()
                 if error.status in {401, 403}:
@@ -88,10 +96,21 @@ def database(request: Request):
             db.rollback()
             raise CommandError(409, "DEPENDENCY_OR_DUPLICATE_CONFLICT") from None
         except DBAPIError as error:
+            uncertain = error.connection_invalidated
             db.rollback()
             if getattr(error.orig, "sqlstate", None) in {"40001", "40P01", "55P03"}:
                 raise CommandError(409, "CONCURRENCY_CONFLICT") from None
             raise ServiceUnavailable() from None
+        finally:
+            if not committed and not uncertain:
+                for path in db.info.get("rollback_files", []):
+                    try:
+                        path.unlink(missing_ok=True)
+                    except OSError:
+                        logging.getLogger("ocote.requests").error(
+                            "request_id=%s code=EVIDENCE_RECONCILIATION_REQUIRED",
+                            request.state.request_id,
+                        )
 
 
 Database = Annotated[Session, Depends(database, scope="function")]
