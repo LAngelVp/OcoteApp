@@ -68,6 +68,13 @@ def database(request: Request):
         committed = False
         uncertain = False
         try:
+            reporting = request.url.path.split("/")[3:4] in [
+                ["analytics"],
+                ["evaluations"],
+                ["exports"],
+            ]
+            if reporting:
+                db.connection(execution_options={"isolation_level": "REPEATABLE READ"})
             operational = request.url.path.split("/")[3:4] in [
                 ["annual-plans"],
                 ["objectives"],
@@ -78,7 +85,10 @@ def database(request: Request):
                 ["kanban"],
                 ["timeline"],
             ]
-            config_lock(db, exclusive=not operational and request.method not in {"GET", "HEAD"})
+            config_lock(
+                db,
+                exclusive=not (operational or reporting) and request.method not in {"GET", "HEAD"},
+            )
             yield db
             db.commit()
             committed = True

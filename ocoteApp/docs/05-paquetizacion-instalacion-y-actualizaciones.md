@@ -1,6 +1,6 @@
 # OCOTE: paquetizacion, instalacion y actualizaciones
 
-Version documental: 2.0 con F5 local del 2026-11-24. Especificacion objetivo, NO instalador/despliegue certificado. Backend/UI F5 tecnicamente probados local/sintetico, cierre operativo/aceptacion/configuracion y ClamAV reales pendientes; no paquete firmado/ocote-admin/actualizador cliente. Estado en [F5](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local); excepciones en [acta F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F6 local del2026-11-25. Especificacion objetivo, NO instalador/despliegue certificado. Backend/UI F6 implementados/migrados local/sintetico con exports internos; cierre operativo F5/aceptacion/configuracion y ClamAV reales pendientes. Sin paquete firmado/ocote-admin/actualizador cliente ni F7 autorizado. [Estado/excepciones/evidencia F6](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). El ensayo local no homologa protocolo cliente ni produccion/nube.
 
 ## 1. Autoridad, alcance y modalidades
 

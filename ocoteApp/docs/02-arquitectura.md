@@ -1,6 +1,6 @@
 # OCOTE: arquitectura y modelo de datos
 
-Version documental: 2.0 con F5 local autorizada el 2026-11-24. Modelo objetivo de19 tablas;18 actuales contando alembic_version, head0004. F5 backend/UI tecnicamente verificados; aceptacion/configuracion y almacenamiento/ClamAV reales pendientes, cargas cerradas. F6-F7 no autorizados, sin produccion/nube. Estado/evidencia en roadmap11; diccionarios futuros no implican tablas creadas.
+Version documental: 2.0 con F6 local autorizada/implementada/migrada el2026-11-25.19 tablas de dominio/20 contando alembic_version, head20261125_0005. Analitica/evaluaciones/exports internos por alcance; D03/D08/RN-06 ratificados. Aceptacion del operador/cierre operativo F5 y almacenamiento/ClamAV reales pendientes, cargas cerradas. F7 bloqueado, sin produccion/nube. [Estado/evidencia vigente](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25); conservar actas historicas.
 
 La [especificacion SDD](01-spec-driven-development.md) gobierna RN-01 a RN-07, RF-01 a RF-15 y tokens. El [roadmap](03-estado-actual-y-roadmap.md) distingue evidencia de propuesta y fija puertas D01-D08. La [guia de entrega](05-paquetizacion-instalacion-y-actualizaciones.md) gobierna paquetes, instalacion local/nube e integraciones y es fuente unica del protocolo de release.
 
@@ -79,7 +79,7 @@ Refresh usa filas con `id` propio y `family_id` comun; `sid` siempre apunta al i
 
 ## 3. Modelo entidad-relacion
 
-Se conservan las 14 tablas del modelo documental anterior y se agregan system_settings, priorities, horizon_types, due_date_requests y release_history: 19 tablas objetivo, ninguna creada por esta documentacion. annual_plans/annual_plan_id son nombres estables, no restricciones anuales. alembic_version es metadata tecnica de Alembic, no una vigesima tabla de dominio ni sustituto de release_history.
+Se conservan las14 tablas del modelo documental anterior y se agregan system_settings, priorities, horizon_types, due_date_requests y release_history:19 tablas de dominio implementadas por migraciones F1-F6, no por redactar este documento. annual_plans/annual_plan_id son nombres estables, no restricciones anuales. alembic_version es metadata tecnica:20 tablas al contarla, no una vigesima tabla de dominio ni sustituto de release_history.
 
 ```mermaid
 erDiagram
@@ -436,7 +436,7 @@ Toda release sigue la [guia de entrega, seccion 7](05-paquetizacion-instalacion-
 
 ## 5. Organizacion objetivo del proyecto
 
-Leyenda: Angular F4/F5, backend F1-F3/F5, docs/, scripts/ e instrucciones existen. database/ es local/ignorado; deploy/ sigue objetivo F7. Arbol simplificado, no orden para crear carpetas futuras.
+Leyenda: Angular F4-F6, backend F1-F3/F5/F6, docs/, scripts/ e instrucciones existen. database/ es local/ignorado; deploy/ sigue objetivo F7. Arbol simplificado, no orden para crear carpetas futuras.
 
 ```text
 ocoteApp/
@@ -506,7 +506,9 @@ ocoteApp/
 
 No guardar binarios PostgreSQL, data, logs, evidencias, `.env`, `.venv` ni backups en Git. La convencion de desarrollo es database/ dentro del workspace pero ignorada: un clon no la reconstruye. Para produccion se recomienda almacenamiento fuera del checkout. La guia operativa define aprovisionamiento manual y restauracion sin sobrescribir data existente.
 
-F4 carga shell/paginas standalone lazy y usa formularios reactivos Material con campos allowlist, fechas civiles estrictas y comandos especificos con versiones. No hay JSON ejecutable ni editor de roles/formulas. 409 conserva valores/bloquea reenvio hasta descartar/recargar; problem+json se traduce por codigo, nunca muestra detail/SQL/entradas, request_id restringido. Las tablas F4/F5 reutilizan [Pagination/Pager](../src/app/shared/pager.ts): limit5 inicial, selector 5/10/20/50 y cursores primera/anterior/siguiente; cada pagina duena conserva sus filtros/estados de carga y acepta el cursor tras respuesta exitosa. Tamano/filtros reinician el historial local, sin nuevos endpoints ni conteos ficticios. Pickers/reordenamientos recorren todas las paginas autorizadas mediante Api.all (limit100), sin limitarse a las filas visibles ni inventar catalogos. Kanban conserva limit25 por carril; las listas de historia/evidencia no cambian. C solo consulta tareas/contexto minimo; G no recibe accion de mover etapa. Progreso/puntualidades provienen del servidor y no del orden de etapas; originales nunca forman parte de PATCH/comandos. Tabla/historia son texto escapado; evidencia F5 usa el componente de detalle y la transicion selecciona IDs verificados de la misma tarea, con diagnostico vacio/configuracion y requisito obligatorio. No hay agregados/F6.
+F4 carga shell/paginas standalone lazy y usa formularios reactivos Material con campos allowlist, fechas civiles estrictas y comandos especificos con versiones. No hay JSON ejecutable ni editor de roles/formulas.409 conserva valores/bloquea reenvio hasta descartar/recargar; problem+json se traduce por codigo, nunca muestra detail/SQL/entradas, request_id restringido. Las tablas F4-F6 reutilizan [Pagination/Pager](../src/app/shared/pager.ts): limit5 inicial, selector5/10/20/50 y cursores primera/anterior/siguiente; cada pagina conserva filtros/carga y acepta el cursor tras respuesta exitosa. Tamano/filtros reinician el historial local, sin conteos ficticios. Pickers/reordenamientos recorren todas las paginas autorizadas mediante Api.all(limit100), sin inventar catalogos. Kanban conserva limit25 por carril; listas de historia/evidencia no cambian. C solo consulta tareas/contexto minimo; G no recibe accion de mover etapa. Progreso/puntualidades provienen del servidor, originales nunca forman parte de comandos. Texto escapado; evidencia F5 selecciona IDs verificados de misma tarea, con diagnostico vacio/configuracion y requisito obligatorio.
+
+F6 agrega rutas lazy /analitica y /evaluaciones: ECharts con tokens/tablas equivalentes, comparacion departamental/tendencia mensual, filtros/cortes/denominador y fotos capturadas. REPEATABLE READ por peticion, no corte unico entre endpoints;10000 tareas/1200 meses maximos,413 sin truncar. Borrador solo se recalcula por comando explicito y finalize recalcula/sella; ambos exigen version. Final/items protegidos por triggers e intervalos no solapados mediante GiST incluso en draft. Exports materializados con limite BD+1/16MiB, CSV seguro, contexto/conclusion/metrics congelados y auditoria independiente fail-closed; transaccion termina antes de transporte. C sin modulos/reportes, L solo departamento/finales; A/G gestionan evaluaciones. [Contratos implementados](01-spec-driven-development.md#precisiones-f6-implementadas).
 
 ## 6. Despliegue local y PostgreSQL gestionado
 
@@ -520,7 +522,7 @@ flowchart TB
   Files --> Backup
 ```
 
-- Desarrollo comprobado: PG18.4 Windows, database/postgres/bin, cluster18 database/data, logs database/logs, 127.0.0.1:5432/ocoteAppDatabase. Head20261124_0004/18 tablas/cinco releases terminales; roles separados, migracion/no-op/backups/restores/grants en [F5](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local). ocote conservada; bootstrap/configuracion existentes preservados, seis F3/evidence_files vacias. No homologacion productiva ni scanner real aprobado.
+- Desarrollo comprobado: PG18.4 Windows, database/postgres/bin, cluster18 database/data, logs database/logs,127.0.0.1:5432/ocoteAppDatabase. Head20261125_0005/19 tablas de dominio/20 contando Alembic y seis releases terminales; roles separados, migracion/no-op/backups/restores/grants en [F6](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). ocote/bootstrap/datos/configuracion previos conservados; evidencia/evaluaciones/items vacios al cierre. CREATE temporal migrador autorizado solo para btree_gist y revocado. No homologacion productiva ni scanner real aprobado.
 - Arranque/verificacion: `bash scripts/init-dev.sh` y luego `bash scripts/init-dev.sh --check`. Delega en db-start.sh: valida pg_ctl status, pg_isready, version mayor y SHOW data_directory antes de consultar/crear ocoteAppDatabase con mayusculas exactas. Nunca hace initdb, migrations/seeds, reset, stop ni configuracion persistente. Solo al arrancar fija loopback/puerto; init-dev muestra estado de backend/.venv, backend/alembic y node_modules.
 - Produccion in-house (D06 pendiente): portable bajo usuario dedicado o contenedor con volumen persistente; FastAPI separado y proxy sirviendo `dist/ocote-app/browser` segun salida verificada del build. SPA fallback a index.html solo fuera de `/api`; errores API no devuelven HTML. Validar version minor soportada y parcheada antes de desplegar.
 - `initdb` solo para una instalacion nueva sin cluster, mediante decision explicita del operador; jamas para reparar una falla de arranque. Portable no significa copiar data mientras el servidor esta activo ni incluir la BD en Angular.
@@ -538,7 +540,7 @@ flowchart TB
 
 ### Operacion y recuperacion
 
-Base D05/D06 aprobada 2026-11-24: RPO <=24 h/RTO <=4 h objetivos, no SLA; backups diarios/por release, retencion minima30 dias y restore mensual/por release. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion sin suplente hasta2026-12-24 conservada por F5 local/sintetico, sin responsable suspender operaciones. Privacidad/cuarentena/escaneo fail-closed antes de habilitar cargas F5/cifrado/custodia en [guia 05, seccion 3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Adaptador privado/ClamAV implementado; scanner/configuracion reales, scheduler/cifrado/copia off-host pendientes, sin datos reales autorizados. Restore mismo cluster no demuestra recuperacion de host/carga/RPO/RTO productivos.
+Base D05/D06 aprobada2026-11-24: RPO <=24 h/RTO <=4 h objetivos, no SLA; backups diarios/por release, retencion minima30 dias y restore mensual/por release. Responsable LUIS ANGEL VALLEJO - DESARROLLADOR; excepcion sin suplente hasta2026-12-24 extendida a F6 local/sintetico, sin responsable suspender operaciones. Privacidad/cuarentena/escaneo fail-closed antes de habilitar cargas/cifrado/custodia en [guia05,seccion3.1](05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Adaptador privado/ClamAV implementado; scanner/configuracion reales, scheduler/cifrado/copia off-host pendientes, sin datos reales autorizados. Restore mismo cluster no demuestra recuperacion de host/carga/RPO/RTO productivos.
 
 Respaldar BD y evidencias como conjunto consistente: pausar escrituras durante la captura MVP, `pg_dump` y manifest de archivos/hash, claves/configuracion protegidas por separado. Restore en entorno aislado con comprobacion de FK, revision Alembic, conteos, archivos y login; conservar evidencia de duracion y resultado. Volumen persistente no equivale a backup y un backup sin prueba de restore no satisface DoD.
 

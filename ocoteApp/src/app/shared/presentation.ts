@@ -2,7 +2,7 @@ import { Row } from '../core/api';
 
 const labels: Record<string, string> = {
   annual: 'Anual', semiannual: 'Semestral', quarterly: 'Trimestral', monthly: 'Mensual', custom: 'Personalizado',
-  draft: 'Borrador', active: 'Activo', closed: 'Cerrado', open: 'Abierta', blocked: 'Bloqueada', completed: 'Completada',
+  draft: 'Borrador', final: 'Final', active: 'Activo', closed: 'Cerrado', open: 'Abierta', blocked: 'Bloqueada', completed: 'Completada',
   pending: 'Pendiente', on_time: 'A tiempo', late: 'Con retraso', overdue: 'Vencida',
   approved: 'Aprobada', rejected: 'Rechazada', cancelled: 'Cancelada', succeeded: 'Correcta', failed: 'Fallida',
 };

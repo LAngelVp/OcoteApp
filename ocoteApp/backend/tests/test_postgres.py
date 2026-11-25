@@ -49,8 +49,14 @@ def test_real_roles_and_scoped_privileges(runtime, migrator):
             ).fetchone()[0]
             is create
         )
+        assert (
+            connection.execute(
+                "SELECT has_database_privilege(current_user,current_database(),'CREATE')"
+            ).fetchone()[0]
+            is False
+        )
     assert runtime.execute("SELECT version_num FROM public.alembic_version").fetchall() == [
-        ("20261124_0004",)
+        ("20261125_0005",)
     ]
     assert runtime.execute("SELECT count(*) FROM public.release_history").fetchone()[0] >= 1
     for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):

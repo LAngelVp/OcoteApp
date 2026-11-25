@@ -742,10 +742,15 @@ def test_f5_migration_preserves_existing_synthetic_f2_data_through_f3():
                 for table, rows in before["rows"].items():
                     if table != "alembic_version":
                         assert middle["rows"][table] == rows
-                f2_local.upgrade(name)
+                f2_local.upgrade(name, f5_local.HEAD)
                 after = f2_local.snapshot(connection)
-                f5_local.verify_upgrade(middle, after)
-                f2_local.upgrade(name)
+                assert set(after["tables"]) - set(middle["tables"]) == {"evidence_files"}
+                assert after["rows"]["evidence_files"] == []
+                for table, rows in middle["rows"].items():
+                    if table != "alembic_version":
+                        assert after["rows"][table] == rows
+                assert after["rows"]["alembic_version"] == ['{"version_num": "20261124_0004"}']
+                f2_local.upgrade(name, f5_local.HEAD)
                 assert f2_local.snapshot(connection) == after
         finally:
             engine.dispose()

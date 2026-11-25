@@ -25,9 +25,9 @@ import { Pager, Pagination } from './shared/pager';
 import { By } from '@angular/platform-browser';
 
 const permissions: Record<Role,string[]> = {
-  admin:['administration:manage','planning:manage','tasks:manage','tasks:transition','dates:decide','date-requests:create'],
-  gerente:['planning:manage','dates:decide','date-requests:create'],
-  lider:['planning:department','tasks:manage','tasks:transition','date-requests:create'],
+  admin:['administration:manage','planning:manage','tasks:manage','tasks:transition','dates:decide','date-requests:create','analytics:read','evaluations:read','evaluations:manage','exports:read'],
+  gerente:['planning:manage','dates:decide','date-requests:create','analytics:read','evaluations:read','evaluations:manage','exports:read'],
+  lider:['planning:department','tasks:manage','tasks:transition','date-requests:create','analytics:read','evaluations:read','exports:read'],
   colaborador:['tasks:transition'],
 };
 const syntheticTask: Row = { id:'synthetic-task',version:7,objective_id:'synthetic-objective',title:'Synthetic task',description:'Synthetic',assignee_id:'synthetic-user',stage_id:'synthetic-open',priority_id:'synthetic-priority',start_date:'2027-11-15',original_due_date:'2027-12-01',due_date:'2028-01-01',progress_percent:100,pending_closure:true,baseline_punctuality_status:'late',punctuality_status:'on_time',annual_plan:{ id:'synthetic-plan',title:'Synthetic plan' },objective:{ id:'synthetic-objective',title:'Synthetic objective' },priority:{ id:'synthetic-priority',name:'Synthetic priority' } };
@@ -79,7 +79,7 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
       expect(!!element.querySelector('a[href="/planes"]')).toBe(role !== 'colaborador');
       expect(!!element.querySelector('a[href="/solicitudes-fecha"]')).toBe(role !== 'colaborador');
       for (const path of ['/kanban','/timeline']) expect(element.querySelector('a[href="' + path + '"]')).not.toBeNull();
-      for (const path of ['/analitica','/evaluaciones']) expect(element.querySelector('a[href="' + path + '"]')).toBeNull();
+      for (const path of ['/analitica','/evaluaciones']) expect(!!element.querySelector('a[href="' + path + '"]')).toBe(role !== 'colaborador');
       expect(api.writes).toEqual([]);
     });
     it('renders only permitted task commands for ' + role, async () => {

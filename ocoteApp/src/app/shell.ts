@@ -20,6 +20,8 @@ import { problem, Problem } from './core/problem';
       <a routerLink="/kanban" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>view_kanban</mat-icon>Kanban</a>
       <a routerLink="/timeline" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>timeline</mat-icon>Timeline</a>
       @if (session.has('date-requests:create')) { <a routerLink="/solicitudes-fecha" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>event_repeat</mat-icon>Solicitudes de fecha</a> }
+      @if (session.has('analytics:read')) { <a routerLink="/analitica" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>monitoring</mat-icon>Analitica</a> }
+      @if (session.has('evaluations:read')) { <a routerLink="/evaluaciones" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>fact_check</mat-icon>Evaluaciones</a> }
       @if (session.has('administration:manage')) { <p class="nav-label">ADMINISTRACION</p>
         @for (item of adminLinks; track item.path) { <a [routerLink]="'/administracion/' + item.path" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>{{ item.icon }}</mat-icon>{{ item.label }}</a> }
       }<a routerLink="/perfil" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>account_circle</mat-icon>Mi perfil</a>

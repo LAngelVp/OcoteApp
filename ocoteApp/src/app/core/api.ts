@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -36,5 +36,16 @@ export class Api {
   }
   download(identity: string): Promise<Blob> {
     return firstValueFrom(this.http.get('/api/v1/evidence/' + encodeURIComponent(identity) + '/content', { responseType: 'blob' }));
+  }
+  async exportFile(path: string, body: Row): Promise<Blob> {
+    try { return await firstValueFrom(this.http.post('/api/v1' + path, body, { responseType: 'blob' })); }
+    catch (error) {
+      if (error instanceof HttpErrorResponse && error.error instanceof Blob) {
+        let payload: unknown;
+        try { payload = JSON.parse(await error.error.text()); } catch { throw error; }
+        throw new HttpErrorResponse({ error: payload, headers: error.headers, status: error.status, statusText: error.statusText, url: error.url ?? undefined });
+      }
+      throw error;
+    }
   }
 }

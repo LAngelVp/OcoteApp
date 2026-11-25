@@ -8,6 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import Date, case, func, select
 
 from app.core.errors import CommandError, ServiceUnavailable
+from app.models.evaluations import Evaluation
 from app.models.identity import (
     Department,
     HorizonType,
@@ -370,6 +371,16 @@ def update_planning(db, user, record, body, request, command):
             if any(
                 child.start_date < body.start_date or child.due_date > body.due_date
                 for child in children
+            ):
+                raise CommandError(409, "DEPENDENCY_CONFLICT")
+            if db.scalar(
+                select(Evaluation.id)
+                .where(
+                    Evaluation.annual_plan_id == record.id,
+                    (Evaluation.period_start < body.start_date)
+                    | (Evaluation.period_end > body.due_date),
+                )
+                .limit(1)
             ):
                 raise CommandError(409, "DEPENDENCY_CONFLICT")
         else:

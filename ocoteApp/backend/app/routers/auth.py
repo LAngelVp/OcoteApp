@@ -69,6 +69,10 @@ def me(user: CurrentUser):
             "tasks:transition",
             "dates:decide",
             "date-requests:create",
+            "analytics:read",
+            "evaluations:read",
+            "evaluations:manage",
+            "exports:read",
         ],
         "gerente": [
             "catalogs:global",
@@ -76,6 +80,10 @@ def me(user: CurrentUser):
             "tasks:global",
             "dates:decide",
             "date-requests:create",
+            "analytics:read",
+            "evaluations:read",
+            "evaluations:manage",
+            "exports:read",
         ],
         "lider": [
             "catalogs:department",
@@ -84,6 +92,9 @@ def me(user: CurrentUser):
             "tasks:manage",
             "tasks:transition",
             "date-requests:create",
+            "analytics:read",
+            "evaluations:read",
+            "exports:read",
         ],
         "colaborador": ["catalogs:self", "tasks:self", "tasks:transition"],
     }

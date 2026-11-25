@@ -1,18 +1,18 @@
 # OCOTE: entorno local y portabilidad
 
-Version documental: 2.0 con F5 local, 2026-11-24. Retoma local; entrega en [guia 05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado en [F5](03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local), excepciones en [F1](03-estado-actual-y-roadmap.md#7-cierre-formal-f1-local).
+Version documental: 2.0 con F6 local,2026-11-25. Retoma local; entrega en [guia05](05-paquetizacion-instalacion-y-actualizaciones.md), homologacion pendiente F7. Complementa [SDD](01-spec-driven-development.md), [arquitectura](02-arquitectura.md), [roadmap](03-estado-actual-y-roadmap.md) y [AGENTS.md](../AGENTS.md). Estado/excepciones extendidas en [F6](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25).
 
 ## 1. Estado real y limites
 
 | Elemento       | Estado comprobado                                                                                                           |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Frontend       | Angular18.2 SPA/SCSS en raiz; F4/F5 con Kanban/Timeline/evidencias,59 ChromeHeadless/build y revision sintetica; aceptacion pendiente |
-| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; F1-F3/F5,105 pruebas PG; privado/ClamAV fail-closed sin configurar, no F6-F7 |
+| Frontend       | Angular18.2 SPA/SCSS en raiz; F4-F6/analitica/evaluaciones/exports,164 ChromeHeadless/build y revision sintetica; aceptacion pendiente |
+| Backend        | Python3.12/FastAPI/SQLAlchemy/psycopg/Alembic; F1-F3/F5/F6,30 pruebas focales F6; privado/ClamAV fail-closed sin configurar, F7 bloqueado |
 | Binarios       | database/postgres/bin; postgres --version devuelve PostgreSQL 18.4 Windows                                                  |
 | Cluster        | database/data, inicializado previamente; PG_VERSION contiene 18                                                             |
 | Logs           | database/logs/postgres.log; no versionados                                                                                  |
 | Endpoint       | 127.0.0.1:5432 por defecto; comprobado listen_addresses=127.0.0.1 y autenticacion host SCRAM-SHA-256                        |
-| Base objetivo  | ocoteAppDatabase exacta; head20261124_0004,18 tablas/cinco releases terminales; seis F3/evidence_files vacias y bootstrap preservado |
+| Base objetivo  | ocoteAppDatabase exacta; head20261125_0005,19 tablas dominio/20 contando Alembic/seis releases terminales; datos previos/bootstrap preservados |
 | Usuario local  | postgres, superusuario SOLO para preparacion/desarrollo local                                                               |
 | Password local | `holamundo`, credencial conocida y debil, EXCLUSIVA de desarrollo local; NUNCA produccion, red compartida o datos reales    |
 
@@ -20,7 +20,7 @@ La propuesta documental anterior mencionaba PostgreSQL 16; la evidencia es 18.4/
 
 La base anterior ocote permanece intacta: no se renombra, copia, importa ni borra automaticamente. En otro equipo puede no existir. Si contiene datos utiles, inventariar y planificar su traslado con respaldo/aprobacion; crear ocoteAppDatabase no migra su contenido. Libpq/createdb reciben el nombre exacto; en SQL manual de administracion un identificador de esta base requeriria comillas dobles ("ocoteAppDatabase"), nunca asumir que un nombre sin comillas conserva mayusculas.
 
-F1-F3 consolidados y F4/F5 autorizadas/implementadas/verificadas tecnicamente solo local/sintetico; cierre operativo/aceptacion del operador pendientes. Bootstrap/configuracion preexistentes preservados, no repetir ni sobrescribir; configuracion explicita pendiente segun [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni runtime. Excepciones sin suplente/D07 soporte/61 alertas conservadas por F5 hasta2026-12-24; sin red compartida/entradas no confiables. F6-F7 no autorizados; no produccion/nube. Almacenamiento externo al checkout y ClamAV son decisiones tecnicas explicitas del operador, actualmente ausentes: cargas cerradas, [puerta y parametros](../backend/README.md#evidencias-y-vistas-f5).
+F1-F3 consolidados y F4-F6 autorizadas/implementadas tecnicamente solo local/sintetico; aceptacion del operador/cierre operativo F5 pendientes. Bootstrap/configuracion/datos previos preservados, no repetir ni sobrescribir; [runbook](../backend/README.md#bootstrap-y-configuracion-f2). postgres no es admin RF-01 ni runtime. Excepciones sin suplente/D07 soporte/61 alertas extendidas a F6 hasta2026-12-24, sin red compartida/entradas no confiables. D03/D08 ratificados, F7 bloqueado; no produccion/nube. Almacenamiento externo/ClamAV son decisiones explicitas del operador, ausentes: cargas cerradas, [puerta y parametros](../backend/README.md#evidencias-y-vistas-f5). Artefactos F6 privados fuera del checkout en LOCALAPPDATA/OCOTE/f6-evidence. CREATE temporal para btree_gist se autorizo/revoco en release, sin permiso general ni runtime elevado; futuras migraciones requieren su protocolo/autorizacion.
 
 ## 2. Credenciales y configuracion
 

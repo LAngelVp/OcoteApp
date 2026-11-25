@@ -1,6 +1,6 @@
-# OCOTE Backend: Nucleo Operativo y Evidencia F5
+# OCOTE Backend: Nucleo Operativo y Analitica F6
 
-Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F5 autorizada/implementada/verificada tecnicamente local/sintetico, cierre operativo pendiente. Bootstrap preservado; configuracion/aceptacion funcional y almacenamiento/ClamAV reales pendientes, cargas cerradas. F6-F7 no autorizados. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). [Evidencia F5](../docs/03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local); responsable/excepciones hasta2026-12-24 conservados, no produccion.
+Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F6 autorizada/implementada/migrada local/sintetico, [acta vigente](../docs/03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). Bootstrap/datos/configuracion preservados; aceptacion operativa F5 y almacenamiento/ClamAV reales pendientes, cargas cerradas. F7 bloqueado. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). D03/D08/RN-06 ratificados; responsable/excepciones extendidos a F6 hasta2026-12-24, no produccion.
 
 ## Inventario
 
@@ -64,7 +64,7 @@ El .env local tiene contrasenas aleatorias distintas/ACL privada; nunca distribu
 
 ## Bootstrap Y Configuracion F2
 
-ocoteAppDatabase/head20261124_0004 tiene18 tablas/cinco releases terminales; seis F3/evidence_files vacias y configuracion pendiente. Sin defaults/seeds/demos ni admin inventado por desarrollo. Bootstrap del operador preservado; no repetir ni sobrescribir. `ready` solo infraestructura, no configuracion completa ni disponibilidad del antivirus. Sin claves auth falla503, no las genera al arrancar; altas operativas sin configuracion409.
+ocoteAppDatabase/head20261125_0005 tiene20 tablas contando Alembic/19 de dominio y seis releases terminales. Datos operativos previos/configuracion/bootstrap preservados;0 evidencias/evaluaciones/items al cierre F6. Sin defaults/seeds/demos ni admin inventado por desarrollo; no repetir bootstrap. `ready` solo infraestructura, no aceptacion/configuracion completa ni disponibilidad del antivirus. Sin claves auth falla503, no las genera al arrancar; altas operativas sin configuracion409.
 
 Solo operador local autorizado, con custodia/canal definidos y preflight correcto. En este checkout el origen HTTPS loopback ya observado es https://localhost:8443: preservarlo. Proxy de desarrollo F4 descrito en guia04, certificado autofirmado no homologado como TLS cliente.
 
@@ -120,6 +120,14 @@ Configuracion tecnica **explicita del operador**, no sembrada ni escrita por est
 
 Actualmente ambas opciones obligatorias estan ausentes. No se instalo/configuro antivirus ni se certifico motor/definiciones reales; cargas operativas deshabilitadas. Pruebas inyectan scanner sintetico identificado, no demuestran antimalware real. Antes de habilitar cargas: operador configura ACL/servicio y verifica limpio, muestra de deteccion autorizada, definiciones viejas/servicio caido/timeout, autorizacion y restauracion coherente BD+archivos. No introducir archivos no confiables ni datos reales bajo la excepcion vigente.
 
+## Analitica Evaluaciones Y Exports F6
+
+[API](app/routers/analytics.py), [calculos](app/services/analytics.py), [evaluaciones](app/services/evaluations.py), [exports](app/services/exports.py), [DTO](app/schemas/analytics.py), [modelos](app/models/evaluations.py), [tests](tests/test_analytics.py). GET /analytics/summary y /analytics/series aplican alcance antes de filtros/agregacion; filtros annual_plan_id/department_id/assignee_id/status/punctuality_status y ambas fechas inclusivas por original_due_date o ninguna. Default limit5,1..100; departamentos UUID ascendente y meses YYYY-MM, items/next_cursor sin total inventado. Series incluye serie completa acotada; maximos10000 tareas/1200 meses,413 sin truncar. Cada peticion tiene corte propio, no unico snapshot entre endpoints. Sin datos tasas/progreso null; RN-03/RN-06 exactos, sin ranking/score.
+
+GET/POST /evaluations, GET /evaluations/{id} y POST recalculate/finalize. A/G crean/operan; L solo finales de su departamento; C403. Cuatro datos de calendario explicitos, rango dentro de plan, periodos no solapados incluso draft. Recalculo/finalizacion expected_version, final summary10..4000/periodo concluido/cohorte no vacia y recalculo atomico; can_finalize/finalization_reason vienen del servidor. Draft no dinamico, final/items inmutables por servicio/SQL; sin DELETE/reabrir. Capturados nombres/fechas/horizontes/metricas conservados aunque cambien catalogos/tareas. Tabla de items y listas5/10/20/50 en UI.
+
+POST /exports/tasks y /exports/evaluations/{id}, format=json/csv, solo finales en segundo caso. REPEATABLE READ, export_max_rows+1/max16MiB, materializacion antes de headers y cierre de transaccion antes de transportar. Limiter separado10/cuenta/50-cliente por minuto/proceso,429; no distribuido. CSV estandar UTF-8/CRLF, contexto/conclusion/metrics congelados y neutralizacion de formulas tras blancos/controles; JSON datos escapados. Attachment/no-store/nosniff, sin token en URL ni archivo publico. Auditoria independiente requested/prepared/failed/denied sin contenido; falla cerrada al preparar si no registra; interrupcion detectada agrega fallo sin fingir entrega. [Contrato detallado](../docs/01-spec-driven-development.md#precisiones-f6-implementadas).
+
 ## Salud Y Arranque
 
 ```bash
@@ -132,7 +140,7 @@ Swagger/OpenAPI HTTP no estan expuestos. Proxy cliente futuro restringira ready 
 
 ## Migracion Y Ensayo Local
 
-Cuatro revisiones20261124_0001/0002/0003/0004 inmutables. F1 crea release_history; F2 agrega nueve tablas, F3 seis y F5 evidence_files, sin seeds:18 totales incluyendo alembic_version, no19 objetivo. Downgrade bloqueado: fix-forward o restore aislado aprobado, nunca stamp. Instrucciones F1-F3 siguientes son historicas; no ejecutar sus comandos contra origen F5 ni adaptar helpers.
+Cinco revisiones inmutables:20261124_0001/0002/0003/0004 y20261125_0005. F6 agrega evaluations/items y auditoria export, sin seeds:19 tablas de dominio/20 incluyendo Alembic. Downgrade bloqueado: fix-forward o restore aislado aprobado, nunca stamp. Instrucciones F1-F3/F5 siguientes son historicas; no ejecutar sus comandos contra origen F6 ni adaptar helpers.
 
 Comandos de inspeccion, sin migrar:
 
@@ -184,7 +192,7 @@ Exige identidad original, unica head tecnica, solo las dos tablas tecnicas y cer
 
 [f3_local.py](tools/f3_local.py) ya ejecuto apply0002 ->0003: lock persistente/mantenimiento, before restaurado y migrado/no-op en UUID aislado antes de DDL origen, upgrade/no-op origen y cuatro restores before/after/recorded/terminal. Preserva F2/legacy/releases previas y verifica grants aparte. Fallo mantiene maintenance/journal, no reintentar apply en origen0003 ni retirar marca manualmente. Backups privados/hashes en roadmap9.
 
-El siguiente comando F3 es historico: su helper se preserva y no se adapta al head F5. Para el checkout vigente usar check-migration F5 de la seccion siguiente:
+El siguiente comando F3 es historico: su helper se preserva y no se adapta al head F6. Para el checkout vigente usar check-migration F6 mas abajo:
 
 ```bash
 bash scripts/init-dev.sh --check
@@ -198,7 +206,7 @@ Crea/elimina solo ocote_f2_test_<UUID>/ocote_f2_restore_<UUID>, prefijo aprobado
 
 [f5_local.py](tools/f5_local.py) aplico0003 ->0004 una vez, intento f81efebb-718d-4899-bfec-c34eca858caf, F5_LOCAL_VERIFIED/version2. Operador confirmo API/escritores detenidos y herramienta exigio cero sesiones ajenas. Lock persistente/mantenimiento, before restaurado y migrado/no-op aislado, upgrade/no-op origen y cuatro backups/restores before/after/recorded/terminal (cinco restores contando ensayo de upgrade). Datos/bootstrap/configuracion/legacy y cuatro releases previas identicos; runtime evidencia SELECT/INSERT comprobado. Terminal capturado antes de reapertura; fallo conserva mantenimiento y solo avanza el intento running propio, nunca terminales historicas.
 
-No repetir apply en origen0004, ni aplicar helpers historicos. Con autorizacion PG y credencial administrativa temporal introducida/exportada por el operador, solo ensayo aislado vigente:
+No repetir apply F5 ni ejecutar el siguiente check-migration historico con head F6; conservar helper sin cambios. Para ensayo vigente usar F6 mas abajo:
 
 ```bash
 bash scripts/init-dev.sh --check
@@ -207,6 +215,28 @@ unset PGPASSWORD
 ```
 
 Solo crea/elimina destinos ocote_f2_test_<UUID>/ocote_f2_restore_<UUID>. Backups/journal protegidos en database/backups/f5-<attempt>/, no Git ni copia de host recuperable. Before F5 no habia tabla/archivos de evidencia; ningun archivo de negocio fue creado por el ensayo. Con archivos operativos futuros, backup/restore coherente BD+archivos es puerta adicional obligatoria, no cubierta por este dump vacio. Manifest es instantanea tecnica sin firma, no hash del checkout final ni actualizador cliente.
+
+### Migracion Local F6
+
+[f6_local.py](tools/f6_local.py) aplico0004->0005 una vez, intento0b6b137b-42f0-4ac7-91d8-3fdc743d4ab2/version2/F6_LOCAL_VERIFIED. Lock persistente, sin escritores/mantenimiento, backup/restore bloqueante, ensayo de upgrade/no-op restaurado antes de origen, upgrade/no-op origen y cuatro backups/restores; grant/revoke CREATE temporal del migrador autorizados expresamente para btree_gist, revocacion comprobada, runtime sin privilegios nuevos fuera de tablas F6. Artefactos con ACL fuera del checkout bajo LOCALAPPDATA/OCOTE/f6-evidence, nunca database/. No repetir apply ni editar revision0005 publicada; requiere origen0004 y --artifacts explicito. --temporary-create solo con autorizacion especifica, no permiso general. Fallo conserva maintenance/evidencia.
+
+Con autorizacion PG y PGPASSWORD administrativa local temporal ya exportada por el operador, solo ensayo UUID aislado vigente:
+
+```bash
+bash scripts/init-dev.sh --check
+PYTHONPATH=backend backend/.venv/Scripts/python -m tools.f6_local check-migration --execute
+unset PGPASSWORD
+```
+
+No usa --temporary-create ni cambia permisos de origen para check-migration. UUID ocote_f2_test/restore, migrador para Alembic, runtime comprobado aparte y destinos eliminados. No actualizador cliente ni prueba de grants restaurados (--no-acl)/cifrado/copia fuera del host/BD+evidencias reales. [Bitacora/hashes/limites](../docs/03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25).
+
+Revision visual sintetica F6, con Angular existente en8443, Node22/Chrome instalado y ninguna sesion/dato del operador:
+
+```bash
+node backend/tools/f6_visual.cjs
+```
+
+Intercepta toda /api/v1 antes de cargar, usa perfil desechable y escribe capturas/resultados en temporal fuera del checkout; excepcion de certificado solo en ese perfil. Prueba desktop1280/movil360, canvas con pixeles/colores, tablas y409 con conclusion retenida. No E2E real ni antivirus/AA homologados.
 
 ## Verificacion Y Limites
 
@@ -220,6 +250,6 @@ git diff --check
 
 F5 sin opt-in: **56 passed,49 skipped**, sin conectar PostgreSQL. Con OCOTE_RUN_PG_TESTS=1: **105 passed,1 warning conocido**,146.69s; requiere PGPASSWORD administrativa temporal local/configuracion/head0004. F1 rollback en origen; F2/F3/F5 UUID aisladas, migrador para Alembic y runtime para API/sinteticos, eliminadas al terminar. Superusuario solo prepara/elimina destinos, nunca API. Sin SQLite ni fixtures de negocio en origen. Ruff/pip check limpios; ACL nativa Windows positiva/Everyone negativa probadas en temporal. Incluye archivo ajeno/invalido/excesivo/malware sintetico/servicio ausente/tamper/fallo commit/409, historia/append-only y filtros/vistas. Deprecacion TestClient/httpx y diagnostico TS6 rootDir ajeno permanecen. Angular59 ChromeHeadless/build392.40kB iniciales98.05kB estimados, chunk lazy de vistas639.74kB, sin ampliar budgets/dependencias. [Resultados/limites](../docs/03-estado-actual-y-roadmap.md#11-kanban-timeline-y-evidencias-f5-local).
 
-D01/formulas del nucleo ratificadas; D03/D08 gerenciales siguen F6. Base D05/objetivos D06 en [guia05](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepciones sin suplente/D07 soporte/61 alertas conservadas por F5 hasta2026-12-24, solo local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS productivo/capacidad, cifrado/copia off-host/scheduler/firma/homologacion pendientes, no SLA/remediacion. Python3.12.0 no certifica parche productivo; btree_gist disponible no demuestra GiST probado. Adaptador de almacenamiento implementado, configuracion/ClamAV reales e integraciones externas pendientes. Revisiones0001/0002/0003 y package-lock conservan SHA-256 de actas; helpers historicos sin diff.
+D01/formulas del nucleo y D03/D08/RN-06 gerenciales ratificados. Base D05/objetivos D06 en [guia05](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#31-base-aprobada-de-privacidad-y-recuperacion-d05d06). Excepciones sin suplente/D07 soporte/61 alertas extendidas a F6 hasta2026-12-24, solo local/sintetico; responsable LUIS ANGEL VALLEJO - DESARROLLADOR. Otro host/nube/TLS productivo/capacidad, cifrado/copia off-host/scheduler/firma/homologacion pendientes, no SLA/remediacion. GiST/solapamiento F6 probados en PG18.4 aislado; no homologa proveedor. Configuracion/ClamAV reales e integraciones externas pendientes. Revisiones0001..0004, scripts, helpers F1-F3 y package-lock sin ediciones.
 
-Siguiente paso: confirmar custodia/bootstrap sin repetir/sobrescribir, completar settings/catalogos/grafo por UI/API y configuration-status, configurar/probar almacenamiento/ClamAV reales y aceptar F4/F5 con sesion del operador. Cierre operativo F5 pendiente; **F6 exige nueva autorizacion y D03/D08**, F7 no iniciado. PostgreSQL queda activo; API F5 iniciada en127.0.0.1:8000 tras parada confirmada por el operador; Angular en127.0.0.1:8443, abrir https://localhost:8443/login. AUTH_ORIGIN/Secure intactos. Sin seeds/configuracion de negocio, reset ni restore sobre origen.
+Siguiente paso: aceptar F4-F6 con sesion/alcance del operador, sin recrear bootstrap ni inventar periodos/evaluadores/configuracion. Cierre operativo F5 y configuracion/ClamAV reales siguen pospuestos; **F7 requiere autorizacion nueva**. PostgreSQL queda activo sin reinicio; API F6 reiniciada en127.0.0.1:8000, Angular existente en8443, abrir https://localhost:8443/login. live/ready200 y ready403 sin token, AUTH_ORIGIN/Secure intactos. Sin seeds/datos sinteticos persistidos en origen, reset ni restore sobre origen. Resultados actuales backend30 F6/Angular164 y regresion global final en acta F6; cifras F5 del parrafo anterior son historicas.

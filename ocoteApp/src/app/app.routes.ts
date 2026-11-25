@@ -11,6 +11,8 @@ export const routes: Routes = [
 		]),
 		{ path: 'tareas', loadComponent: () => import('./operations/tasks.page').then(module => module.TasksPage) },
 		{ path: 'tareas/:id', loadComponent: () => import('./operations/task-detail.page').then(module => module.TaskDetailPage) },
+		{ path: 'analitica', loadComponent: () => import('./operations/analytics.page').then(module => module.AnalyticsPage), canActivate: [permitted], data: { permission: 'analytics:read' } },
+		...['evaluaciones','evaluaciones/:id'].map(path => ({ path, loadComponent: () => import('./operations/evaluations.page').then(module => module.EvaluationsPage), canActivate: [permitted], data: { permission:'evaluations:read' } })),
 		...['kanban','timeline'].map(view => ({ path:view,loadComponent:() => import('./operations/execution.page').then(module => module.ExecutionPage),data:{ view } })),
 		...['solicitudes-fecha','solicitudes-fecha/:id'].map(path => ({ path, loadComponent: () => import('./operations/requests.page').then(module => module.RequestsPage), canActivate: [permitted], data: { permission:'date-requests:create' } })),
 		{ path: 'perfil', loadComponent: () => import('./auth/auth.pages').then(module => module.ProfilePage) },

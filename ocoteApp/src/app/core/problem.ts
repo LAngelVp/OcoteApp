@@ -52,6 +52,11 @@ const messages: Record<string, string> = {
   UNCHANGED_DATE: 'La fecha propuesta debe ser distinta de la vigente.',
   REQUEST_TERMINAL: 'La solicitud ya tiene una decision definitiva.',
   SELF_APPROVAL_FORBIDDEN: 'Solicitante y aprobador deben ser personas distintas.',
+  EVALUATION_FINAL: 'La evaluacion final y su foto son inmutables.',
+  EVALUATION_NOT_FINALIZABLE: 'El periodo debe haber concluido y la cohorte debe contener tareas.',
+  EVALUATION_NOT_FINAL: 'Solo se pueden exportar evaluaciones finales.',
+  EXPORT_TOO_LARGE: 'La exportacion supera el limite permitido. Acota los filtros.',
+  COHORT_TOO_LARGE: 'La cohorte supera el limite de lectura. Acota plan, departamento o periodo.',
 };
 
 export interface Problem { message: string; requestId?: string; conflict: boolean; }
