@@ -55,6 +55,7 @@ const messages: Record<string, string> = {
 };
 
 export interface Problem { message: string; requestId?: string; conflict: boolean; }
+export function commandMessage(code: unknown): string | undefined { return typeof code === 'string' ? messages[code] : undefined; }
 export function problem(error: unknown): Problem {
   if (!(error instanceof HttpErrorResponse)) {
     return { message: 'No se pudo completar la operacion. Revisa la conexion y vuelve a intentar.', conflict: false };
@@ -65,7 +66,7 @@ export function problem(error: unknown): Problem {
   const identifier = data['request_id'];
   const requestId = typeof identifier === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(identifier) ? identifier : undefined;
   return {
-    message: messages[code] ?? ({
+    message: commandMessage(code) ?? ({
       0: 'No hay conexion con el servicio.',
       401: 'La sesion no es valida. Inicia sesion nuevamente.',
       403: 'No tienes permiso para esta accion.',

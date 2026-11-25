@@ -322,7 +322,7 @@ Listados: `limit` 1..100, predeterminado 50, cursor opaco y orden estable `(crea
 | POST `/priorities`, `/horizon-types` | code, name, position, reason; 201 | Admin; horizontes solo cinco codes RN-01 |
 | POST `/settings` | key permitida, value tipado, reason; 201 | Admin; sin claves libres ni defaults |
 | POST `/priorities/reorder`, `/horizon-types/reorder` | items id/position/expected_version, reason; 200 | Admin; atomico, 409 sin cambios parciales |
-| GET `/configuration-status` | Faltantes de settings/horizontes/normal/grafo y complete; 200 | Admin; no crea datos ni habilita F3 |
+| GET `/configuration-status` | Faltantes de settings/horizontes/normal/grafo y complete; workflow_error contiene codigo de validacion o null si el grafo es valido; 200 | Admin; no crea datos ni habilita F3 con grafo incompleto |
 | PATCH `/priorities/{id}`, `/horizon-types/{id}`                                                                        | name, position, is_active, reason, expected_version; 200                                                 | Admin; code/id/semantica inmutables                              |
 | GET `/releases`, `/releases/{id}`, `/audit-events` | Metadata sanitizada, limit 1..100/cursor UUID/next_cursor; 200 | Admin, solo lectura; sin ruta/hash/credencial de backup. /release-history es alias local |
 | GET/POST `/annual-plans`                                                                                               | Lista / title, horizon_type, start_date, due_date; 200 / 201                                             | GET admin/gerente/lider filtrado; POST admin/gerente; C 403      |

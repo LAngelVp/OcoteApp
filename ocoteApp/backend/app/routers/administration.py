@@ -265,11 +265,13 @@ def configuration_status(actor: Administrator, db: Database):
     keys = set(db.scalars(select(SystemSetting.key)))
     codes = set(db.scalars(select(HorizonType.code)))
     normal = db.scalar(select(Priority.id).where(Priority.code == "normal", Priority.is_active))
+    workflow_error = None
     try:
         service.validate_workflow(db)
         workflow_valid = True
-    except CommandError:
+    except CommandError as error:
         workflow_valid = False
+        workflow_error = error.code
     return {
         "complete": keys == service.SETTING_KEYS
         and codes == service.HORIZONS
@@ -279,6 +281,7 @@ def configuration_status(actor: Administrator, db: Database):
         "missing_horizons": sorted(service.HORIZONS - codes),
         "normal_present": normal is not None,
         "workflow_valid": workflow_valid,
+        "workflow_error": workflow_error,
     }
 
 

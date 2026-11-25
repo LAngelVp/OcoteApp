@@ -98,6 +98,20 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     const fixture = await setup(AdminPage,'admin',{ section:'configuracion' });
     expect(fixture.nativeElement.textContent).toContain('Configuracion incompleta'); expect(api.writes).toEqual([]);
   });
+  for (const [code,message] of [['WORKFLOW_INCOMPLETE','El grafo requiere una etapa inicial abierta y una terminal activa.'],['WORKFLOW_HAS_NO_TERMINAL_PATH','Todas las etapas activas necesitan un camino hacia la terminal.']]) {
+    it('explains the exact workflow blocker without creating configuration for ' + code, async () => {
+      const fixture = await setup(AdminPage,'admin',{ section:'configuracion' });
+      api.response = () => ({ complete:false,missing_settings:[],missing_horizons:[],normal_present:true,workflow_valid:false,workflow_error:code });
+      await fixture.componentInstance.load(); fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain(message);
+      expect(fixture.nativeElement.querySelector('a[href="/administracion/transiciones"]')).not.toBeNull();
+      expect(api.writes).toEqual([]);
+      api.response = () => ({ complete:true,missing_settings:[],missing_horizons:[],normal_present:true,workflow_valid:true,workflow_error:null });
+      await fixture.componentInstance.load(); fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Configuracion completa');
+      expect(fixture.nativeElement.textContent).not.toContain(message); expect(api.writes).toEqual([]);
+    });
+  }
   it('renders nested admin rows with stable UUID or setting keys after reload', async () => {
     const fixture = await setup(AdminPage,'admin',{ section:'parametros' });
     api.response = () => ({ items:[{ key:'organization_name',value:'Synthetic organization',version:1 },{ key:'evidence_max_bytes',value:1024,version:2 }] });
@@ -564,6 +578,28 @@ describe('F4 views, least privilege and command contracts (browser-only syntheti
     spyOn(TestBed.inject(Transition),'open').and.resolveTo(false);
     await fixture.componentInstance.move(syntheticTask,'done'); expect(fixture.componentInstance.lanes()[0]).toBe(lane);
   });
+  for (const [status,code] of [[409,'VERSION_CONFLICT'],[422,'REASON_REQUIRED'],[403,'FORBIDDEN']] as [number,string][]) {
+    it('retains the Kanban card, current reason and request reference on ' + status, async () => {
+      const fixture = await setup(ExecutionPage,'admin',{}, { view:'kanban' });
+      const lane = { stage:{ id:'synthetic-open',name:'Abierta' },count:1,items:[syntheticTask] };
+      fixture.componentInstance.lanes.set([lane]);
+      api.response = () => ({ stages:[{ id:'done',name:'Terminada',requires_reason:true }],transitions:[{ from_stage_id:'synthetic-open',to_stage_id:'done' }] });
+      const write = spyOn(api,'command').and.rejectWith(new HttpErrorResponse({ status,error:{ code,request_id:'kanban-rejected',detail:'SECRET SQL' } }));
+      const pending = fixture.componentInstance.move(syntheticTask,'done');
+      await fixture.whenStable(); fixture.detectChanges();
+      const dialog = TestBed.inject(MatDialog), editor = dialog.openDialogs[0].componentInstance as Editor;
+      expect(editor.form.controls['reason'].value).toBeNull();
+      editor.form.patchValue({ reason:'Current transition justification' }); await editor.save(); fixture.detectChanges();
+      expect(editor.form.controls['reason'].value).toBe('Current transition justification');
+      expect(editor.issue()?.requestId).toBe('kanban-rejected'); expect(editor.issue()?.conflict).toBe(status === 409);
+      expect(document.querySelector('mat-dialog-content')?.textContent).not.toContain('SECRET SQL');
+      expect(fixture.componentInstance.lanes()[0]).toBe(lane);
+      expect(write.calls.mostRecent().args[1]['expected_version']).toBe(7);
+      if (status === 409) { await editor.save(); expect(write).toHaveBeenCalledTimes(1); }
+      dialog.openDialogs[0].close(false); await pending;
+      expect(fixture.componentInstance.lanes()[0]).toBe(lane); expect(fixture.componentInstance.moving()).toBeFalse();
+    });
+  }
   it('F5 uses required evidence IDs and the captured version in the shared transition', async () => {
     await setup(ExecutionPage,'admin',{}, { view:'kanban' });
     api.response = path => path === '/catalogs/workflow' ? {

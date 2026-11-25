@@ -2,7 +2,7 @@ import os
 import secrets
 from datetime import timedelta
 from types import SimpleNamespace
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import jwt
 import pytest
@@ -236,6 +236,26 @@ def test_secret_commands_preserve_exact_values_and_lengths(command, field, extra
         with pytest.raises(ValidationError):
             command(**{**extra, field: invalid})
     assert len(getattr(command(**{**extra, field: "x" * 128}), field).get_secret_value()) == 128
+
+
+@pytest.mark.parametrize("code", [None, "WORKFLOW_INCOMPLETE", "WORKFLOW_HAS_NO_TERMINAL_PATH"])
+def test_configuration_status_reports_workflow_failure_without_changing_gate(monkeypatch, code):
+    from app.routers.administration import configuration_status
+    from app.services import administration
+
+    results = iter([administration.SETTING_KEYS, administration.HORIZONS])
+    db = SimpleNamespace(scalars=lambda statement: next(results), scalar=lambda statement: uuid4())
+
+    def validate(db):
+        if code:
+            raise CommandError(409, code)
+
+    monkeypatch.setattr(administration, "validate_workflow", validate)
+    status = configuration_status(None, db)
+    assert status["workflow_error"] == code
+    assert status["workflow_valid"] is (code is None)
+    assert status["complete"] is (code is None)
+    assert status["missing_settings"] == status["missing_horizons"] == []
 
 
 def test_workflow_construction_keeps_local_rules_and_requires_completion_for_operation():
@@ -735,6 +755,9 @@ def test_real_workflow_and_explicit_configuration(api):
     assert client.patch(edge_path, json=change).status_code == 200
     status = client.get("/api/v1/configuration-status").json()
     assert status["complete"] is False and status["workflow_valid"] is False
+    assert status["workflow_error"] == "WORKFLOW_HAS_NO_TERMINAL_PATH"
+    assert status["missing_settings"] == status["missing_horizons"] == []
+    assert status["normal_present"] is True
     plan = {
         "title": "Synthetic gated plan", "horizon_type": "custom",
         "start_date": "2027-01-01", "due_date": "2027-12-31",
@@ -742,11 +765,14 @@ def test_real_workflow_and_explicit_configuration(api):
     blocked = client.post("/api/v1/annual-plans", json=plan)
     assert blocked.status_code == 409
     assert blocked.json()["code"] == "WORKFLOW_HAS_NO_TERMINAL_PATH"
+    assert blocked.headers["content-type"] == "application/problem+json"
+    assert str(UUID(blocked.json()["request_id"])) == blocked.headers["x-request-id"]
     assert client.get("/api/v1/annual-plans").json()["items"] == []
     assert client.patch(
         edge_path, json={**change, "is_active": True, "expected_version": 2},
     ).status_code == 200
-    assert client.get("/api/v1/configuration-status").json()["complete"] is True
+    recovered = client.get("/api/v1/configuration-status").json()
+    assert recovered["complete"] is True and recovered["workflow_error"] is None
     assert client.post("/api/v1/annual-plans", json=plan).status_code == 201
     assert (
         client.patch(

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,7 +10,7 @@ import { Api, Page, Row, text, version } from '../core/api';
 import { Feedback } from '../shared/feedback';
 import { RecordDetails } from '../shared/record-details';
 import { Editor, Field, options, reason } from '../shared/editor';
-import { problem, Problem } from '../core/problem';
+import { commandMessage, problem, Problem } from '../core/problem';
 import { stageProblem, transitionProblem, WorkflowEditor } from './workflow.editor';
 
 interface Resource { title: string; api: string; columns: [string, string][]; readonly?: boolean; }
@@ -33,7 +33,7 @@ const active = (): Field => ({ key: 'is_active', label: 'Activo', type: 'check' 
 const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'number', required: true, min: 0, max: 2147483647 });
 
 @Component({
-  standalone: true, imports: [MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails],
+  standalone: true, imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails],
   template: `<header class="page-heading"><div><p class="eyebrow">ADMINISTRACION</p><h1>{{ config()?.title ?? 'Configuracion' }}</h1></div>
     <div class="actions"><button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
       @if (section() === 'configuracion') { <button mat-stroked-button (click)="workflow()"><mat-icon>account_tree</mat-icon>Editar grafo</button> }
@@ -45,7 +45,9 @@ const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'numb
       @if (status(); as status) { <section class="detail-section"><h2>Estado operativo</h2><p class="status" [class.good]="status['complete']">{{ status['complete'] ? 'Configuracion completa' : 'Configuracion incompleta' }}</p>
         <dl class="facts"><div><dt>Parametros pendientes</dt><dd>{{ array(status['missing_settings']) || 'Ninguno' }}</dd></div>
         <div><dt>Horizontes pendientes</dt><dd>{{ array(status['missing_horizons']) || 'Ninguno' }}</dd></div>
-        <div><dt>Prioridad normal activa</dt><dd>{{ status['normal_present'] ? 'Si' : 'No' }}</dd></div><div><dt>Workflow valido</dt><dd>{{ status['workflow_valid'] ? 'Si' : 'No' }}</dd></div></dl></section> }
+        <div><dt>Prioridad normal activa</dt><dd>{{ status['normal_present'] ? 'Si' : 'No' }}</dd></div><div><dt>Workflow valido</dt><dd>{{ status['workflow_valid'] ? 'Si' : 'No' }}</dd></div></dl>
+        @if (!status['workflow_valid']) { <p class="problem" role="status">{{ commandMessage(status['workflow_error']) || 'Completa la etapa inicial abierta, la terminal activa y los caminos de todas las etapas activas hacia la terminal.' }}</p><div class="actions"><a mat-stroked-button routerLink="/administracion/etapas"><mat-icon>account_tree</mat-icon>Etapas</a><a mat-stroked-button routerLink="/administracion/transiciones"><mat-icon>sync_alt</mat-icon>Transiciones</a></div> }
+      </section> }
     } @else { @if (config(); as config) {
       @if (section() === 'parametros') { <div class="toolbar"><mat-form-field><mat-label>Parametro a crear</mat-label><mat-select [(value)]="settingKey">@for (key of availableKeys(); track key) { <mat-option [value]="key">{{ key }}</mat-option> }</mat-select></mat-form-field></div> }
       @if (loading()) { <p role="status">Cargando registros...</p> }
@@ -81,6 +83,7 @@ export class AdminPage implements OnInit {
   private epoch = 0;
   settingKey = '';
   readonly array = (value: unknown) => Array.isArray(value) ? value.join(', ') : '';
+  readonly commandMessage = commandMessage;
   rowKey(row: Row): string { return text(row, 'id') || text(row, 'key'); }
   canChangeActivity(row: Row): boolean {
     if (this.config()?.readonly || typeof row['is_active'] !== 'boolean') return false;
