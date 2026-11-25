@@ -41,8 +41,8 @@ export function integerValue(value: unknown): unknown {
 export const integerValidator: ValidatorFn = control => control.value == null || control.value === '' || Number.isSafeInteger(integerValue(control.value)) ? null : { integer: true };
 
 @Component({
-  standalone: true, imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
-  template: `<h2 mat-dialog-title>{{ data.title }}</h2><form [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="busy()">
+    imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
+    template: `<h2 mat-dialog-title>{{ data.title }}</h2><form [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="busy()">
     <mat-dialog-content><ocote-feedback [issue]="issue()" />@if (data.message) { <p>{{ data.message }}</p> }<div class="field-grid">
       @for (field of data.fields; track field.key) {
         @if (field.type === 'check') { <mat-checkbox [formControlName]="field.key">{{ field.label }}</mat-checkbox> }
@@ -66,7 +66,7 @@ export const integerValidator: ValidatorFn = control => control.value == null ||
       <button mat-button type="button" [mat-dialog-close]="false" [disabled]="busy()">Cancelar</button>
       @if (issue()?.conflict) { <button mat-stroked-button type="button" [mat-dialog-close]="'reload'">Descartar cambios y recargar</button> }
       <button mat-flat-button type="submit" [disabled]="busy() || form.invalid || !!issue()?.conflict">{{ busy() ? 'Procesando...' : data.confirm ?? 'Guardar' }}</button>
-    </mat-dialog-actions></form>`,
+    </mat-dialog-actions></form>`
 })
 export class Editor {
   readonly data = inject<EditData>(MAT_DIALOG_DATA);

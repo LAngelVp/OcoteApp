@@ -7,10 +7,10 @@ import { Problem, problem } from '../core/problem';
 import { Feedback } from './feedback';
 
 @Component({
-  selector: 'ocote-export', standalone: true, imports: [MatButtonModule, MatIconModule, MatMenuModule, Feedback],
-  template: `<button mat-stroked-button [matMenuTriggerFor]="formats" [disabled]="disabled() || busy()"><mat-icon>download</mat-icon>{{ busy() ? 'Preparando...' : 'Exportar' }}</button>
+    selector: 'ocote-export', imports: [MatButtonModule, MatIconModule, MatMenuModule, Feedback],
+    template: `<button mat-stroked-button [matMenuTriggerFor]="formats" [disabled]="disabled() || busy()"><mat-icon>download</mat-icon>{{ busy() ? 'Preparando...' : 'Exportar' }}</button>
     <mat-menu #formats="matMenu"><button mat-menu-item (click)="download('csv')"><mat-icon>table_view</mat-icon>CSV</button><button mat-menu-item (click)="download('json')"><mat-icon>data_object</mat-icon>JSON</button></mat-menu><ocote-feedback [issue]="issue()" />`,
-  styles: [':host { display:block; min-width:0; max-width:100%; }'],
+    styles: [':host { display:block; min-width:0; max-width:100%; }']
 })
 export class ExportMenu {
   private readonly api = inject(Api);

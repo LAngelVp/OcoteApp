@@ -15,6 +15,7 @@ from app.routers.auth import router as auth_router
 from app.routers.execution import router as execution_router
 from app.routers.health import router
 from app.routers.operations import router as operations_router
+from app.routers.platform import router as platform_router
 from app.services.identity import LoginLimiter
 
 
@@ -54,4 +55,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(operations_router)
     app.include_router(execution_router)
     app.include_router(analytics_router)
+    app.include_router(platform_router)
     return app

@@ -9,9 +9,9 @@ import { Feedback } from '../shared/feedback';
 import { instant } from '../shared/presentation';
 
 @Component({
-  selector: 'ocote-evidence', standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatTooltipModule, Feedback],
-  template: `<section class="detail-section"><header class="page-heading"><h2>Evidencias</h2><button mat-icon-button aria-label="Recargar evidencias" matTooltip="Recargar" [disabled]="busy()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
+    selector: 'ocote-evidence',
+    imports: [MatButtonModule, MatIconModule, MatTooltipModule, Feedback],
+    template: `<section class="detail-section"><header class="page-heading"><h2>Evidencias</h2><button mat-icon-button aria-label="Recargar evidencias" matTooltip="Recargar" [disabled]="busy()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
     <ocote-feedback [issue]="issue()" />@if (busy()) { <p role="status">Procesando archivo...</p> }
     @if (session.has('tasks:transition') && !task()['completed_at']) {
       @if (configured()) { <div class="toolbar"><label>Archivo (PDF, PNG o JPEG; maximo {{ limit() }} bytes)<input #picker type="file" accept="application/pdf,image/png,image/jpeg" [disabled]="busy() || !!issue()?.conflict" (change)="choose($event)"></label>
@@ -24,7 +24,7 @@ import { instant } from '../shared/presentation';
     @for (row of rows(); track row['id']) { <div class="evidence-row"><div><strong>{{ row['original_name'] }}</strong><small>{{ row['size_bytes'] }} bytes · {{ instant(row['created_at']) }} · Actor {{ row['uploaded_by'] }}</small><small class="digest">SHA-256 {{ row['sha256'] }}</small></div><button mat-icon-button aria-label="Descargar evidencia" matTooltip="Descargar adjunto" [disabled]="busy()" (click)="download(row)"><mat-icon>download</mat-icon></button></div> }
     @if (next()) { <button mat-stroked-button [disabled]="busy()" (click)="load(next()!)">Mas evidencias</button> }
   </section>`,
-  styles: [`.evidence-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 4px; border-bottom:1px solid var(--ocote-border); } .evidence-row div { min-width:0; overflow-wrap:anywhere; } small { display:block; } input { display:block; max-width:100%; margin-top:.5rem; } .digest { font-family:monospace; font-size:.75rem; }`],
+    styles: [`.evidence-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 4px; border-bottom:1px solid var(--ocote-border); } .evidence-row div { min-width:0; overflow-wrap:anywhere; } small { display:block; } input { display:block; max-width:100%; margin-top:.5rem; } .digest { font-family:monospace; font-size:.75rem; }`]
 })
 export class Evidence implements OnInit {
   readonly task = input.required<Row>();

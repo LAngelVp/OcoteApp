@@ -9,8 +9,8 @@ import { Problem, problem } from '../core/problem';
 import { Feedback } from '../shared/feedback';
 
 @Component({
-  standalone: true, imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, Feedback],
-  template: `<main class="login-page"><div class="login-brand"><img src="/ocote-mark.svg" width="64" height="64" alt="">
+    imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, Feedback],
+    template: `<main class="login-page"><div class="login-brand"><img src="/ocote-mark.svg" width="64" height="64" alt="">
     <h1>OCOTE</h1><p>Planes, ejecucion y trazabilidad</p></div>
     <section class="login-form" aria-labelledby="login-title"><h2 id="login-title">Iniciar sesion</h2>
     <ocote-feedback [issue]="issue()" />
@@ -20,7 +20,7 @@ import { Feedback } from '../shared/feedback';
       <mat-form-field><mat-label>Contrasena</mat-label><input matInput type="password" formControlName="password" autocomplete="current-password" required>
         <mat-error>Introduce tu contrasena.</mat-error></mat-form-field>
       <button mat-flat-button type="submit" [disabled]="busy() || form.invalid">{{ busy() ? 'Verificando...' : 'Entrar' }}</button>
-    </form></section><footer>Entorno local · Acceso restringido</footer></main>`,
+    </form></section><footer>Entorno local · Acceso restringido</footer></main>`
 })
 export class LoginPage implements OnInit {
   readonly session = inject(Session);
@@ -43,8 +43,8 @@ export class LoginPage implements OnInit {
 }
 
 @Component({
-  standalone: true, imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, Feedback],
-  template: `<header class="page-heading"><div><p class="eyebrow">CUENTA</p><h1>Mi perfil</h1></div></header>
+    imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, Feedback],
+    template: `<header class="page-heading"><div><p class="eyebrow">CUENTA</p><h1>Mi perfil</h1></div></header>
     <section class="profile"><dl><dt>Nombre</dt><dd>{{ session.user()?.display_name }}</dd><dt>Correo</dt><dd>{{ session.user()?.email }}</dd>
       <dt>Rol</dt><dd>{{ session.user()?.role }}</dd></dl>
       <form class="narrow-form" [formGroup]="form" (ngSubmit)="submit()"><h2>Cambiar contrasena</h2><ocote-feedback [issue]="issue()" />
@@ -53,7 +53,7 @@ export class LoginPage implements OnInit {
       <mat-form-field><mat-label>Confirmar nueva contrasena</mat-label><input matInput type="password" formControlName="confirmation" autocomplete="new-password" required><mat-error>Confirma la nueva contrasena.</mat-error></mat-form-field>
       @if (mismatch()) { <p role="alert">Las contrasenas no coinciden.</p> }
       <p>Este cambio cerrara tus sesiones.</p><button mat-flat-button [disabled]="busy() || form.invalid">Cambiar contrasena</button>
-    </form></section>`,
+    </form></section>`
 })
 export class ProfilePage {
   readonly session = inject(Session);

@@ -20,8 +20,8 @@ import { Evidence } from './evidence';
 import { Transition } from './transition';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ task()?.['title'] ?? 'Tarea' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>arrow_back</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar tarea" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ task()?.['title'] ?? 'Tarea' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>arrow_back</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar tarea" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando tarea...</p> }
     @if (task(); as row) {
       <section class="detail-section"><dl class="facts"><div><dt>Plan</dt><dd>{{ nested(row, 'annual_plan')['title'] }}</dd></div><div><dt>Objetivo</dt><dd>{{ nested(row, 'objective')['title'] }}</dd></div>
@@ -64,7 +64,7 @@ import { Transition } from './transition';
         @if (historyNext()) { <button mat-stroked-button [disabled]="historyBusy()" (click)="loadHistory(historyNext()!)">Mas eventos</button> }
       </section>
     }`,
-  styles: [`.history-snapshots { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding-top:20px; } .history-snapshots > section { min-width:0; } .history-snapshots h4 { margin:0; color:var(--ocote-secondary); } @media (max-width:760px) { .history-snapshots { grid-template-columns:minmax(0,1fr); } }`],
+    styles: [`.history-snapshots { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding-top:20px; } .history-snapshots > section { min-width:0; } .history-snapshots h4 { margin:0; color:var(--ocote-secondary); } @media (max-width:760px) { .history-snapshots { grid-template-columns:minmax(0,1fr); } }`]
 })
 export class TaskDetailPage implements OnInit {
   private readonly api = inject(Api);

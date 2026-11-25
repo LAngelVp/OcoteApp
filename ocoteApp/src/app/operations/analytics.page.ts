@@ -24,10 +24,9 @@ echarts.use([BarChart, LineChart, AriaComponent, GridComponent, LegendComponent,
 interface Report extends Page { snapshot_at: string; organization_timezone: string; metrics?: Row; filters: Row; series?: Row[]; }
 
 @Component({
-  standalone: true,
-  imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatIconModule, MatTooltipModule, NgxEchartsDirective, Feedback, Pager, ExportMenu],
-  providers: [provideEchartsCore({ echarts })],
-  template: `<header class="page-heading"><div><p class="eyebrow">MEDICION</p><h1>Analitica</h1></div><div class="actions">
+    imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatIconModule, MatTooltipModule, NgxEchartsDirective, Feedback, Pager, ExportMenu],
+    providers: [provideEchartsCore({ echarts })],
+    template: `<header class="page-heading"><div><p class="eyebrow">MEDICION</p><h1>Analitica</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar analitica" matTooltip="Recargar analitica" [disabled]="loading()" (click)="apply()"><mat-icon>refresh</mat-icon></button>
     @if (session.has('exports:read')) { <ocote-export path="/exports/tasks" [filters]="applied()" [disabled]="loading()" /> }
     </div></header><ocote-feedback [issue]="issue()" />
@@ -57,7 +56,7 @@ interface Report extends Page { snapshot_at: string; organization_timezone: stri
         } @else if (!loading()) { <p class="empty-state">Sin datos para esta cohorte.</p> }
       }<ocote-pager [state]="panel.pagination" [busy]="loading()" (navigate)="load(panel.kind, $event)" (sizeChange)="resize(panel.kind, $event)" />
     </section> }`,
-  styles: [':host { display:block; min-width:0; } .report-section { padding:24px 0; border-top:1px solid var(--ocote-border); min-width:0; } .report-section h2 { font-size:22px; } .report-chart { width:100%; max-width:100%; min-width:0; height:320px; } .muted { overflow-wrap:anywhere; }'],
+    styles: [':host { display:block; min-width:0; } .report-section { padding:24px 0; border-top:1px solid var(--ocote-border); min-width:0; } .report-section h2 { font-size:22px; } .report-chart { width:100%; max-width:100%; min-width:0; height:320px; } .muted { overflow-wrap:anywhere; }']
 })
 export class AnalyticsPage implements OnInit {
   private readonly api = inject(Api);

@@ -1,6 +1,8 @@
 # OCOTE
 
-Gestion de Planes con horizontes configurables, Ejecucion Operativa y Evaluacion Gerencial. Monorepo ocoteApp: Angular 18.2 SPA/SCSS en raiz y base tecnica backend Python 3.12 + FastAPI + SQLAlchemy 2.0 + Alembic.
+Estado vigente2026-11-25: **incremento F7 acotado implementado, migrado y verificado local/sintetico**; [acta y limites](docs/03-estado-actual-y-roadmap.md#cierre-del-incremento-f7-acotado). Head20261125_0006,26 tablas contando Alembic,siete releases y datos anteriores preservados. Boveda AES-256-GCM/DPAPI write-only, custodia cliente y almacenamiento local/ClamAV verificados en BD con API/consola Angular; sin proveedores ni custodios ficticios, cargas aun cerradas. PG0:105 aprobadas/73 omitidas; PG1:178 aprobadas; Angular171/171/build/visual1280 y360 CSS, Ruff/pip aprobados. API activa127.0.0.1:8000, live/ready correctos; relevo administrativo eliminado. Angular21 LTS, audit0 criticas/altas y21 moderadas pendientes. Setup Wizard e instalador/empaquetador in-house diferidos al cierre final posterior a branding/F8..F12; esas fases siguen bloqueadas. No entrega cliente homologada ni cierre total del proyecto. Los inventarios F6/documentales siguientes son antecedentes, no sustituyen esta acta.
+
+Gestion de Planes con horizontes configurables, Ejecucion Operativa y Evaluacion Gerencial. Monorepo ocoteApp: Angular21 SPA/SCSS en raiz y backend Python3.12 + FastAPI + SQLAlchemy2.0 + Alembic.
 
 Planes y objetivos admiten start_date/due_date/horizon_type: anual, semestral, trimestral, mensual o personalizado, incluidos cruces de anio. El nombre tecnico annual_plans no limita el calendario ni impone un solo plan por anio. Reglas y metricas canonicas en la SDD.
 

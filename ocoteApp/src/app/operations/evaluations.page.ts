@@ -17,8 +17,8 @@ import { Pager, Pagination } from '../shared/pager';
 import { instant, label, nested, progress } from '../shared/presentation';
 
 @Component({
-  standalone: true, imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatDialogModule, MatSelectModule, MatIconModule, MatTooltipModule, ExportMenu, Feedback, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">GERENCIA</p><h1>{{ identity ? 'Evaluacion departamental' : 'Evaluaciones' }}</h1></div><div class="actions">
+    imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatDialogModule, MatSelectModule, MatIconModule, MatTooltipModule, ExportMenu, Feedback, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">GERENCIA</p><h1>{{ identity ? 'Evaluacion departamental' : 'Evaluaciones' }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar evaluaciones" matTooltip="Recargar evaluaciones" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (!identity && session.has('evaluations:manage')) { <button mat-flat-button [disabled]="loading()" (click)="create()"><mat-icon>add</mat-icon>Crear evaluacion</button> }
     </div></header><ocote-feedback [issue]="issue()" />
@@ -51,7 +51,7 @@ import { instant, label, nested, progress } from '../shared/presentation';
         </tbody></table></div> } @else { <p class="muted">Sin tareas en el corte.</p> }
       </section>
     }<ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />`,
-  styles: [':host { display:block; min-width:0; } h2 { font-size:22px; } .facts dd,.description { overflow-wrap:anywhere; }'],
+    styles: [':host { display:block; min-width:0; } h2 { font-size:22px; } .facts dd,.description { overflow-wrap:anywhere; }']
 })
 export class EvaluationsPage implements OnInit {
   private readonly api = inject(Api); private readonly route = inject(ActivatedRoute); private readonly router = inject(Router); private readonly dialog = inject(MatDialog); private readonly destroy = inject(DestroyRef);

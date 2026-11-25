@@ -51,8 +51,8 @@ export function workflowProblem(stages: Row[], transitions: Row[]): string | nul
 }
 
 @Component({
-  standalone: true, imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
-  template: `<h2 mat-dialog-title>Grafo de trabajo</h2><form [formGroup]="form" (ngSubmit)="save()"><mat-dialog-content><ocote-feedback [issue]="issue()" />
+    imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatIconModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
+    template: `<h2 mat-dialog-title>Grafo de trabajo</h2><form [formGroup]="form" (ngSubmit)="save()"><mat-dialog-content><ocote-feedback [issue]="issue()" />
     <h3>Etapas</h3>@for (group of stages.controls; track group; let index = $index) {
       <section class="workflow-row" [formGroup]="group" [attr.aria-label]="'Etapa ' + (index + 1)"><div class="field-grid">
         <mat-form-field><mat-label>Codigo</mat-label><input matInput formControlName="code" required><mat-error>Codigo requerido: minusculas y guion bajo.</mat-error></mat-form-field>
@@ -76,7 +76,7 @@ export function workflowProblem(stages: Row[], transitions: Row[]): string | nul
     </mat-dialog-content><mat-dialog-actions align="end"><button mat-button type="button" [mat-dialog-close]="false" [disabled]="busy()">Cancelar</button>
       @if (issue()?.conflict) { <button mat-stroked-button type="button" [mat-dialog-close]="'reload'">Descartar cambios y recargar</button> }
       <button mat-flat-button [disabled]="busy() || form.invalid || stages.length < 2 || transitions.length < 1 || !!issue()?.conflict">Guardar grafo</button>
-    </mat-dialog-actions></form>`,
+    </mat-dialog-actions></form>`
 })
 export class WorkflowEditor {
   private readonly data = inject<{ stages: Row[]; transitions: Row[] }>(MAT_DIALOG_DATA);

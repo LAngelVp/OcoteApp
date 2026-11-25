@@ -15,8 +15,8 @@ import { Editor, reason } from '../shared/editor';
 import { instant, label } from '../shared/presentation';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">COMPROMISOS</p><h1>Solicitudes de fecha</h1></div><button mat-icon-button aria-label="Recargar solicitudes" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">COMPROMISOS</p><h1>Solicitudes de fecha</h1></div><button mat-icon-button aria-label="Recargar solicitudes" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando solicitudes...</p> }
     @if (record(); as row) {
       <section class="detail-section"><h2>{{ context()?.['title'] || 'Solicitud de cambio de fecha' }}</h2><dl class="facts"><div><dt>Estado</dt><dd>{{ label(row['status']) }}</dd></div>
@@ -41,7 +41,7 @@ import { instant, label } from '../shared/presentation';
       @else { <div class="table-wrap" role="region" aria-label="Solicitudes de fecha" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Solicitud</th><th scope="col">Anterior</th><th scope="col">Propuesta</th><th scope="col">Estado</th><th scope="col">Registro</th></tr></thead><tbody>
         @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/solicitudes-fecha',row['id']]">Revisar {{ row['subtask_id'] ? 'subtarea' : 'tarea' }}</a><small class="code">{{ row['id'] }}</small></td><td>{{ row['previous_due_date'] }}</td><td>{{ row['proposed_due_date'] }}</td><td>{{ label(row['status']) }}</td><td>{{ instant(row['created_at']) }}</td></tr> }
       </tbody></table></div> } }
-    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`,
+    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`
 })
 export class RequestsPage implements OnInit {
   private readonly api = inject(Api);

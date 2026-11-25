@@ -33,8 +33,8 @@ export async function executionCatalogs(api: Api, role: string) {
 }
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ session.user()?.role === 'colaborador' ? 'Mis tareas' : 'Tareas' }}</h1></div><div class="actions">
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ session.user()?.role === 'colaborador' ? 'Mis tareas' : 'Tareas' }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar tareas" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (session.has('tasks:manage')) { <button mat-flat-button (click)="create()"><mat-icon>add</mat-icon>Crear tarea</button> }
     </div></header><ocote-feedback [issue]="issue()" />
@@ -45,7 +45,7 @@ export async function executionCatalogs(api: Api, role: string) {
       @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/tareas', row['id']]">{{ row['title'] }}</a><small>{{ nested(row, 'objective')['title'] }}</small></td>
       <td>{{ stageName(row) }}</td><td>{{ nested(row, 'priority')['name'] }}</td><td>{{ assigneeName(row) }}</td><td>{{ row['original_due_date'] }}</td><td>{{ row['due_date'] }}</td>
       <td><span class="status" [class.bad]="row['is_overdue'] || row['punctuality_status'] === 'late'">{{ label(row['punctuality_status']) }}</span>@if (row['due_date_delta_days']) { <small>{{ row['due_date_delta_days'] }} dias frente al original</small> }</td><td class="numeric">{{ progress(row['progress_percent']) }}@if (row['pending_closure']) { <small>Pendiente de cierre</small> }</td></tr> }
-    </tbody></table></div> }<ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />`,
+    </tbody></table></div> }<ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />`
 })
 export class TasksPage implements OnInit {
   private readonly api = inject(Api);

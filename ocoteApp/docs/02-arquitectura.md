@@ -1,5 +1,22 @@
 # OCOTE: arquitectura y modelo de datos
 
+Estado vigente: [incremento F7 acotado completado local/sintetico](03-estado-actual-y-roadmap.md#cierre-del-incremento-f7-acotado), head0006/26 tablas/siete releases, datos F6 preservados. Seis tablas F7 minimas implementadas de las47 proyectadas;41 nombres restantes sin crear y columnas/contratos extendidos aun futuros. Angular21 LTS; PG0:105/73 omitidas, PG1:178, Angular171/build/visual1280-360 CSS/Ruff/pip aprobados; API live/ready200 y relevo administrativo eliminado. Raiz de boveda nueva DPAPI externa y AES-256-GCM persistido/write-only, sin sustitucion de claves de autenticacion. Custodia BD/API/UI disponible pero contactos vacios, proveedores sin configurar/cargas cerradas. Setup Wizard y empaquetador in-house diferidos al cierre final posterior a branding/F8..F12; fases aun bloqueadas. Inventario F6 y restricciones documentales siguientes son antecedentes, no estado actual ni homologacion cliente.
+
+### Modelo F7 minimo instalado
+
+La [revision0006](../backend/alembic/versions/20261125_0006_vault.py) es autoridad del esquema instalado, sin seeds; [modelos](../backend/app/models/platform.py) y [servicio](../backend/app/services/platform.py) concretan este incremento. No confundir con campos del inventario objetivo de seccion8:
+
+| Tabla instalada | Contrato actual |
+| --- | --- |
+| deployment_instances | UUID singleton, root_key_ref inmutable, version y contactos nullable titular/suplente distintos; una identidad tecnica, sin setup_state/wizard ni custodios inventados |
+| configuration_revisions | UUID append-only por mutacion, actor/request_id/entity/reason y changed_keys sanitizados; no contador global BIGINT ni diff secreto |
+| secret_key_versions | UUID/instancia/proposito/epoch, wrapped_dek48bytes con tag incluido, nonce12bytes, raiz referenciada; append-only/nonce unico |
+| encrypted_secrets | UUID owner/proposito/version/key FK, ciphertext con tag incluido/nonce separados; append-only/nonce unico/version unica; AAD autentica contexto |
+| integration_configs | Dos kinds locales, JSONB de root o port/timeout cerrado, version de edicion distinta de config_revision, prueba y activacion separadas; sin centro/proveedores F8 |
+| integration_health_checks | Append-only de revision probada/resultado/actor/request_id, vigencia de activacion15min; sin jobs/latencia prometidos |
+
+Runtime sin INSERT de instancia ni DELETE/TRUNCATE en estas seis tablas; rol migrador inicializa identidad/raiz solo en release explicita. Estado/configuracion no se escribe al arrancar. Secretos limitados a100 owners por rotacion/listado/413, no truncar. Raiz DPAPI ausente/corrupta falla cerrada, nunca regenerar. Custodia incompleta no bloquea autor unico local ni se interpreta como entrega operativa. Puerto ClamAV solo loopback; evidencia usa exclusivamente BD activa/verificada y reescanea cada publicacion. Backup UUID con secreto sintetico cifrado y copia de raiz DPAPI fue descifrado; misma cuenta Windows, no recuperacion entre equipos. Wizard, empaquetado, referencias tipadas ampliadas y tablas/columnas restantes requieren sus etapas/autorizaciones.
+
 Version documental: 2.0 con F6 local autorizada/implementada/migrada el2026-11-25.19 tablas de dominio/20 contando alembic_version, head20261125_0005. Analitica/evaluaciones/exports internos por alcance; D03/D08/RN-06 ratificados. Aceptacion del operador/cierre operativo F5 y almacenamiento/ClamAV reales pendientes, cargas cerradas. F7 bloqueado, sin produccion/nube. [Estado/evidencia vigente](03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25); conservar actas historicas.
 
 La [especificacion SDD](01-spec-driven-development.md) gobierna RN-01 a RN-07, RF-01 a RF-15 y tokens. El [roadmap](03-estado-actual-y-roadmap.md) distingue evidencia de propuesta y fija puertas D01-D08. La [guia de entrega](05-paquetizacion-instalacion-y-actualizaciones.md) gobierna paquetes, instalacion local/nube e integraciones y es fuente unica del protocolo de release.

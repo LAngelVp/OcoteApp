@@ -8,8 +8,8 @@ import { Feedback } from './shared/feedback';
 import { problem, Problem } from './core/problem';
 
 @Component({
-  standalone: true, imports: [RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatTooltipModule, Feedback],
-  template: `<a class="skip-link" href="#contenido">Saltar al contenido</a>
+    imports: [RouterLink, RouterLinkActive, RouterOutlet, MatButtonModule, MatIconModule, MatTooltipModule, Feedback],
+    template: `<a class="skip-link" href="#contenido">Saltar al contenido</a>
     <header class="app-header"><a class="brand" routerLink="/tareas"><img src="/ocote-mark.svg" width="32" height="32" alt=""><span>OCOTE</span></a>
       <span class="environment">LOCAL</span><div class="account"><a routerLink="/perfil">{{ session.user()?.display_name }} <small>{{ session.user()?.role }}</small></a>
       <button mat-icon-button aria-label="Cerrar sesion" matTooltip="Cerrar sesion" [disabled]="leaving()" (click)="logout()"><mat-icon>logout</mat-icon></button></div></header>
@@ -25,13 +25,14 @@ import { problem, Problem } from './core/problem';
       @if (session.has('administration:manage')) { <p class="nav-label">ADMINISTRACION</p>
         @for (item of adminLinks; track item.path) { <a [routerLink]="'/administracion/' + item.path" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>{{ item.icon }}</mat-icon>{{ item.label }}</a> }
       }<a routerLink="/perfil" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>account_circle</mat-icon>Mi perfil</a>
-    </nav><main id="contenido" class="workspace" tabindex="-1"><ocote-feedback [issue]="issue()" /><router-outlet (activate)="focusContent()" /></main></div>`,
+    </nav><main id="contenido" class="workspace" tabindex="-1"><ocote-feedback [issue]="issue()" /><router-outlet (activate)="focusContent()" /></main></div>`
 })
 export class Shell {
   readonly session = inject(Session);
   readonly leaving = signal(false);
   readonly issue = signal<Problem | null>(null);
   readonly adminLinks = [
+    { path: 'infraestructura', label: 'Salud y custodia', icon: 'health_and_safety' },
     { path: 'configuracion', label: 'Configuracion', icon: 'tune' },
     { path: 'departamentos', label: 'Departamentos', icon: 'domain' },
     { path: 'usuarios', label: 'Usuarios', icon: 'group' },
@@ -51,5 +52,7 @@ export class Shell {
   }
 }
 
-@Component({ standalone: true, imports: [RouterLink, MatButtonModule], template: `<section class="empty-state"><h1>Acceso no disponible</h1><p>Esta ruta no esta disponible para tu cuenta.</p><a mat-stroked-button routerLink="/tareas">Volver a tareas</a></section>` })
+@Component({
+    imports: [RouterLink, MatButtonModule], template: `<section class="empty-state"><h1>Acceso no disponible</h1><p>Esta ruta no esta disponible para tu cuenta.</p><a mat-stroked-button routerLink="/tareas">Volver a tareas</a></section>`
+})
 export class UnavailablePage {}

@@ -9,11 +9,10 @@ import { NgxEchartsModule } from 'ngx-echarts';
 import { Timeline } from 'vis-timeline/standalone';
 
 @Component({
-  standalone: true,
-  imports: [MatButtonModule, DragDropModule, NgxEchartsModule],
-  encapsulation: ViewEncapsulation.None,
-  styleUrls: ['../../node_modules/vis-timeline/styles/vis-timeline-graph2d.min.css'],
-  template: `
+    imports: [MatButtonModule, DragDropModule, NgxEchartsModule],
+    encapsulation: ViewEncapsulation.None,
+    styleUrls: ['../../node_modules/vis-timeline/styles/vis-timeline-graph2d.min.css'],
+    template: `
     <button mat-flat-button (click)="clicks = clicks + 1">Fixture F1</button>
     <div cdkDropList (cdkDropListDropped)="reorder($event)">
       @for (sample of samples; track sample) {
@@ -24,7 +23,7 @@ import { Timeline } from 'vis-timeline/standalone';
       [options]="options" [initOpts]="{ renderer: 'canvas', width: 320, height: 180 }"
       (chartInit)="onChartInit($event)"></div>
     <div class="f1-timeline" style="width: 480px; max-width: 100%; height: 180px"></div>
-  `,
+  `
 })
 class CompatibilityFixture {
   clicks = 0;

@@ -12,7 +12,10 @@ interface Tokens { access_token: string; csrf_token: string; expires_in: number;
 export const NO_SESSION = new HttpContextToken(() => false);
 export interface SessionLock { run<T>(action: () => Promise<T>): Promise<T>; }
 export const SESSION_LOCK = new InjectionToken<SessionLock>('Same-origin session lock', { providedIn: 'root', factory: () => ({
-  run: action => navigator.locks ? navigator.locks.request('ocote-auth-session', action) : Promise.reject(new HttpErrorResponse({ status:503,error:{ code:'SESSION_COORDINATION_UNAVAILABLE' } })),
+  run: async action => {
+    if (!navigator.locks) throw new HttpErrorResponse({ status:503,error:{ code:'SESSION_COORDINATION_UNAVAILABLE' } });
+    return await navigator.locks.request('ocote-auth-session', action);
+  },
 }) });
 
 @Injectable({ providedIn: 'root' })

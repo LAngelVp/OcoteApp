@@ -173,7 +173,7 @@ def test_f6_migration_empty_and_noop_preserves_source():
         url = MigrationSettings().migration_database_url.get_secret_value()
         with f1_local.role_connection(url, name) as db:
             before = f2_local.snapshot(db)
-            f2_local.upgrade(name)
+            f2_local.upgrade(name, "20261125_0005")
             after = f2_local.snapshot(db)
             assert set(after["tables"]) - set(before["tables"]) == {
                 "evaluations",
@@ -183,7 +183,7 @@ def test_f6_migration_empty_and_noop_preserves_source():
             for table, rows in before["rows"].items():
                 if table != "alembic_version":
                     assert after["rows"][table] == rows
-            f2_local.upgrade(name)
+            f2_local.upgrade(name, "20261125_0005")
             assert f2_local.snapshot(db) == after
 
 

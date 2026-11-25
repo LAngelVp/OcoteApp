@@ -15,8 +15,8 @@ import { Pager, Pagination } from '../shared/pager';
 import { label, progress } from '../shared/presentation';
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">PLANIFICACION</p><h1>{{ record() ? record()!['title'] : title }}</h1></div><div class="actions">
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">PLANIFICACION</p><h1>{{ record() ? record()!['title'] : title }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (!identity && session.has('planning:manage')) { <button mat-flat-button (click)="edit()"><mat-icon>add</mat-icon>{{ plans ? 'Crear plan' : 'Crear objetivo' }}</button> }
     </div></header><ocote-feedback [issue]="issue()" />
@@ -42,7 +42,7 @@ import { label, progress } from '../shared/presentation';
       @else { <div class="table-wrap" role="region" [attr.aria-label]="title" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Titulo</th><th scope="col">Horizonte</th><th scope="col">Inicio</th><th scope="col">Fin</th><th scope="col">Avance</th>@if (plans) { <th scope="col">Estado</th> }</tr></thead><tbody>
         @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="[plans ? '/planes' : '/objetivos', row['id']]">{{ row['title'] }}</a></td><td>{{ label(row['horizon_type']) }}</td><td>{{ row['start_date'] }}</td><td>{{ row['due_date'] }}</td><td class="numeric">{{ progress(row['progress_percent']) }}</td>@if (plans) { <td>{{ label(row['status']) }}</td> }</tr> }
       </tbody></table></div> }
-    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`,
+    }@if (!identity) { <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" /> }`
 })
 export class PlanningPage implements OnInit {
   private readonly api = inject(Api);

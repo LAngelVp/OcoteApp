@@ -2,13 +2,14 @@
 @use 'ocote-palettes' as palettes;
 @use 'ocote-tokens' as tokens;
 
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 :root {
+  color-scheme: light;
   @each $name, $value in tokens.$tokens { --ocote-#{$name}: #{$value}; }
   @include mat.all-component-themes(palettes.$light-theme);
-  @include mat.button-overrides((container-shape: 8px));
+  @include mat.button-overrides((filled-container-shape: 8px, outlined-container-shape: 8px, protected-container-shape: 8px, text-container-shape: 8px, tonal-container-shape: 8px));
   @include mat.dialog-overrides((container-shape: 8px));
-  color-scheme: light;
 }
 @font-face { font-family: 'Source Sans 3'; src: url('/fonts/source-sans-3.woff2') format('woff2'); font-weight: 200 900; font-style: normal; font-display: swap; }
 @font-face { font-family: 'Material Icons'; src: url('/fonts/material-icons.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: block; }

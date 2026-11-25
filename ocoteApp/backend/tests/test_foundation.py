@@ -38,7 +38,7 @@ def client(app):
         yield client
 
 
-def test_live_does_not_connect_and_only_authorized_f6_routes(app, client):
+def test_live_does_not_connect_and_only_authorized_f7_routes(app, client):
     app.state.session_factory = MagicMock(side_effect=AssertionError)
     response = client.get("/api/v1/health/live")
     assert response.status_code == 200
@@ -72,8 +72,19 @@ def test_live_does_not_connect_and_only_authorized_f6_routes(app, client):
         "analytics",
         "evaluations",
         "exports",
+        "admin",
     }
     assert all(path.split("/")[3] in allowed for path in paths)
+    assert {path for path in paths if path.startswith("/api/v1/admin/")} == {
+        "/api/v1/admin/health",
+        "/api/v1/admin/custody",
+        "/api/v1/admin/vault",
+        "/api/v1/admin/vault/rotate",
+        "/api/v1/admin/vault/{owner}/{purpose}",
+        "/api/v1/admin/integrations/{kind}",
+        "/api/v1/admin/integrations/{kind}/test",
+        "/api/v1/admin/integrations/{kind}/activation",
+    }
     assert client.get("/openapi.json").status_code == 404
     UUID(response.headers["x-request-id"])
 
@@ -107,7 +118,8 @@ def test_ready_requires_monitor_before_database(app, client, token):
 @pytest.mark.parametrize(
     "database,heads,status",
     [
-        ("ocoteAppDatabase", ["20261125_0005"], 200),
+        ("ocoteAppDatabase", ["20261125_0006"], 200),
+        ("ocoteAppDatabase", ["20261125_0005"], 503),
         ("ocoteAppDatabase", ["20261124_0003"], 503),
         ("ocoteAppDatabase", ["20261124_0002"], 503),
         ("ocoteAppDatabase", ["20261124_0001"], 503),

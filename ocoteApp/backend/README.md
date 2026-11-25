@@ -1,4 +1,25 @@
-# OCOTE Backend: Nucleo Operativo y Analitica F6
+# OCOTE Backend: Nucleo Operativo y Plataforma F7
+
+**Incremento F7 acotado completado local/sintetico**, [acta19](../docs/03-estado-actual-y-roadmap.md#cierre-del-incremento-f7-acotado): head0006/26 tablas/siete releases, datos anteriores preservados, API127.0.0.1:8000 live/ready200. PG0:105 aprobadas/73 omitidas; PG1:178 aprobadas; [28 pruebas F7](tests/test_f7.py), Ruff/pip limpios. Angular171/build/visual1280-360 CSS aprobados. Relevo administrativo eliminado; raiz nueva de boveda DPAPI fuera del checkout, autenticacion/bootstrap anteriores preservados. Custodia incompleta/proveedores aun vacios/cargas cerradas, sin identidades o rutas inventadas. Setup Wizard e instalador/empaquetador in-house diferidos al cierre final despues de branding/F8..F12; fases aun no autorizadas. Los inventarios y restricciones doc-only/F6 siguientes son antecedentes sustituidos solo por este alcance.
+
+## Plataforma F7 instalada
+
+[Revision0006](alembic/versions/20261125_0006_vault.py), [servicio](app/services/platform.py), [rutas](app/routers/platform.py), [esquemas](app/schemas/platform.py) y consola Angular /administracion/infraestructura. Solo admin; guards no reemplazan autorizacion servidor. Todos los cambios llevan reason10..1000/expected_version/request_id, transaccion/lock/auditoria;409 no autoriza reenvio automatico. Los paths siguientes llevan prefijo /api/v1/admin:
+
+| Ruta | Contrato instalado |
+| --- | --- |
+| GET /health | Disponibilidad de raiz, contactos de custodia, proveedores y ultima prueba persistida; no homologacion operativa |
+| PATCH /custody | Titular/suplente con nombre/contacto distintos tras normalizar; campos incompletos permitidos pero custody_complete=false |
+| PUT /integrations/{kind} | kind local_storage o clamav, JSON tipado cerrado, guardar deja inactivo; sin secretos/rutas publicas |
+| POST /integrations/{kind}/test | Prueba ligada a config_revision, historial passed/failed; almacenamiento usa sonda UUID propia; ClamAV exige limpio y deteccion EICAR, firmas frescas |
+| POST /integrations/{kind}/activation | Activacion distinta de prueba, exige prueba aprobada <=15min de la revision actual; desactivar explicito |
+| GET /vault | Solo metadatos de las ultimas versiones y epochs; limite100/413 sin truncar, nunca plaintext/ciphertext/nonce/DEK/raiz |
+| PUT /vault/{owner}/{purpose} | UUID owner explicito/proposito cerrado, valor exacto write-only, version0 solo alta; no endpoint decrypt |
+| POST /vault/rotate | Rota DEK de proposito y recifra versiones actuales atomicamente, maximo100 owners/413; conserva claves y versiones anteriores |
+
+AES-256-GCM incorpora tag128 al ciphertext de la biblioteca; nonce96 separado y unico por clave, AAD instancia/owner/proposito/version. Raiz256 DPAPI usuario Windows/UUID, fuera de BD/checkout, no se genera al arrancar ni ante falta/corrupcion. JWT/CSRF/health y credenciales PG existentes no se sustituyeron: registrar un secreto de esos propositos no activa una rotacion de autenticacion. Tras0006, evidencias consume exclusivamente proveedores BD activos/verificados; variables EVIDENCE_* heredadas ya no habilitan un fallback. Cada publicacion revalida ACL, firmas y escanea; ausencia/error conserva503. Cambiar raiz de storage con evidencia existente exige migracion de objetos autorizada. Pruebas con scanner sintetico no equivalen a antivirus real.
+
+[f7_local](tools/f7_local.py) controla authorize/revoke/pg-tests/check-release/apply; [f7_release](tools/f7_release.py) es herramienta local, no instalador cliente. apply solo admite0005 sin escritores, lock/mantenimiento, backup+restore/upgrade/no-op UUID bloqueantes y restores posteriores con copia DPAPI; nueva revision0006 ya aplicada e inmutable, no repetir apply ni init. Custodios/aceptacion/off-host/recuperacion entre equipos pendientes; DPAPI mismo usuario/equipo no homologa portabilidad. Para mas ensayos PG hace falta nueva entrada privada visible; nunca enviar credencial al chat ni usar runtime como administrador.
 
 Python3.12/FastAPI/SQLAlchemy2/psycopg3/Alembic; F6 autorizada/implementada/migrada local/sintetico, [acta vigente](../docs/03-estado-actual-y-roadmap.md#17-analitica-evaluaciones-y-exports-f6-local-2026-11-25). Bootstrap/datos/configuracion preservados; aceptacion operativa F5 y almacenamiento/ClamAV reales pendientes, cargas cerradas. F7 bloqueado. Autoridad: [AGENTS](../AGENTS.md), [SDD](../docs/01-spec-driven-development.md), [arquitectura](../docs/02-arquitectura.md), [protocolo](../docs/05-paquetizacion-instalacion-y-actualizaciones.md#7-actualizacion-controlada). D03/D08/RN-06 ratificados; responsable/excepciones extendidos a F6 hasta2026-12-24, no produccion.
 

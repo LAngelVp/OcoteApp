@@ -103,8 +103,8 @@ function sections(record: Row): DetailSection[] {
 }
 
 @Component({
-  selector: 'ocote-record-details', standalone: true, imports: [MatIconModule],
-  template: `@if (summary()) {
+    selector: 'ocote-record-details', imports: [MatIconModule],
+    template: `@if (summary()) {
     <header class="record-summary"><mat-icon aria-hidden="true">description</mat-icon><div><h3>{{ title() }}</h3>
       @if (record()['code']; as code) { <p class="record-code">{{ code }}</p> }
     </div>@if (record()['is_active'] === true || record()['is_active'] === false) { <span class="badge" [class.good]="record()['is_active'] === true">{{ record()['is_active'] ? 'Activo' : 'Inactivo' }}</span> }</header>
@@ -119,7 +119,7 @@ function sections(record: Row): DetailSection[] {
       </dd></div> }
     </dl></section>
   } @empty { <p class="muted-value">Sin informaci&oacute;n registrada.</p> }`,
-  styles: [`
+    styles: [`
     :host { display:block; min-width:0; max-width:100%; }
     .record-summary { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:16px; background:var(--ocote-surface-secondary); border-left:3px solid var(--ocote-secondary); }
     .record-summary > mat-icon { flex:0 0 24px; color:var(--ocote-secondary); }
@@ -139,7 +139,7 @@ function sections(record: Row): DetailSection[] {
     .bad { color:var(--ocote-danger); }
     .muted-value { color:var(--ocote-text-secondary); }
     .record-code { font-family:monospace; font-size:13px; overflow-wrap:anywhere; }
-  `],
+  `]
 })
 export class RecordDetails {
   readonly record = input.required<Row>();

@@ -3,6 +3,46 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "OCOTE F7: build",
+      "type": "process",
+      "command": "node",
+      "args": ["node_modules/@angular/cli/bin/ng.js", "build"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F7: validar entrada privada",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "pytest", "-q", "backend/tests/test_f7.py"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "OCOTE_RUN_PG_TESTS": "0" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F7: credencial administrativa",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.f7_local", "authorize"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend" }
+      },
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true,
+        "echo": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
       "type": "npm",
       "script": "start",
       "isBackground": true,

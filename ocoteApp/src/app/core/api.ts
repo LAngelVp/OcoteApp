@@ -25,7 +25,7 @@ export class Api {
     } while (cursor);
     return rows;
   }
-  command<T = Row>(path: string, body: Row, method: 'POST' | 'PATCH' = 'POST'): Promise<T> {
+  command<T = Row>(path: string, body: Row, method: 'POST' | 'PATCH' | 'PUT' = 'POST'): Promise<T> {
     return firstValueFrom(this.http.request<T>(method, '/api/v1' + path, { body }));
   }
   upload(task: Row, file: File): Promise<Row> {

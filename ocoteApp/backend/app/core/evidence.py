@@ -217,11 +217,9 @@ class EvidenceStore:
             raise failure() from None
 
 
-def configured_store():
-    settings = EvidenceSettings()
-    if settings.evidence_storage_root is None or settings.evidence_clamav_port is None:
+def configured_store(db=None):
+    if db is None:
         raise failure()
-    return EvidenceStore(
-        settings.evidence_storage_root,
-        ClamAV(settings.evidence_clamav_port, settings.evidence_scan_timeout),
-    )
+    from app.services.platform import configured_store as from_database
+
+    return from_database(db)

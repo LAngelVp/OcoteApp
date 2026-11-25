@@ -34,8 +34,8 @@ const active = (): Field => ({ key: 'is_active', label: 'Activo', type: 'check' 
 const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'number', required: true, min: 0, max: 2147483647 });
 
 @Component({
-  standalone: true, imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails, Pager],
-  template: `<header class="page-heading"><div><p class="eyebrow">ADMINISTRACION</p><h1>{{ config()?.title ?? 'Configuracion' }}</h1></div>
+    imports: [RouterLink, MatButtonModule, MatIconModule, MatTooltipModule, MatSelectModule, MatDialogModule, Feedback, RecordDetails, Pager],
+    template: `<header class="page-heading"><div><p class="eyebrow">ADMINISTRACION</p><h1>{{ config()?.title ?? 'Configuracion' }}</h1></div>
     <div class="actions"><button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
       @if (section() === 'configuracion') { <button mat-stroked-button (click)="workflow()"><mat-icon>account_tree</mat-icon>Editar grafo</button> }
       @if (section() === 'prioridades' || section() === 'horizontes') { <button mat-stroked-button [disabled]="loading() || !rows().length" (click)="reorder()"><mat-icon>swap_vert</mat-icon>Ordenar</button> }
@@ -64,7 +64,7 @@ const position = (): Field => ({ key: 'position', label: 'Posicion', type: 'numb
       <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />
       @if (selected(); as row) { <section class="detail-section" aria-labelledby="record-detail-title"><div class="page-heading"><h2 id="record-detail-title">Detalle del registro</h2><button mat-icon-button aria-label="Cerrar detalle" matTooltip="Cerrar detalle" (click)="selected.set(null)"><mat-icon>close</mat-icon></button></div><ocote-record-details [record]="row" [summary]="true" /></section> }
     } }
-    @if (section() === 'configuracion' && loading()) { <p role="status">Cargando configuracion...</p> }`,
+    @if (section() === 'configuracion' && loading()) { <p role="status">Cargando configuracion...</p> }`
 })
 export class AdminPage implements OnInit {
   private readonly api = inject(Api);

@@ -8,8 +8,8 @@ from app.services.administration import check_version
 from app.services.identity import audit
 
 
-def store(request):
-    return getattr(request.app.state, "evidence_store", None) or configured_store()
+def store(request, db):
+    return getattr(request.app.state, "evidence_store", None) or configured_store(db)
 
 
 def view(record):
@@ -35,7 +35,7 @@ def attach(db, user, identity, expected_version, content, name, media_type, requ
     service.open_task(plan, task)
     check_version(task, expected_version)
     validate_content(content, name, media_type, settings["evidence_max_bytes"])
-    storage = store(request)
+    storage = store(request, db)
     key, digest, scan_version = storage.publish(content)
     db.info.setdefault("rollback_files", []).append(storage.path(key))
     record = EvidenceFile(
@@ -90,5 +90,5 @@ def available(db, user, identity, request, task_id=None):
     if record is None or (task_id is not None and record.task_id != task_id):
         raise CommandError(404, "RESOURCE_NOT_FOUND")
     service.visible(db, Task, record.task_id, user)
-    path = store(request).available(record.storage_key, record.size_bytes, record.sha256)
+    path = store(request, db).available(record.storage_key, record.size_bytes, record.sha256)
     return record, path

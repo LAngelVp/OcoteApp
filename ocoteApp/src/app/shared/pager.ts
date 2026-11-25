@@ -30,9 +30,9 @@ export class Pagination {
 }
 
 @Component({
-  selector: 'ocote-pager', standalone: true,
-  imports: [MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule],
-  template: `<nav aria-label="Paginaci&oacute;n">
+    selector: 'ocote-pager',
+    imports: [MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule],
+    template: `<nav aria-label="Paginaci&oacute;n">
     <mat-form-field subscriptSizing="dynamic"><mat-label>Filas por p&aacute;gina</mat-label><mat-select [value]="state().size()" [disabled]="busy()" (selectionChange)="sizeChange.emit($event.value)">
       @for (size of sizes; track size) { <mat-option [value]="size">{{ size }}</mat-option> }
     </mat-select></mat-form-field>
@@ -43,7 +43,7 @@ export class Pagination {
       <button mat-icon-button aria-label="P&aacute;gina siguiente" matTooltip="P&aacute;gina siguiente" [disabled]="busy() || !state().next()" (click)="navigate.emit(state().next()!)"><mat-icon>chevron_right</mat-icon></button>
     </div>
   </nav>`,
-  styles: [`:host { display:block; min-width:0; max-width:100%; } nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 0; } mat-form-field { width:176px; max-width:100%; } nav > span { font-size:14px; } .page-actions { display:flex; flex:0 0 auto; } @media(max-width:480px) { nav { justify-content:flex-start; } }`],
+    styles: [`:host { display:block; min-width:0; max-width:100%; } nav { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:12px; padding:16px 0; } mat-form-field { width:176px; max-width:100%; } nav > span { font-size:14px; } .page-actions { display:flex; flex:0 0 auto; } @media(max-width:480px) { nav { justify-content:flex-start; } }`]
 })
 export class Pager {
   readonly state = input.required<Pagination>();
