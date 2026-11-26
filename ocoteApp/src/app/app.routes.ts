@@ -6,6 +6,8 @@ export const routes: Routes = [
 	{ path: '', loadComponent: () => import('./shell').then(module => module.Shell), canActivate: [signedIn], children: [
 		{ path: 'administracion/infraestructura', loadComponent: () => import('./admin/platform.page').then(module => module.PlatformPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'administracion/configuracion', loadComponent: () => import('./admin/enterprise.page').then(module => module.EnterprisePage), canActivate: [permitted], data: { permission: 'administration:manage' } },
+		{ path: 'administracion/colaboracion', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
+		{ path: 'plantillas', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permissions: ['tasks:manage', 'planning:manage'] } },
 		{ path: 'administracion/:section', loadComponent: () => import('./admin/admin.page').then(module => module.AdminPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		...['planes', 'objetivos'].flatMap(path => [
 			{ path, loadComponent: () => import('./operations/planning.page').then(module => module.PlanningPage), canActivate: [permitted], data: { kind: path === 'planes' ? 'plans' : 'objectives', permissions: ['planning:manage', 'planning:department'] } },

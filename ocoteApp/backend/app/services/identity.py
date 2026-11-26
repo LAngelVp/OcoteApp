@@ -40,10 +40,12 @@ def audit(
     before=None,
     after=None,
     outcome="success",
+    actor_service=None,
 ):
     db.add(
         AuditEvent(
             actor_id=actor,
+            actor_service_id=actor_service,
             event_type=event,
             entity_type=entity,
             entity_id=entity_id,
@@ -85,6 +87,12 @@ def database(request: Request):
                 ["kanban"],
                 ["timeline"],
             ]
+            if request.url.path.startswith("/api/v1/collaboration/"):
+                catalog = request.url.path.split("/")[4:5] in [
+                    ["custom-fields"], ["tags"], ["templates"], ["service-principals"],
+                    ["recurrence-schedules"],
+                ]
+                operational = not catalog
             config_lock(
                 db,
                 exclusive=not (operational or reporting) and request.method not in {"GET", "HEAD"},

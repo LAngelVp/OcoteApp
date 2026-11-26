@@ -1015,16 +1015,20 @@ def test_real_catalog_reorder_is_atomic_and_versioned(api, path, codes):
 
 
 def test_real_audit_and_release_projection_pagination(api):
-    from sqlalchemy import text
+    from sqlalchemy import select, text
 
+    from app.models.identity import AuditEvent
     from tools.f2_local import migration_engine
 
     client, factory = api
     authenticated(client)
+    release_ids = set()
     engine = migration_engine(factory.kw["bind"].url.database)
     try:
         with engine.begin() as connection:
             for _unused in range(3):
+                identity = uuid4()
+                release_ids.add(str(identity))
                 connection.execute(
                     text(
                         "INSERT INTO release_history (id,created_at,updated_at,application_version,"
@@ -1033,10 +1037,15 @@ def test_real_audit_and_release_projection_pagination(api):
                         ":hash,:hash,'20261124_0001','20261124_0002','Synthetic operator',"
                         "'local','validation','running',:request_id)"
                     ),
-                    {"id": uuid4(), "request_id": uuid4(), "hash": "0" * 64},
+                    {"id": identity, "request_id": uuid4(), "hash": "0" * 64},
                 )
     finally:
         engine.dispose()
+    with factory() as database:
+        expected = {
+            "audit-events": {str(identity) for identity in database.scalars(select(AuditEvent.id))},
+            "releases": release_ids,
+        }
     for path in ("audit-events", "releases"):
         seen, cursor = set(), None
         while True:
@@ -1057,7 +1066,7 @@ def test_real_audit_and_release_projection_pagination(api):
             cursor = body["next_cursor"]
             if cursor is None:
                 break
-        assert len(seen) == (3 if path == "releases" else 12)
+        assert seen == expected[path]
     assert client.get("/api/v1/releases/" + str(uuid4())).status_code == 404
     assert client.get("/api/v1/release-history").json() == client.get("/api/v1/releases").json()
 

@@ -26,6 +26,7 @@ def filters(
     stage_id: UUID | None = None,
     priority_id: UUID | None = None,
     punctuality_status: Literal["on_time", "late", "pending", "overdue"] | None = None,
+    f9_filters: Annotated[str, Query(max_length=8192)] | None = None,
 ):
     return {
         "annual_plan_id": annual_plan_id,
@@ -35,6 +36,7 @@ def filters(
         "stage_id": stage_id,
         "priority_id": priority_id,
         "punctuality_status": punctuality_status,
+        "f9_filters": f9_filters,
     }
 
 
@@ -43,10 +45,15 @@ Filters = Annotated[dict, Depends(filters)]
 
 def task_query(db, user, selected):
     query = service.task_query(
-        user, **{key: value for key, value in selected.items() if key != "punctuality_status"}
+        user, **{key: value for key, value in selected.items()
+             if key not in {"punctuality_status", "f9_filters"}}
     )
     if selected["punctuality_status"]:
         query = service.punctuality_filter(query, selected["punctuality_status"], db)
+    if selected.get("f9_filters"):
+        from app.services.collaboration import execution_filter
+
+        query = execution_filter(db, user, query, selected["f9_filters"])
     return query
 
 
@@ -106,7 +113,9 @@ def timeline(
                 objectives = objectives.where(column == selected[key])
         if any(
             selected[key]
-            for key in ("assignee_id", "stage_id", "priority_id", "punctuality_status")
+            for key in (
+                "assignee_id", "stage_id", "priority_id", "punctuality_status", "f9_filters"
+            )
         ):
             objectives = objectives.where(
                 Objective.id.in_(task_selection.with_only_columns(Task.objective_id))
@@ -131,8 +140,11 @@ def timeline(
         value = service.state(row)
         task = row if kind == "task" else db.get(Task, row.task_id) if kind == "subtask" else None
         if task:
+            from app.services.collaboration import task_indicators
+
             objective = db.get(Objective, task.objective_id)
             value.update(
+                collaboration=task_indicators(db, user, task),
                 scope_department_id=objective.department_id,
                 scope_assignee_id=task.assignee_id,
                 task_id=task.id,

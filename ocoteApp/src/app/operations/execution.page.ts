@@ -15,6 +15,8 @@ import { Pager, Pagination } from '../shared/pager';
 import { label, progress } from '../shared/presentation';
 import { executionCatalogs } from './tasks.page';
 import { Transition } from './transition';
+import { CollaborationIndicators } from './collaboration';
+import { Search } from './search';
 
 export interface Lane { stage: Row; count: number; items: Row[]; next_cursor?: string | null; }
 export function civilDate(value: string, following = false): Date {
@@ -25,9 +27,10 @@ export function civilDate(value: string, following = false): Date {
 function safeContent(value: string): HTMLElement { const content = document.createElement('span'); content.textContent = value; return content; }
 
 @Component({
-    imports: [RouterLink, DragDropModule, MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager],
+    imports: [RouterLink, DragDropModule, MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule, Feedback, Pager, CollaborationIndicators, Search],
     template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ view === 'kanban' ? 'Kanban' : 'Timeline' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>list</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar vista" matTooltip="Recargar" [disabled]="loading() || moving()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" /><p class="sr-only" role="status" aria-live="polite">{{ notice() }}</p>
+    <ocote-search (apply)="filterChanged('f9_filters',encodeFilters($event))" />
     <div class="filters">@for (filter of filters(); track filter.key) { <mat-form-field><mat-label>{{ filter.label }}</mat-label><mat-select [value]="query[filter.key] || ''" [disabled]="moving()" (selectionChange)="filterChanged(filter.key, $event.value)"><mat-option value="">Todos</mat-option>@for (option of filter.options; track option.value) { <mat-option [value]="option.value">{{ option.label }}</mat-option> }</mat-select></mat-form-field> }</div>
     @if (view === 'kanban') {
       @if (loading()) { <p role="status">Cargando tablero...</p> }
@@ -38,6 +41,7 @@ function safeContent(value: string): HTMLElement { const content = document.crea
               <small>{{ responsible(row) }}</small><dl><div><dt>Original</dt><dd>{{ row['original_due_date'] }}</dd></div><div><dt>Vigente</dt><dd>{{ row['due_date'] }}</dd></div></dl>
               <span class="status" [class.bad]="row['is_overdue'] || row['punctuality_status'] === 'late'">{{ label(row['punctuality_status']) }}</span><div class="progress-line"><progress max="100" [value]="row['progress_percent']" aria-label="Avance"></progress><span>{{ progress(row['progress_percent']) }}</span></div>
               @if (row['pending_closure']) { <small class="status warn">Pendiente de cierre</small> }
+              <ocote-collaboration-indicators [record]="row" />
             </article> }
             @if (!lane.items.length) { <p class="muted lane-empty">Sin tareas.</p> }
           </div>@if (lane.next_cursor) { <button mat-button [disabled]="!!laneBusy() || moving()" (click)="moreLane(lane)">Mas tareas</button> }
@@ -53,6 +57,7 @@ function safeContent(value: string): HTMLElement { const content = document.crea
     @if (view === 'timeline') {
       @if (loading()) { <p role="status">Cargando cronologia...</p> } @else if (!rows().length) { <p class="empty-state">Sin elementos para este alcance y filtros.</p> }
       <div class="table-wrap" role="region" aria-label="Fechas de Timeline" tabindex="0"><table class="data-table"><thead><tr><th>Elemento</th><th>Inicio</th><th>Compromiso original</th><th>Vigente</th><th>Cierre real</th><th>Puntualidad</th></tr></thead><tbody>@for (row of rows(); track row['id']) { <tr><td>@if (row['task_id']) { <a [routerLink]="['/tareas',row['task_id']]">{{ row['title'] }}</a> } @else { {{ row['title'] }} }</td><td>{{ row['start_date'] }}</td><td>{{ row['original_due_date'] || 'No aplica' }}</td><td>{{ row['due_date'] }}</td><td>{{ instant(row['completed_at']) }}</td><td>{{ label(row['punctuality_status']) }}</td></tr> }</tbody></table></div>
+      @for (row of rows(); track row['id']) { @if (row['collaboration']) { <div class="toolbar"><span>{{ row['title'] }}</span><ocote-collaboration-indicators [record]="row" /></div> } }
       <ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />
     }`,
     styles: [`.kanban{display:flex;gap:16px;overflow:auto;align-items:flex-start;padding:20px 3px;min-height:300px}.kanban-lane{flex:0 0 280px;max-width:85vw;border-top:3px solid var(--ocote-secondary);background:var(--ocote-surface-secondary)}.kanban-lane>header,.task-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.kanban-lane>header{padding:12px}.kanban-lane h2{font-size:18px;margin:0}.lane-body{min-height:160px;padding:0 8px 8px}.task-card{background:var(--ocote-surface);border:1px solid var(--ocote-border);border-radius:8px;padding:12px;margin-bottom:8px;overflow-wrap:anywhere}.task-card a{font-weight:600;min-width:0}.task-card button{flex-shrink:0}.task-card dl{display:flex;gap:16px;font-size:14px;margin:12px 0}.task-card dd{margin-bottom:0}.task-card progress{width:120px}.lane-empty{padding:24px 8px}.timeline-host{height:440px;max-width:100%;background:var(--ocote-surface)}.toolbar mat-form-field{width:200px;max-width:100%}.timeline-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}.original-key{color:var(--ocote-primary-dark)}.completed-key{color:var(--ocote-success)}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.cdk-drag-preview{box-shadow:0 4px 12px #0003}.cdk-drag-placeholder{opacity:.3}`]
@@ -78,6 +83,7 @@ export class ExecutionPage implements OnInit, AfterViewInit, OnDestroy {
   readonly kind = signal('task');
   readonly group = signal('');
   readonly query: Record<string, string> = {};
+  readonly encodeFilters = JSON.stringify;
   readonly label = label;
   readonly progress = progress;
   instant(value: unknown): string {

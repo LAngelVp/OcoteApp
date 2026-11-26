@@ -13,9 +13,11 @@ import { Editor, Field, options, reason } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
 import { Pager, Pagination } from '../shared/pager';
 import { label, progress } from '../shared/presentation';
+import { Collaboration, creationMetadata, metadataPayload } from './collaboration';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
-    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager, Collaboration],
     template: `<header class="page-heading"><div><p class="eyebrow">PLANIFICACION</p><h1>{{ record() ? record()!['title'] : title }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (!identity && session.has('planning:manage')) { <button mat-flat-button (click)="edit()"><mat-icon>add</mat-icon>{{ plans ? 'Crear plan' : 'Crear objetivo' }}</button> }
@@ -37,6 +39,7 @@ import { label, progress } from '../shared/presentation';
         @else { <a mat-button [routerLink]="['/planes', row['annual_plan_id']]">Ver plan</a><a mat-button routerLink="/tareas" [queryParams]="{ objective_id: row['id'] }">Ver tareas</a> }
         <a mat-button [routerLink]="plans ? '/planes' : '/objetivos'">Volver al listado</a></div>
       </section>
+      <ocote-collaboration [record]="row" [kind]="plans ? 'plan' : 'objective'" [readonlyResource]="closed()" (refresh)="load()" />
     } @else if (!loading() && !identity) {
       @if (!rows().length) { <section class="empty-state"><mat-icon>flag</mat-icon><h2>Sin {{ title.toLowerCase() }}</h2><p>No hay registros para este alcance y filtro.</p></section> }
       @else { <div class="table-wrap" role="region" [attr.aria-label]="title" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Titulo</th><th scope="col">Horizonte</th><th scope="col">Inicio</th><th scope="col">Fin</th><th scope="col">Avance</th>@if (plans) { <th scope="col">Estado</th> }</tr></thead><tbody>
@@ -105,15 +108,30 @@ export class PlanningPage implements OnInit {
   async edit(row?: Row): Promise<void> {
     if (!this.session.has('planning:manage')) return;
     try {
+      let department = '';
+      let metadata: Field[] = [];
+      if (!row) {
+        if (!this.plans) {
+          const departments = await this.api.all('/catalogs/departments');
+          const selected = await firstValueFrom(this.dialog.open(Editor, { width: '560px', maxWidth: '96vw', data: {
+            title: 'Departamento del objetivo', fields: [{ key: 'department_id', label: 'Departamento', type: 'select', required: true, options: options(departments) }],
+            submit: async (values: Row) => { department = String(values['department_id']); },
+          } }).afterClosed());
+          if (selected !== true) return;
+        }
+        metadata = await creationMetadata(this.api, this.plans ? 'plan' : 'objective', department || undefined);
+      }
       const fields: Field[] = [{ key: 'title', label: 'Titulo', required: true, max: 200, value: row?.['title'] }];
       if (!this.plans) fields.push({ key: 'description', label: 'Descripcion', type: 'textarea', max: 10000, value: row?.['description'] ?? '' });
       if (!row) {
         fields.push(...await this.periods());
         if (!this.plans) fields.push(
-          { key: 'annual_plan_id', label: 'Plan', type: 'select', required: true, options: options((await this.api.all('/annual-plans')).filter(plan => plan['status'] !== 'closed'), 'title') },
-          { key: 'department_id', label: 'Departamento', type: 'select', required: true, options: options(await this.api.all('/catalogs/departments')) });
+          { key: 'annual_plan_id', label: 'Plan', type: 'select', required: true, options: options((await this.api.all('/annual-plans')).filter(plan => plan['status'] !== 'closed'), 'title') });
       }
-      this.open((row ? 'Editar ' : 'Crear ') + (this.plans ? 'plan' : 'objetivo'), fields, values => this.api.command(this.endpoint + (row ? '/' + text(row, 'id') : ''), { ...values, ...(row ? { expected_version: version(row) } : {}) }, row ? 'PATCH' : 'POST'));
+      this.open((row ? 'Editar ' : 'Crear ') + (this.plans ? 'plan' : 'objetivo'), [...fields, ...metadata], values => {
+        const base = Object.fromEntries(Object.entries(values).filter(([key]) => !metadata.some(field => field.key === key)));
+        return this.api.command(this.endpoint + (row ? '/' + text(row, 'id') : ''), { ...base, ...(!row && !this.plans ? { department_id: department } : {}), ...(metadata.length ? metadataPayload(values, metadata) : {}), ...(row ? { expected_version: version(row) } : {}) }, row ? 'PATCH' : 'POST');
+      });
     } catch (error) { this.issue.set(problem(error)); }
   }
   async period(row: Row): Promise<void> {

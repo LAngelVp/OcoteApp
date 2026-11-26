@@ -13,6 +13,8 @@ import { Editor, Field, options } from '../shared/editor';
 import { Feedback } from '../shared/feedback';
 import { Pager, Pagination } from '../shared/pager';
 import { label, nested, progress } from '../shared/presentation';
+import { CollaborationIndicators, creationMetadata, metadataPayload } from './collaboration';
+import { Search } from './search';
 
 export const titleField = (row?: Row): Field => ({ key: 'title', label: 'Titulo', required: true, max: 200, value: row?.['title'] });
 export const descriptionField = (row?: Row): Field => ({ key: 'description', label: 'Descripcion', type: 'textarea', max: 10000, value: row?.['description'] ?? '' });
@@ -33,16 +35,17 @@ export async function executionCatalogs(api: Api, role: string) {
 }
 
 @Component({
-    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager],
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatTooltipModule, MatSelectModule, Feedback, Pager, CollaborationIndicators, Search],
     template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ session.user()?.role === 'colaborador' ? 'Mis tareas' : 'Tareas' }}</h1></div><div class="actions">
     <button mat-icon-button aria-label="Recargar tareas" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button>
     @if (session.has('tasks:manage')) { <button mat-flat-button (click)="create()"><mat-icon>add</mat-icon>Crear tarea</button> }
     </div></header><ocote-feedback [issue]="issue()" />
+    <ocote-search (apply)="filterChanged('f9_filters',encodeFilters($event))" />
     <div class="filters">@for (filter of filters(); track filter.key) { <mat-form-field><mat-label>{{ filter.label }}</mat-label><mat-select [value]="query[filter.key] || ''" (selectionChange)="filterChanged(filter.key, $event.value)"><mat-option value="">Todos</mat-option>@for (option of filter.options; track option.value) { <mat-option [value]="option.value">{{ option.label }}</mat-option> }</mat-select></mat-form-field> }</div>
     @if (loading()) { <p role="status">Cargando tareas...</p> }
     @else if (!rows().length) { <section class="empty-state"><mat-icon>task_alt</mat-icon><h2>Sin tareas</h2><p>No hay tareas para este alcance y filtros.</p></section> }
     @else { <div class="table-wrap" role="region" aria-label="Tareas" tabindex="0"><table class="data-table"><thead><tr><th scope="col">Tarea</th><th scope="col">Etapa</th><th scope="col">Prioridad</th><th scope="col">Responsable</th><th scope="col">Compromiso original</th><th scope="col">Compromiso vigente</th><th scope="col">Puntualidad</th><th scope="col">Avance</th></tr></thead><tbody>
-      @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/tareas', row['id']]">{{ row['title'] }}</a><small>{{ nested(row, 'objective')['title'] }}</small></td>
+      @for (row of rows(); track row['id']) { <tr><td><a [routerLink]="['/tareas', row['id']]">{{ row['title'] }}</a><small>{{ nested(row, 'objective')['title'] }}</small><ocote-collaboration-indicators [record]="row" /></td>
       <td>{{ stageName(row) }}</td><td>{{ nested(row, 'priority')['name'] }}</td><td>{{ assigneeName(row) }}</td><td>{{ row['original_due_date'] }}</td><td>{{ row['due_date'] }}</td>
       <td><span class="status" [class.bad]="row['is_overdue'] || row['punctuality_status'] === 'late'">{{ label(row['punctuality_status']) }}</span>@if (row['due_date_delta_days']) { <small>{{ row['due_date_delta_days'] }} dias frente al original</small> }</td><td class="numeric">{{ progress(row['progress_percent']) }}@if (row['pending_closure']) { <small>Pendiente de cierre</small> }</td></tr> }
     </tbody></table></div> }<ocote-pager [state]="pagination" [busy]="loading()" (navigate)="load($event)" (sizeChange)="resize($event)" />`
@@ -64,6 +67,7 @@ export class TasksPage implements OnInit {
   readonly nested = nested;
   readonly progress = progress;
   readonly query: Record<string, string> = {};
+  readonly encodeFilters = JSON.stringify;
   private stages: Row[] = [];
   private assignees: Row[] = [];
   private epoch = 0;
@@ -103,13 +107,14 @@ export class TasksPage implements OnInit {
       if (result !== true || !selected) return;
       const objective = selected;
       const [assignees, priorities] = await Promise.all([this.api.all('/catalogs/assignees', { department_id: text(objective, 'department_id') }), this.api.all('/catalogs/priorities')]);
+      const metadata = await creationMetadata(this.api, 'task', text(objective, 'department_id'));
       let created: Row | undefined;
       const saved = await firstValueFrom(this.dialog.open(Editor, { width: '640px', maxWidth: '96vw', data: {
         title: 'Crear tarea · ' + text(objective, 'title'),
         fields: [titleField(), descriptionField(), dateField('start_date', 'Inicio'), dateField('due_date', 'Compromiso'),
           { key:'assignee_id',label:'Responsable',type:'select',required:true,options:options(assignees,'display_name') },
-          { key:'priority_id',label:'Prioridad',type:'select',required:true,options:options(priorities) }],
-        submit: async (values: Row) => { created = await this.api.command('/tasks', { ...values, objective_id: objective['id'] }); },
+          { key:'priority_id',label:'Prioridad',type:'select',required:true,options:options(priorities) }, ...metadata],
+        submit: async (values: Row) => { const base = Object.fromEntries(Object.entries(values).filter(([key]) => !metadata.some(field => field.key === key))); created = await this.api.command('/tasks', { ...base, ...(metadata.length ? metadataPayload(values, metadata) : {}), objective_id: objective['id'] }); },
       } }).afterClosed());
       if (saved === true && created) await this.router.navigate(['/tareas', text(created, 'id')]);
     } catch (error) { this.issue.set(problem(error)); }

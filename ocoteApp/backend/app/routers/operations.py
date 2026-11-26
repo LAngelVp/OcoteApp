@@ -153,6 +153,7 @@ def tasks(
     stage_id: UUID | None = None,
     priority_id: UUID | None = None,
     punctuality_status: Literal["on_time", "late", "pending", "overdue"] | None = None,
+    f9_filters: Annotated[str, Query(max_length=8192)] | None = None,
 ):
     query = service.task_query(
         user,
@@ -165,6 +166,10 @@ def tasks(
     )
     if punctuality_status:
         query = service.punctuality_filter(query, punctuality_status, db)
+    if f9_filters:
+        from app.services.collaboration import execution_filter
+
+        query = execution_filter(db, user, query, f9_filters)
     rows, following = page(db, query, Task, limit, cursor)
     if not rows:
         return {"items": [], "next_cursor": following}

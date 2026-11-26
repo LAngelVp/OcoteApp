@@ -5,9 +5,12 @@ from uuid import uuid4
 import psycopg
 import pytest
 from fastapi.testclient import TestClient
+from test_identity import api as api
+from test_identity import tokens as tokens
 
 from app.core.config import MigrationSettings, Settings
 from app.main import create_app
+from app.routers import health
 from tools.f1_local import role_connection
 
 pytestmark = [
@@ -55,9 +58,9 @@ def test_real_roles_and_scoped_privileges(runtime, migrator):
             ).fetchone()[0]
             is False
         )
-    assert runtime.execute("SELECT version_num FROM public.alembic_version").fetchall() == [
-        ("20261125_0007",)
-    ]
+    assert runtime.execute("SELECT version_num FROM public.alembic_version").fetchall() in (
+        [("20261125_0007",)], [("20261125_0008",)]
+    )
     assert runtime.execute("SELECT count(*) FROM public.release_history").fetchone()[0] >= 1
     for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):
         assert (
@@ -147,8 +150,9 @@ def test_release_history_identity_versions_and_terminals_are_protected(migrator)
     )
 
 
-def test_real_health_with_runtime_connection():
+def test_real_health_with_runtime_connection(runtime, api, monkeypatch):
     settings = Settings()
+    revision = runtime.execute("SELECT version_num FROM public.alembic_version").fetchone()[0]
     with TestClient(create_app(settings), raise_server_exceptions=False) as client:
         assert client.get("/api/v1/health/live").status_code == 200
         assert client.get("/api/v1/health/ready").status_code == 403
@@ -156,6 +160,21 @@ def test_real_health_with_runtime_connection():
             "/api/v1/health/ready",
             headers={"X-Health-Token": settings.health_token.get_secret_value()},
         )
-        assert response.status_code == 200
-        assert response.json() == {"status": "ready"}
+        assert response.status_code == (200 if revision == "20261125_0008" else 503)
+        if response.status_code == 200:
+            assert response.json() == {"status": "ready"}
         assert "ocote_runtime" not in response.text
+    isolated, factory = api
+    response = isolated.get(
+        "/api/v1/health/ready",
+        headers={"X-Health-Token": settings.health_token.get_secret_value()},
+    )
+    assert response.status_code == 503
+    monkeypatch.setattr(health, "DATABASE_NAME", factory.kw["bind"].url.database)
+    response = isolated.get(
+        "/api/v1/health/ready",
+        headers={"X-Health-Token": settings.health_token.get_secret_value()},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+    assert "ocote_runtime" not in response.text

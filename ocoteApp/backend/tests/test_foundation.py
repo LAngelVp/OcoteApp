@@ -38,7 +38,7 @@ def client(app):
         yield client
 
 
-def test_live_does_not_connect_and_only_authorized_f8_routes(app, client):
+def test_live_does_not_connect_and_only_authorized_f9_routes(app, client):
     app.state.session_factory = MagicMock(side_effect=AssertionError)
     response = client.get("/api/v1/health/live")
     assert response.status_code == 200
@@ -76,6 +76,7 @@ def test_live_does_not_connect_and_only_authorized_f8_routes(app, client):
         "configuration",
         "branding",
         "calendar",
+        "collaboration",
     }
     assert all(path.split("/")[3] in allowed for path in paths)
     assert {path for path in paths if path.startswith("/api/v1/admin/")} == {
@@ -140,7 +141,9 @@ def test_ready_requires_monitor_before_database(app, client, token):
 @pytest.mark.parametrize(
     "database,heads,status",
     [
-        ("ocoteAppDatabase", ["20261125_0007"], 200),
+        ("ocoteAppDatabase", ["20261125_0008"], 200),
+        ("ocote_f2_00000000000000000000000000000000", ["20261125_0008"], 503),
+        ("ocoteAppDatabase", ["20261125_0007"], 503),
         ("ocoteAppDatabase", ["20261125_0006"], 503),
         ("ocoteAppDatabase", ["20261125_0005"], 503),
         ("ocoteAppDatabase", ["20261124_0003"], 503),

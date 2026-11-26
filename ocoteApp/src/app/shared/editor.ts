@@ -12,7 +12,7 @@ import { Feedback } from './feedback';
 
 export interface Option { value: string; label: string; disabled?: boolean; }
 export interface Field {
-  key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'number' | 'password' | 'email' | 'select' | 'multi' | 'check';
+  key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'number' | 'decimal' | 'password' | 'email' | 'select' | 'multi' | 'check';
   required?: boolean; min?: number; max?: number; pattern?: string; options?: Option[]; value?: unknown; hint?: string;
   requiredWhen?: { key: string; values: string[] };
 }
@@ -39,6 +39,17 @@ export function integerValue(value: unknown): unknown {
   return /^-?\d+$/.test(trimmed) ? Number(trimmed) : trimmed === '' ? null : value;
 }
 export const integerValidator: ValidatorFn = control => control.value == null || control.value === '' || Number.isSafeInteger(integerValue(control.value)) ? null : { integer: true };
+export function decimalValue(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return /^-?\d+(\.\d{1,4})?$/.test(trimmed) ? Number(trimmed) : trimmed === '' ? null : value;
+}
+export const decimalValidator: ValidatorFn = control => {
+  const value = decimalValue(control.value);
+  return value == null || value === '' || typeof value === 'number' && Number.isFinite(value)
+    && Math.abs(value) < 100000000000000 && !/\.\d{5}|e-([5-9]|\d{2,})$/i.test(String(value))
+    ? null : { decimal: true };
+};
 
 @Component({
     imports: [ReactiveFormsModule, MatDialogModule, MatButtonModule, MatInputModule, MatSelectModule, MatCheckboxModule, Feedback],
@@ -54,7 +65,7 @@ export const integerValidator: ValidatorFn = control => control.value == null ||
               @for (option of field.options; track option.value) { <mat-option [value]="option.value" [disabled]="!!option.disabled">{{ option.label }}</mat-option> }
             </mat-select>
           } @else if (field.type === 'textarea') { <textarea matInput [formControlName]="field.key" rows="3" [required]="!!field.required" [maxlength]="field.max ?? 10000"></textarea> }
-          @else if (field.type === 'number') { <input matInput type="number" [formControlName]="field.key" [required]="!!field.required" [min]="field.min ?? null" [max]="field.max ?? null" step="1"> }
+          @else if (field.type === 'number' || field.type === 'decimal') { <input matInput type="number" [formControlName]="field.key" [required]="!!field.required" [min]="field.min ?? null" [max]="field.max ?? null" [step]="field.type === 'decimal' ? 0.0001 : 1"> }
           @else { <input matInput [type]="field.type ?? 'text'" [formControlName]="field.key" [required]="!!field.required"
               [attr.maxlength]="field.max" [attr.autocomplete]="field.type === 'password' ? 'new-password' : 'off'"> }
           @if (field.hint) { <mat-hint>{{ field.hint }}</mat-hint> }
@@ -77,10 +88,10 @@ export class Editor {
   constructor() {
     for (const field of this.data.fields) {
       const validators: ValidatorFn[] = [];
-      if (field.required) validators.push(Validators.required);
+      if (field.required && field.type !== 'check') validators.push(Validators.required);
       if (field.requiredWhen) validators.push(control => this.required(field) && !control.value ? { required: true } : null);
-      if (field.type === 'number') {
-        validators.push(integerValidator);
+      if (field.type === 'number' || field.type === 'decimal') {
+        validators.push(field.type === 'decimal' ? decimalValidator : integerValidator);
         if (field.min !== undefined) validators.push(Validators.min(field.min));
         if (field.max !== undefined) validators.push(Validators.max(field.max));
       } else if (field.type === 'password') {
@@ -94,7 +105,7 @@ export class Editor {
         return /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= '0001-01-01' && Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0,10) === value ? null : { civilDate: true };
       });
       const value = field.key === 'reason' ? null : field.value ?? (field.type === 'check' ? false : field.type === 'multi' ? [] : null);
-      this.form.addControl(field.key, new FormControl(field.type === 'number' ? integerValue(value) : value, validators));
+      this.form.addControl(field.key, new FormControl(field.type === 'number' ? integerValue(value) : field.type === 'decimal' ? decimalValue(value) : value, validators));
     }
     this.form.addValidators(group => {
       const start = group.get('start_date')?.value, due = group.get('due_date')?.value;
@@ -120,6 +131,7 @@ export class Editor {
       for (const field of this.data.fields) {
         const value = values[field.key];
         if (field.type === 'number') values[field.key] = integerValue(value);
+        else if (field.type === 'decimal') values[field.key] = decimalValue(value);
         else if (typeof value === 'string' && field.type !== 'password' && field.type !== 'date') values[field.key] = value.trim();
       }
       await this.data.submit(values); this.ref.close(true);

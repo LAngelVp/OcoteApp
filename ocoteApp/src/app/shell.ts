@@ -20,6 +20,7 @@ import { problem, Problem } from './core/problem';
       <a routerLink="/tareas" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>task_alt</mat-icon>Tareas</a>
       @if (configuration.enabled('kanban')) { <a routerLink="/kanban" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>view_kanban</mat-icon>Kanban</a> }
       @if (configuration.enabled('timeline')) { <a routerLink="/timeline" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>timeline</mat-icon>Timeline</a> }
+      @if (configuration.enabled('templates') && session.user()?.role !== 'colaborador') { <a routerLink="/plantillas" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>content_copy</mat-icon>Plantillas</a> }
       @if (session.has('date-requests:create')) { <a routerLink="/solicitudes-fecha" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>event_repeat</mat-icon>Solicitudes de fecha</a> }
       @if (session.has('analytics:read') && configuration.enabled('analytics')) { <a routerLink="/analitica" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>monitoring</mat-icon>Analitica</a> }
       @if (session.has('evaluations:read')) { <a routerLink="/evaluaciones" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>fact_check</mat-icon>Evaluaciones</a> }
@@ -36,6 +37,7 @@ export class Shell {
   readonly adminLinks = [
     { path: 'infraestructura', label: 'Salud y custodia', icon: 'health_and_safety' },
     { path: 'configuracion', label: 'Configuracion', icon: 'tune' },
+    { path: 'colaboracion', label: 'Colaboracion', icon: 'forum' },
     { path: 'departamentos', label: 'Departamentos', icon: 'domain' },
     { path: 'usuarios', label: 'Usuarios', icon: 'group' },
     { path: 'etapas', label: 'Etapas', icon: 'account_tree' },

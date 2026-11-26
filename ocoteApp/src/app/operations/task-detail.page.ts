@@ -18,9 +18,10 @@ import { Pager, Pagination } from '../shared/pager';
 import { dateField, descriptionField, titleField } from './tasks.page';
 import { Evidence } from './evidence';
 import { Transition } from './transition';
+import { Collaboration, CollaborationIndicators } from './collaboration';
 
 @Component({
-    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails, Pager],
+    imports: [RouterLink, MatButtonModule, MatDialogModule, MatIconModule, MatMenuModule, MatTooltipModule, Feedback, Evidence, RecordDetails, Pager, Collaboration, CollaborationIndicators],
     template: `<header class="page-heading"><div><p class="eyebrow">EJECUCION</p><h1>{{ task()?.['title'] ?? 'Tarea' }}</h1></div><div class="actions"><a mat-button routerLink="/tareas"><mat-icon>arrow_back</mat-icon>Tareas</a><button mat-icon-button aria-label="Recargar tarea" matTooltip="Recargar" [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon></button></div></header>
     <ocote-feedback [issue]="issue()" />@if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }@if (loading()) { <p role="status">Cargando tarea...</p> }
     @if (task(); as row) {
@@ -55,6 +56,8 @@ import { Transition } from './transition';
         </tbody></table></div> }
         <ocote-pager [state]="childPagination" [busy]="loading() || childBusy()" (navigate)="loadChildren($event)" (sizeChange)="resizeChildren($event)" />
       </section>
+      <ocote-collaboration-indicators [record]="row" />
+      <ocote-collaboration [record]="row" (refresh)="load()" />
       <ocote-evidence [task]="row" (refresh)="load()" />
       <section class="detail-section"><header class="page-heading"><h2>Historial</h2><button mat-stroked-button [disabled]="historyBusy()" (click)="loadHistory()"><mat-icon>history</mat-icon>Consultar historial</button></header>
         @if (historyBusy()) { <p role="status">Cargando historial...</p> }

@@ -52,7 +52,8 @@ def administrative_event(db, request, user, record, before, command, reason=None
         db,
         request,
         "administration_changed",
-        actor=user.id,
+        actor=None if getattr(user, "actor_service_id", None) else user.id,
+        actor_service=getattr(user, "actor_service_id", None),
         entity=record.__tablename__,
         entity_id=record.id,
         before=before,
@@ -66,7 +67,8 @@ def history(db, request, user, task, before, event, reason=None, subtask=None, d
         TaskHistory(
             task_id=task.id,
             subtask_id=subtask.id if subtask else None,
-            actor_id=user.id,
+            actor_id=None if getattr(user, "actor_service_id", None) else user.id,
+            actor_service_id=getattr(user, "actor_service_id", None),
             event_type=event,
             before_data=before,
             after_data={**state(subtask or task), **jsonable_encoder(details or {})},
@@ -294,6 +296,8 @@ def subtask_view(db, record, *, moment=None, zone=None):
 
 
 def task_view(db, record, user, *, counts=None, moment=None, zone=None):
+    from app.services.collaboration import task_indicators
+
     total, completed = (
         counts
         if counts is not None
@@ -309,6 +313,7 @@ def task_view(db, record, user, *, counts=None, moment=None, zone=None):
     selected_priority = db.get(Priority, record.priority_id)
     return {
         **state(record),
+        "collaboration": task_indicators(db, user, record),
         **timeliness(record, moment or instant(db), zone or timezone(db)),
         "progress_percent": round(
             float(task_progress(completed, total, record.completed_at is not None)), 2
@@ -322,18 +327,29 @@ def task_view(db, record, user, *, counts=None, moment=None, zone=None):
     }
 
 
-def create_plan(db, user, body, request):
+def initial_metadata(db, user, record, body, request, entity_type):
+    from app.services.collaboration import ensure_required, store_metadata
+
+    store_metadata(db, user, entity_type, record, body, request)
+    ensure_required(
+        db, entity_type, record, creating=True, stage_id=getattr(record, "stage_id", None)
+    )
+
+
+def create_plan(db, user, body, request, *, template_version_id=None):
     permit(user, "admin", "gerente")
     configuration(db)
     horizon(db, body.horizon_type)
-    record = AnnualPlan(**body.model_dump(), created_by=user.id)
+    record = AnnualPlan(**body.model_dump(exclude={"custom_fields", "tag_ids"}),
+                        template_version_id=template_version_id, created_by=user.id)
     db.add(record)
     db.flush()
+    initial_metadata(db, user, record, body, request, "plan")
     administrative_event(db, request, user, record, {}, "plan_created")
     return plan_view(db, record, user)
 
 
-def create_objective(db, user, body, request):
+def create_objective(db, user, body, request, *, template_version_id=None):
     permit(user, "admin", "gerente")
     configuration(db)
     plan = visible(db, AnnualPlan, body.annual_plan_id, user)
@@ -344,9 +360,11 @@ def create_objective(db, user, body, request):
         raise CommandError(422, "INVALID_DEPARTMENT")
     horizon(db, body.horizon_type)
     contained(body.start_date, body.due_date, body.due_date, plan)
-    record = Objective(**body.model_dump(), created_by=user.id)
+    record = Objective(**body.model_dump(exclude={"custom_fields", "tag_ids"}),
+                       template_version_id=template_version_id, created_by=user.id)
     db.add(record)
     db.flush()
+    initial_metadata(db, user, record, body, request, "objective")
     administrative_event(db, request, user, record, {}, "objective_created")
     return objective_view(db, record, user)
 
@@ -425,7 +443,7 @@ def update_planning(db, user, record, body, request, command):
     )
 
 
-def create_task(db, user, body, request):
+def create_task(db, user, body, request, *, template_version_id=None):
     permit(user, "admin", "lider")
     configuration(db)
     objective = visible(db, Objective, body.objective_id, user)
@@ -439,7 +457,8 @@ def create_task(db, user, body, request):
         select(WorkflowStage).where(WorkflowStage.is_initial, WorkflowStage.is_active)
     )
     record = Task(
-        **body.model_dump(exclude={"priority_id"}),
+        **body.model_dump(exclude={"priority_id", "custom_fields", "tag_ids"}),
+        template_version_id=template_version_id,
         priority_id=priority(db, body.priority_id),
         original_due_date=body.due_date,
         stage_id=stage.id,
@@ -447,6 +466,7 @@ def create_task(db, user, body, request):
     )
     db.add(record)
     db.flush()
+    initial_metadata(db, user, record, body, request, "task")
     history(db, request, user, record, {}, "task_created")
     return task_view(db, record, user)
 
@@ -497,7 +517,11 @@ def change_task(db, user, identity, body, request, command):
                 available(db, user, identity, request, task_id=task.id)
         if target.requires_reason and body.reason is None:
             raise CommandError(422, "REASON_REQUIRED")
+        from app.services.collaboration import completion_allowed, ensure_required
+
+        ensure_required(db, "task", task, stage_id=target.id)
         if target.kind == "completed":
+            completion_allowed(db, task)
             if db.scalar(
                 select(Subtask.id)
                 .where(Subtask.task_id == task.id, Subtask.status != "completed")

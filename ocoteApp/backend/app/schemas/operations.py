@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BeforeValidator, Field, model_validator
 
+from app.schemas.collaboration import MetadataValues
 from app.schemas.identity import Command, Reason, Version
 
 Title = Annotated[str, Field(min_length=1, max_length=200)]
@@ -37,7 +38,7 @@ class Period(Command):
         return self
 
 
-class PlanCreate(Period):
+class PlanCreate(Period, MetadataValues):
     title: Title
 
 
@@ -68,7 +69,7 @@ class ObjectiveUpdate(PlanUpdate):
     description: Description
 
 
-class TaskCreate(Command):
+class TaskCreate(MetadataValues):
     objective_id: UUID
     assignee_id: UUID
     priority_id: UUID | None = None

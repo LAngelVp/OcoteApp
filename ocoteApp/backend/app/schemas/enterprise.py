@@ -20,8 +20,17 @@ MODULES = {
     "exports",
     "integrations",
     "calendar",
+    "comments",
+    "dependencies",
+    "impediments",
+    "tags",
+    "custom_fields",
+    "templates",
+    "recurrence",
+    "search",
+    "saved_views",
 }
-FUTURE_MODULES = {"comments", "dependencies", "tags", "custom_fields"}
+FUTURE_MODULES = set()
 
 
 def civil_date(value):

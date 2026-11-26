@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, Computed, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -83,6 +83,10 @@ class WorkflowTransition(Mutable, Base):
 class AuditEvent(Identity, Base):
     __tablename__ = "audit_events"
     actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    actor_service_id: Mapped[UUID | None] = mapped_column(ForeignKey("service_principals.id"))
+    actor_kind: Mapped[str] = mapped_column(String(12), Computed(
+        "CASE WHEN actor_service_id IS NOT NULL THEN 'service' "
+        "WHEN actor_id IS NOT NULL THEN 'human' ELSE 'anonymous' END", persisted=True))
     event_type: Mapped[str] = mapped_column(String(80))
     entity_type: Mapped[str] = mapped_column(String(40))
     entity_id: Mapped[UUID | None]

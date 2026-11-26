@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Computed, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,6 +10,7 @@ from app.models.identity import Base, Identity, Mutable
 
 class AnnualPlan(Mutable, Base):
     __tablename__ = "annual_plans"
+    template_version_id: Mapped[UUID | None] = mapped_column(ForeignKey("template_versions.id"))
     title: Mapped[str] = mapped_column(String(200))
     horizon_type: Mapped[str] = mapped_column(ForeignKey("horizon_types.code", ondelete="RESTRICT"))
     start_date: Mapped[date]
@@ -22,6 +23,7 @@ class AnnualPlan(Mutable, Base):
 
 class Objective(Mutable, Base):
     __tablename__ = "objectives"
+    template_version_id: Mapped[UUID | None] = mapped_column(ForeignKey("template_versions.id"))
     annual_plan_id: Mapped[UUID] = mapped_column(ForeignKey("annual_plans.id", ondelete="RESTRICT"))
     department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id", ondelete="RESTRICT"))
     title: Mapped[str] = mapped_column(String(200))
@@ -34,6 +36,7 @@ class Objective(Mutable, Base):
 
 class Task(Mutable, Base):
     __tablename__ = "tasks"
+    template_version_id: Mapped[UUID | None] = mapped_column(ForeignKey("template_versions.id"))
     objective_id: Mapped[UUID] = mapped_column(ForeignKey("objectives.id", ondelete="RESTRICT"))
     assignee_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
@@ -63,7 +66,10 @@ class TaskHistory(Identity, Base):
     __tablename__ = "task_history"
     task_id: Mapped[UUID] = mapped_column(ForeignKey("tasks.id", ondelete="RESTRICT"))
     subtask_id: Mapped[UUID | None] = mapped_column(ForeignKey("subtasks.id", ondelete="RESTRICT"))
-    actor_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    actor_service_id: Mapped[UUID | None] = mapped_column(ForeignKey("service_principals.id"))
+    actor_kind: Mapped[str] = mapped_column(String(12), Computed(
+        "CASE WHEN actor_service_id IS NOT NULL THEN 'service' ELSE 'human' END", persisted=True))
     event_type: Mapped[str] = mapped_column(String(40))
     before_data: Mapped[dict] = mapped_column(JSONB)
     after_data: Mapped[dict] = mapped_column(JSONB)
