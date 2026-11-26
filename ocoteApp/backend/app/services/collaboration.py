@@ -1421,8 +1421,8 @@ def instantiate_template(db, user, body, request):
     return {"items": [{"path": path, "resource": entry} for path, entry in created.items()]}
 
 
-def write_principal(db, user, identity, body, request):
-    require_module(db, "recurrence")
+def write_principal(db, user, identity, body, request, *, notification_context=False):
+    require_module(db, "notifications" if notification_context else "recurrence")
     operation.permit(user, "admin")
     if len(set(body.department_ids)) != len(body.department_ids) or len(
         set(body.approved_scopes)

@@ -18,6 +18,7 @@ import { problem, Problem } from './core/problem';
       @if (session.user()?.role !== 'colaborador') { <a routerLink="/planes" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>calendar_month</mat-icon>Planes</a>
       <a routerLink="/objetivos" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>flag</mat-icon>Objetivos</a> }
       <a routerLink="/tareas" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>task_alt</mat-icon>Tareas</a>
+      @if (configuration.enabled('notifications') || configuration.enabled('calendar') && configuration.enabled('calendar_feeds')) { <a routerLink="/mi-actividad" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>notifications</mat-icon>Mi actividad</a> }
       @if (configuration.enabled('kanban')) { <a routerLink="/kanban" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>view_kanban</mat-icon>Kanban</a> }
       @if (configuration.enabled('timeline')) { <a routerLink="/timeline" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>timeline</mat-icon>Timeline</a> }
       @if (configuration.enabled('templates') && session.user()?.role !== 'colaborador') { <a routerLink="/plantillas" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>content_copy</mat-icon>Plantillas</a> }
@@ -38,6 +39,7 @@ export class Shell {
     { path: 'infraestructura', label: 'Salud y custodia', icon: 'health_and_safety' },
     { path: 'configuracion', label: 'Configuracion', icon: 'tune' },
     { path: 'colaboracion', label: 'Colaboracion', icon: 'forum' },
+    { path: 'notificaciones', label: 'Notificaciones', icon: 'notifications_active' },
     { path: 'departamentos', label: 'Departamentos', icon: 'domain' },
     { path: 'usuarios', label: 'Usuarios', icon: 'group' },
     { path: 'etapas', label: 'Etapas', icon: 'account_tree' },

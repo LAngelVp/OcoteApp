@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from alembic.config import Config
@@ -8,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.config import BACKEND_DIR, Settings
 from app.core.errors import JsonLimitMiddleware, RequestContextMiddleware, install_error_handlers
+from app.core.notifications import CalendarAccessFilter
 from app.db.engine import create_database_engine
 from app.routers.administration import router as administration_router
 from app.routers.analytics import router as analytics_router
@@ -16,12 +18,16 @@ from app.routers.collaboration import router as collaboration_router
 from app.routers.enterprise import router as enterprise_router
 from app.routers.execution import router as execution_router
 from app.routers.health import router
+from app.routers.notifications import router as notifications_router
 from app.routers.operations import router as operations_router
 from app.routers.platform import router as platform_router
 from app.services.identity import LoginLimiter
 
 
 def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
+    access_logger = logging.getLogger("uvicorn.access")
+    if not any(isinstance(item, CalendarAccessFilter) for item in access_logger.filters):
+        access_logger.addFilter(CalendarAccessFilter())
     settings = settings or Settings()
     engine = create_database_engine(settings)
     config = Config(str(BACKEND_DIR / "alembic.ini"))
@@ -60,4 +66,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(platform_router)
     app.include_router(enterprise_router)
     app.include_router(collaboration_router)
+    app.include_router(notifications_router)
     return app

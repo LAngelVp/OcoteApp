@@ -162,11 +162,12 @@ def test_f8_security_policy_rejects_out_of_registry_values(name, value):
 
 
 def test_f8_flags_cannot_activate_future_code_or_disable_core_invariants():
-    for code in ("notifications", "sso", "webhooks", "imports", "csrf", "audit", "score"):
+    for code in ("sso", "webhooks", "imports", "csrf", "audit", "score"):
         with pytest.raises(ValidationError):
             FlagWrite(**command(code=code, enabled=True))
     for code in ("comments", "dependencies", "impediments", "custom_fields", "tags",
-                 "templates", "recurrence", "search", "saved_views"):
+                 "templates", "recurrence", "search", "saved_views", "notifications",
+                 "email_notifications", "corporate_messaging", "calendar_feeds"):
         assert FlagWrite(**command(code=code, enabled=True)).enabled is True
     assert FlagWrite(**command(code="subtasks", enabled=False)).enabled is False
 

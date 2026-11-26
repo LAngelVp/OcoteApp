@@ -29,6 +29,10 @@ MODULES = {
     "recurrence",
     "search",
     "saved_views",
+    "notifications",
+    "email_notifications",
+    "corporate_messaging",
+    "calendar_feeds",
 }
 FUTURE_MODULES = set()
 

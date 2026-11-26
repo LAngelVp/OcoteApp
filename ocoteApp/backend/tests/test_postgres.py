@@ -153,14 +153,17 @@ def test_release_history_identity_versions_and_terminals_are_protected(migrator)
 def test_real_health_with_runtime_connection(runtime, api, monkeypatch):
     settings = Settings()
     revision = runtime.execute("SELECT version_num FROM public.alembic_version").fetchone()[0]
-    with TestClient(create_app(settings), raise_server_exceptions=False) as client:
+    application = create_app(settings)
+    with TestClient(application, raise_server_exceptions=False) as client:
         assert client.get("/api/v1/health/live").status_code == 200
         assert client.get("/api/v1/health/ready").status_code == 403
         response = client.get(
             "/api/v1/health/ready",
             headers={"X-Health-Token": settings.health_token.get_secret_value()},
         )
-        assert response.status_code == (200 if revision == "20261125_0008" else 503)
+        assert response.status_code == (
+            200 if revision in application.state.expected_heads else 503
+        )
         if response.status_code == 200:
             assert response.json() == {"status": "ready"}
         assert "ocote_runtime" not in response.text

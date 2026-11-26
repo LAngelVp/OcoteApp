@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -12,7 +12,7 @@ import { Feedback } from './feedback';
 
 export interface Option { value: string; label: string; disabled?: boolean; }
 export interface Field {
-  key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'number' | 'decimal' | 'password' | 'email' | 'select' | 'multi' | 'check';
+  key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'datetime-local' | 'time' | 'number' | 'decimal' | 'password' | 'email' | 'select' | 'multi' | 'check';
   required?: boolean; min?: number; max?: number; pattern?: string; options?: Option[]; value?: unknown; hint?: string;
   requiredWhen?: { key: string; values: string[] };
 }
@@ -86,6 +86,12 @@ export class Editor {
   readonly issue = signal<Problem | null>(null);
   readonly form = new FormGroup<Record<string, FormControl>>({});
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      for (const field of this.data.fields.filter(field => field.type === 'password')) {
+        this.form.get(field.key)?.reset(null, { emitEvent: false });
+        field.value = undefined;
+      }
+    });
     for (const field of this.data.fields) {
       const validators: ValidatorFn[] = [];
       if (field.required && field.type !== 'check') validators.push(Validators.required);

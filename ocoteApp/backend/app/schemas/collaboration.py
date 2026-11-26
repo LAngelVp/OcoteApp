@@ -190,7 +190,8 @@ class PrincipalWrite(Mutation):
     name: Name
     department_ids: Annotated[list[UUID], Field(min_length=1, max_length=100)]
     approved_scopes: Annotated[
-        list[Literal["tasks:create", "subtasks:create"]], Field(min_length=1, max_length=2)
+        list[Literal["tasks:create", "subtasks:create", "notifications:dispatch"]],
+        Field(min_length=1, max_length=3)
     ]
     is_active: StrictBool
 

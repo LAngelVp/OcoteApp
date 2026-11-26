@@ -57,6 +57,7 @@ class OutboxEvent(Identity, Base):
     schema_version: Mapped[int]
     task_id: Mapped[UUID | None] = mapped_column(ForeignKey("tasks.id"))
     objective_id: Mapped[UUID | None] = mapped_column(ForeignKey("objectives.id"))
+    evaluation_id: Mapped[UUID | None] = mapped_column(ForeignKey("evaluations.id"))
     actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
     actor_service_id: Mapped[UUID | None] = mapped_column(ForeignKey("service_principals.id"))
     department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.id"))
