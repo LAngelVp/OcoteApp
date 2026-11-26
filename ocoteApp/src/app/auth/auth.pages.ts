@@ -10,8 +10,8 @@ import { Feedback } from '../shared/feedback';
 
 @Component({
     imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, Feedback],
-    template: `<main class="login-page"><div class="login-brand"><img src="/ocote-mark.svg" width="64" height="64" alt="">
-    <h1>OCOTE</h1><p>Planes, ejecucion y trazabilidad</p></div>
+    template: `<main class="login-page"><div class="login-brand"><img src="/logos/ocote-complete.webp" width="1200" height="660" alt="OCOTE: Sistema de Gestion y Evaluacion" fetchpriority="high">
+    <h1 class="sr-only">OCOTE</h1></div>
     <section class="login-form" aria-labelledby="login-title"><h2 id="login-title">Iniciar sesion</h2>
     <ocote-feedback [issue]="issue()" />
     <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="busy()">

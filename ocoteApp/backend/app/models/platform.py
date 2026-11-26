@@ -57,6 +57,14 @@ class IntegrationConfig(Mutable, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     tested_version: Mapped[int | None]
     tested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    provider: Mapped[str | None] = mapped_column(String(20))
+    name: Mapped[str | None] = mapped_column(String(120))
+    scope_kind: Mapped[str | None] = mapped_column(String(20))
+    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.id"))
+    secret_id: Mapped[UUID | None] = mapped_column(ForeignKey("encrypted_secrets.id"))
+    configuration_revision_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("configuration_revisions.id")
+    )
 
 
 class IntegrationHealthCheck(Identity, Base):

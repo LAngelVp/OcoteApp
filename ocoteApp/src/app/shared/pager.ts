@@ -1,8 +1,9 @@
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Configuration } from '../core/configuration';
 
 export const pageSizes = [5, 10, 20, 50];
 
@@ -34,7 +35,7 @@ export class Pagination {
     imports: [MatButtonModule, MatIconModule, MatSelectModule, MatTooltipModule],
     template: `<nav aria-label="Paginaci&oacute;n">
     <mat-form-field subscriptSizing="dynamic"><mat-label>Filas por p&aacute;gina</mat-label><mat-select [value]="state().size()" [disabled]="busy()" (selectionChange)="sizeChange.emit($event.value)">
-      @for (size of sizes; track size) { <mat-option [value]="size">{{ size }}</mat-option> }
+      @for (size of sizes(); track size) { <mat-option [value]="size">{{ size }}</mat-option> }
     </mat-select></mat-form-field>
     <span role="status" aria-live="polite" aria-atomic="true">P&aacute;gina {{ state().number() }}</span>
     <div class="page-actions">
@@ -50,5 +51,12 @@ export class Pager {
   readonly busy = input(false);
   readonly navigate = output<string>();
   readonly sizeChange = output<number>();
-  readonly sizes = pageSizes;
+  private readonly configuration = inject(Configuration);
+  readonly sizes = computed(() => {
+    const enabled = this.configuration.value()?.['page_sizes'];
+    return Array.isArray(enabled) ? pageSizes.filter(size => enabled.includes(size)) : [5];
+  });
+  constructor() {
+    effect(() => { if (!this.sizes().includes(this.state().size())) this.sizeChange.emit(5); });
+  }
 }

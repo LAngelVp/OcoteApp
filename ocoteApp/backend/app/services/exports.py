@@ -184,7 +184,9 @@ def prepare(db, user, body, request, *, evaluation_id=None):
             if body.format == "json"
             else encode_csv(rows, encoded)
         )
-        if len(content) > MAX_BYTES:
+        from app.services.enterprise import policy
+
+        if len(content) > min(MAX_BYTES, policy(db).export_max_bytes):
             raise CommandError(413, "EXPORT_TOO_LARGE")
     except Exception as error:
         log_export(

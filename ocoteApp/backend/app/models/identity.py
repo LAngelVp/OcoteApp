@@ -38,6 +38,9 @@ class User(Mutable, Base):
     role: Mapped[str] = mapped_column(String(20))
     token_version: Mapped[int] = mapped_column(Integer, default=1)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    failed_attempt_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    failed_window_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RefreshSession(Identity, Base):
@@ -47,6 +50,7 @@ class RefreshSession(Identity, Base):
     jti_hash: Mapped[str] = mapped_column(String(64), unique=True)
     token_version: Mapped[int]
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replaced_by_id: Mapped[UUID | None] = mapped_column(

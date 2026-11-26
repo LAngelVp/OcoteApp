@@ -1,5 +1,24 @@
 # OCOTE: arquitectura y modelo de datos
 
+**F8 cerrada local/sintetico:** [acta20](03-estado-actual-y-roadmap.md#estado-f8-tras-la-release0007), head20261125_0007/32 tablas incluyendo Alembic/8 releases terminales; **PG1 final223 aprobadas/0 fallidas**,596.53s/una advertencia conocida. Reset de reautenticacion con flush antes de otra mutacion, misma transaccion/sin commits adicionales ni DDL, validado en PG real. PG0 previo147/76 omitidas y Ruff/pip aprobados; Angular175/build/visual1280-360 CSS previos conservados.32 tablas/configuracion/instancia/raiz y codigo durante PG1 intactos, cero UUID restantes; live/ready/8443 en200, relevo revocado inmediatamente/ausente.0001..0007 inmutables; siguiente esquema requiere0008/autorizacion. Custodia/proveedores/ClamAV reales pendientes, cargas cerradas; no homologacion cliente ni autorizacion F9..F12. Estados F7/F6 siguientes historicos.
+
+### Modelo F8 instalado
+
+[Revision0007](../backend/alembic/versions/20261125_0007_enterprise.py) y [modelos F8](../backend/app/models/enterprise.py): seis tablas nuevas, cero filas precargadas en origen. El inventario empresarial de47 nombres proyectados tiene ahora12 materializados minimos F7/F8 y35 pendientes; las columnas/contratos extendidos proyectados no se declaran completos.
+
+| Tabla F8 | Contrato instalado |
+| --- | --- |
+| security_policies | Singleton explicito, politica/limites tipados con techos fijos, version y revision auditada; sin seed |
+| feature_flags | Code cerrado/instalado, enabled/version/revision; futuro no instalable mediante flag |
+| private_assets | Bytes PNG/JPEG recodificados/escaneados/hash, sin DELETE/TRUNCATE runtime ni publicacion anonima |
+| organization_profiles | Texto/tokens/logo privado por version/revision; nombre institucional conserva autoridad system_settings |
+| calendar_configs | Organizacion o departamento, weekday_mask e inheritance explicitos, version/revision |
+| calendar_holidays | Fecha civil/festivo activo-inactivo/revision, sin DELETE ni cambio de compromisos |
+
+configuration_revisions agrega secuencia BIGINT global; users agrega contador/ventana/bloqueo, refresh_sessions.last_seen_at y vencimientos dinamicos sin prolongar familia. integration_configs agrega object_storage S3/Azure/alcance/owner secreto/revision; activacion exige prueba actual <=10min (sustituye15min F7). evidence_files captura storage_config_id/version para objetos nuevos, null historico mantiene local. FK, historial, originales/finales/root_key_ref y grants minimos preservados. Sin cambio de roles/formulas, seeds, purga, colas ni wizard.
+
+[Transporte HTTPS](../backend/app/core/object_storage.py) valida TLS/SNI y DNS/IP allowlist sin redirects; S3 SigV4/Azure Shared Key, probes UUID privados, hash y borrado solo de sonda/objeto nuevo compensado. [Selector de evidencia](../backend/app/services/object_integrations.py) prioriza departamento/organizacion y usa referencia capturada al descargar. AES-GCM write-only purpose object_storage en raiz DPAPI existente; nada de secretos en GET/SPA/logs. Blocklist offline NCSC/SecLists empaquetada/licenciada/hash fijo; no egress de contrasenas. Tests de transporte sinteticos, sin servicio externo/identidad administrada/antivirus real homologados; custodia pendiente/cargas cerradas.
+
 Estado vigente: [incremento F7 acotado completado local/sintetico](03-estado-actual-y-roadmap.md#cierre-del-incremento-f7-acotado), head0006/26 tablas/siete releases, datos F6 preservados. Seis tablas F7 minimas implementadas de las47 proyectadas;41 nombres restantes sin crear y columnas/contratos extendidos aun futuros. Angular21 LTS; PG0:105/73 omitidas, PG1:178, Angular171/build/visual1280-360 CSS/Ruff/pip aprobados; API live/ready200 y relevo administrativo eliminado. Raiz de boveda nueva DPAPI externa y AES-256-GCM persistido/write-only, sin sustitucion de claves de autenticacion. Custodia BD/API/UI disponible pero contactos vacios, proveedores sin configurar/cargas cerradas. Setup Wizard y empaquetador in-house diferidos al cierre final posterior a branding/F8..F12; fases aun bloqueadas. Inventario F6 y restricciones documentales siguientes son antecedentes, no estado actual ni homologacion cliente.
 
 ### Modelo F7 minimo instalado

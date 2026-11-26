@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import func, select
 
 from app.core.errors import CommandError
-from app.core.evidence import ClamAV, EvidenceStore, failure, private_root
+from app.core.evidence import ClamAV, failure, private_root
 from app.core.vault import ALGORITHM, EncryptedValue, OSSealedFile, Vault, WrappedKey
 from app.models.platform import (
     ConfigurationRevision,
@@ -49,16 +49,18 @@ def vault(db, request=None):
 
 
 def revision(db, request, actor, record, reason, changed):
-    db.add(
-        ConfigurationRevision(
+    identity = uuid4()
+    entry = ConfigurationRevision(
+            id=identity,
             actor_id=actor.id,
             request_id=UUID(request.state.request_id),
             entity_id=record.id,
             entity_type=record.__tablename__,
             reason=reason,
             changed_keys=sorted(changed),
-        )
     )
+    db.add(entry)
+    db.flush([entry])
     audit(
         db,
         request,
@@ -68,6 +70,7 @@ def revision(db, request, actor, record, reason, changed):
         entity_id=record.id,
         after={"changed_keys": sorted(changed), "reason": reason},
     )
+    return identity
 
 
 def custody_view(record):
@@ -215,7 +218,7 @@ def activate_integration(db, kind, body, request, actor):
     if body.is_active and (
         record.tested_version != record.config_revision
         or record.tested_at is None
-        or datetime.now(UTC) - record.tested_at > timedelta(minutes=15)
+        or datetime.now(UTC) - record.tested_at > timedelta(minutes=10)
     ):
         raise CommandError(409, "FRESH_VERIFICATION_REQUIRED")
     record.is_active = body.is_active
@@ -226,15 +229,9 @@ def activate_integration(db, kind, body, request, actor):
 
 
 def configured_store(db):
-    records = {row.kind: row for row in db.scalars(select(IntegrationConfig))}
-    if set(records) != {"local_storage", "clamav"} or any(
-        not row.is_active or row.tested_version != row.config_revision for row in records.values()
-    ):
-        raise failure()
-    storage, scanner = records["local_storage"].config, records["clamav"].config
-    root = Path(storage["root"])
-    private_root(root)
-    return EvidenceStore(root, ClamAV(scanner["port"], scanner["timeout"]))
+    from app.services.object_integrations import configured_store as selected_store
+
+    return selected_store(db)
 
 
 def wrapped(record):
@@ -402,7 +399,12 @@ def health(db, request):
         "vault_available": available,
         "custody": custody_view(record) if record else None,
         "integrations": views,
-        "evidence_configuration_verified": len(providers) == 2
-        and all(row.is_active and row.tested_version == row.config_revision for row in providers),
+        "evidence_configuration_verified": any(
+            row.kind == "clamav" and row.is_active and row.tested_version == row.config_revision
+            for row in providers
+        ) and any(
+            row.kind in {"local_storage", "object_storage"} and row.is_active
+            and row.tested_version == row.config_revision for row in providers
+        ),
         "customer_operational_acceptance": False,
     }

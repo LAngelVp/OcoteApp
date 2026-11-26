@@ -30,17 +30,28 @@ def api(tokens):
     if os.environ.get("OCOTE_RUN_PG_TESTS") != "1":
         pytest.skip("Explicit OCOTE_RUN_PG_TESTS=1 and local administrative environment required")
     from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, select, text
     from sqlalchemy.engine import make_url
     from sqlalchemy.orm import sessionmaker
+    from test_f8 import policy_values
 
     from app.core.config import Settings
     from app.main import create_app
+    from app.models.identity import User
+    from app.schemas.enterprise import MODULES, FlagWrite, PolicyWrite
+    from app.services.enterprise import save_flag, save_policy
     from app.services.identity import bootstrap_admin
-    from tools.f2_local import isolated_database, upgrade
+    from tools.f2_local import isolated_database, migration_engine, upgrade
 
     with isolated_database() as name:
         upgrade(name)
+        migrator = migration_engine(name)
+        try:
+            with migrator.begin() as connection:
+                connection.execute(text("INSERT INTO deployment_instances(id,root_key_ref) "
+                                        "VALUES(:id,'synthetic-root')"), {"id": uuid4()})
+        finally:
+            migrator.dispose()
         engine = create_engine(
             make_url(Settings().database_url.get_secret_value()).set(database=name),
             hide_parameters=True,
@@ -56,6 +67,14 @@ def api(tokens):
                     password="Synthetic-password-123!",
                     request=SimpleNamespace(state=SimpleNamespace(request_id=str(uuid4()))),
                 )
+                actor = db.scalar(select(User))
+                synthetic = {"expected_version": 0, "reason": "Explicit UUID-only F8 fixture",
+                             "current_password": "Synthetic-password-123!"}
+                request = SimpleNamespace(state=SimpleNamespace(request_id=str(uuid4())))
+                save_policy(db, PolicyWrite(**synthetic, values=policy_values()), request, actor)
+                for code in MODULES:
+                    request = SimpleNamespace(state=SimpleNamespace(request_id=str(uuid4())))
+                    save_flag(db, FlagWrite(**synthetic, code=code, enabled=True), request, actor)
             app = create_app(tokens=tokens)
             app.state.session_factory = factory
             with TestClient(
@@ -629,7 +648,7 @@ def test_real_initial_graph_and_dependency_safe_deactivation(api):
     assert overflow.status_code == 422
     assert overflow.headers["content-type"] == "application/problem+json"
     assert overflow.json()["request_id"] == overflow.headers["x-request-id"]
-    events = client.get("/api/v1/audit-events", params={"limit": 100}).json()["items"]
+    events = client.get("/api/v1/audit-events", params={"limit": 50}).json()["items"]
     reasons = {
         event["after_data"].get("reason") for event in events
         if event["entity_id"] == department and event["after_data"]
@@ -1021,13 +1040,13 @@ def test_real_audit_and_release_projection_pagination(api):
     for path in ("audit-events", "releases"):
         seen, cursor = set(), None
         while True:
-            params = {"limit": 1}
+            params = {"limit": 5}
             if cursor:
                 params["cursor"] = cursor
             response = client.get("/api/v1/" + path, params=params)
             assert response.status_code == 200
             body = response.json()
-            assert len(body["items"]) <= 1
+            assert len(body["items"]) <= 5
             for record in body["items"]:
                 assert record["id"] not in seen
                 seen.add(record["id"])
@@ -1038,7 +1057,7 @@ def test_real_audit_and_release_projection_pagination(api):
             cursor = body["next_cursor"]
             if cursor is None:
                 break
-        assert len(seen) == (3 if path == "releases" else 2)
+        assert len(seen) == (3 if path == "releases" else 12)
     assert client.get("/api/v1/releases/" + str(uuid4())).status_code == 404
     assert client.get("/api/v1/release-history").json() == client.get("/api/v1/releases").json()
 

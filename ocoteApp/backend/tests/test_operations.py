@@ -156,7 +156,9 @@ def test_real_four_subtasks_pending_closure_and_versions(core):
         {"status": "closed", "expected_version": 2, "reason": "Synthetic explicit closure"},
     )
     assert closed["status"] == "closed"
-    events = client.get("/api/v1/tasks/" + task["id"] + "/history").json()["items"]
+    events = client.get(
+        "/api/v1/tasks/" + task["id"] + "/history", params={"limit": 10}
+    ).json()["items"]
     assert len(events) == 10
     assert len({event["subtask_id"] for event in events if event["subtask_id"]}) == 4
 
@@ -556,7 +558,7 @@ def test_real_child_request_and_history_pagination(core):
     while True:
         page = client.get(
             "/api/v1/tasks/" + task["id"] + "/history",
-            params={"limit": 1, **({"cursor": cursor} if cursor else {})},
+            params={"limit": 5, **({"cursor": cursor} if cursor else {})},
         ).json()
         events.extend(page["items"])
         cursor = page["next_cursor"]

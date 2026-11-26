@@ -38,6 +38,7 @@ class BrowserApi {
   queries: { path:string;query:Record<string,string> }[] = [];
   writes: { path:string;body:Row;method:string }[] = [];
   response: (path:string,query?:Record<string,string>) => unknown = path => {
+    if (path === '/configuration') return { revision:1,branding:{token_overrides:{}},flags:{kanban:true,timeline:true,analytics:true,evaluations:true},page_sizes:[5,10,20,50] };
     if (path === '/catalogs/workflow') return { stages:[{ id:'synthetic-open',name:'Abierta',kind:'open' }],transitions:[] };
     if (path === '/tasks/synthetic-task') return syntheticTask;
     if (path === '/due-date-requests/synthetic-request') return syntheticRequest;

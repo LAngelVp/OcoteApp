@@ -12,6 +12,7 @@ from app.db.engine import create_database_engine
 from app.routers.administration import router as administration_router
 from app.routers.analytics import router as analytics_router
 from app.routers.auth import router as auth_router
+from app.routers.enterprise import router as enterprise_router
 from app.routers.execution import router as execution_router
 from app.routers.health import router
 from app.routers.operations import router as operations_router
@@ -56,4 +57,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(execution_router)
     app.include_router(analytics_router)
     app.include_router(platform_router)
+    app.include_router(enterprise_router)
     return app

@@ -3,6 +3,25 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "OCOTE F8: credencial administrativa",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.f8_local", "authorize"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend" }
+      },
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true,
+        "echo": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "OCOTE F7: build",
       "type": "process",
       "command": "node",

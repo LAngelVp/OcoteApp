@@ -223,6 +223,9 @@ def audit_change(db, request, actor, record, before, reason):
 def create_record(db, model, body, actor, request):
     values = body.model_dump(exclude={"reason", "password"})
     if model is User:
+        from app.services.enterprise import validate_password
+
+        validate_password(db, body.password.get_secret_value())
         values["password_hash"] = PASSWORDS.hash(body.password.get_secret_value())
     record = model(**values)
     validate_record(db, record)

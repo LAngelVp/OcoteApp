@@ -534,6 +534,10 @@ packaging==26.4 \
     #   build
     #   pytest
     #   wheel
+pillow==13.0.0 \
+    --hash=sha256:cdcd1ba258178f7356d74170c9a81ba4eab6a5d55748bc402a5a2a6fe6be3510 \
+    --hash=sha256:ff3fe9eb621fbb9db4c4be33ab946f6bac5f98ab50ca8d3260503653656c961b
+    # via ocote-backend (backend/pyproject.toml)
 pip-tools==7.5.2 \
     --hash=sha256:2d64d72da6a044da1110257d333960563d7a4743637e8617dd2610ae7b82d60f \
     --hash=sha256:2fe16db727bbe5bf28765aeb581e792e61be51fc275545ef6725374ad720a1ce

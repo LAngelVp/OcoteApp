@@ -1,13 +1,13 @@
 from typing import Annotated, Literal
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import func, select
 from starlette.concurrency import run_in_threadpool
 
-from app.core.evidence import EvidenceSettings
+from app.core.errors import CommandError
 from app.models.identity import WorkflowStage
 from app.models.operations import AnnualPlan, EvidenceFile, Objective, Subtask, Task
 from app.routers.operations import Limit, page
@@ -150,7 +150,8 @@ def timeline(
 
 @router.get("/tasks/{identity}/evidence")
 def evidence_list(
-    identity: UUID, user: CurrentUser, db: Database, limit: Limit = 50, cursor: UUID | None = None
+    identity: UUID, request: Request, user: CurrentUser, db: Database,
+    limit: Limit = 5, cursor: UUID | None = None
 ):
     service.visible(db, Task, identity, user)
     rows, following = page(
@@ -160,13 +161,18 @@ def evidence_list(
         limit,
         cursor,
     )
-    settings = EvidenceSettings()
+    configured = False
+    try:
+        _, objective, _, _ = service.task_context(db, user, identity)
+        evidence.store(request, db, department_id=objective.department_id)
+        configured = True
+    except CommandError:
+        pass
     return {
         "items": [evidence.view(row) for row in rows],
         "next_cursor": following,
         "upload_limit_bytes": service.configuration(db)["evidence_max_bytes"],
-        "uploads_configured": settings.evidence_storage_root is not None
-        and settings.evidence_clamav_port is not None,
+        "uploads_configured": configured,
     }
 
 
@@ -207,6 +213,12 @@ def download(identity: UUID, request: Request, user: CurrentUser, db: Database):
         after={"command": "evidence_download_requested", "task_id": str(record.task_id)},
     )
     db.flush()
+    if isinstance(path, bytes):
+        return Response(
+            path, media_type=record.media_type,
+            headers={"Content-Disposition": "attachment; filename*=UTF-8''" +
+                     quote(record.original_name, safe="")},
+        )
     return FileResponse(
         path,
         media_type=record.media_type,

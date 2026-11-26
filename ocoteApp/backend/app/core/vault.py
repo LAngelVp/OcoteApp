@@ -12,7 +12,8 @@ from app.core.errors import CommandError
 from app.core.evidence import private_root
 
 ALGORITHM = "AES-256-GCM"
-PURPOSES = frozenset({"jwt_signing", "csrf", "health_monitor", "local_storage", "clamav", "backup"})
+PURPOSES = frozenset({"jwt_signing", "csrf", "health_monitor", "local_storage", "clamav", "backup",
+                      "object_storage"})
 
 
 def unavailable():

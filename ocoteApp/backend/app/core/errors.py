@@ -56,7 +56,9 @@ class JsonLimitMiddleware:
             if message["type"] == "http.disconnect":
                 return
             body.extend(message.get("body", b""))
-            if len(body) > (10485760 if upload else 1048576):
+            maximum = (10485760 if upload else
+                       1410000 if path == "/api/v1/admin/branding/logo" else 1048576)
+            if len(body) > maximum:
                 await problem(Request(scope), 413, "PAYLOAD_TOO_LARGE", "Request body too large.")(
                     scope, receive, send
                 )
@@ -90,7 +92,9 @@ class RequestContextMiddleware:
                 response_started = True
                 status = message["status"]
                 headers = list(message.get("headers", []))
-                headers = [(key, value) for key, value in headers if key != b"x-request-id"]
+                headers = [(key, value) for key, value in headers if key not in {
+                    b"x-request-id", b"cache-control", b"x-content-type-options"
+                }]
                 headers.append((b"x-request-id", request_id.encode("ascii")))
                 headers.append((b"cache-control", b"no-store"))
                 headers.append((b"x-content-type-options", b"nosniff"))

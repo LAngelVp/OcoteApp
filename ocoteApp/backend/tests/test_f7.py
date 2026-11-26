@@ -148,8 +148,8 @@ def test_real_f7_additive_migration_and_permissions():
                         text("SELECT tablename FROM pg_tables WHERE schemaname='public'")
                     )
                 )
-            upgrade(name)
-            upgrade(name)
+            upgrade(name, "20261125_0006")
+            upgrade(name, "20261125_0006")
             with engine.connect() as connection:
                 assert (
                     connection.scalar(text("SELECT version_num FROM alembic_version"))
@@ -178,14 +178,11 @@ def platform_api(api):
     from tools.f2_local import migration_engine
 
     client, factory = api
-    identity, root_ref = uuid4(), "synthetic-root"
+    root_ref = "synthetic-root"
     engine = migration_engine(factory.kw["bind"].url.database)
     try:
         with engine.begin() as connection:
-            connection.execute(
-                text("INSERT INTO deployment_instances(id,root_key_ref) VALUES(:id,:ref)"),
-                {"id": identity, "ref": root_ref},
-            )
+            identity = connection.scalar(text("SELECT id FROM deployment_instances"))
     finally:
         engine.dispose()
     client.app.state.vault = Vault(os.urandom(32), identity, root_ref)

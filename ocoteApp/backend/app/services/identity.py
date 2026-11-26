@@ -177,7 +177,7 @@ def current_user(request: Request, db: Database, tokens: TokenService) -> User:
     claims = tokens.decode(authorization[7:], "access")
     user = db.get(User, UUID(claims["sub"]))
     family = db.scalar(
-        select(RefreshSession.id)
+        select(RefreshSession)
         .where(
             RefreshSession.user_id == UUID(claims["sub"]),
             RefreshSession.family_id == UUID(claims["sid"]),
@@ -190,6 +190,25 @@ def current_user(request: Request, db: Database, tokens: TokenService) -> User:
     )
     if not user or not user.is_active or user.token_version != claims["ver"] or family is None:
         raise CommandError(401, "INVALID_CREDENTIALS")
+    from app.services.enterprise import policy, request_modules, require_page_size, session_policy
+
+    configured = policy(db, required=False)
+    if configured is None and (
+        user.role != "admin" or not request.url.path.startswith(
+            ("/api/v1/admin/", "/api/v1/auth/", "/api/v1/configuration")
+        )
+    ):
+        raise CommandError(503, "SECURITY_CONFIGURATION_REQUIRED")
+    session_policy(db, family, claims)
+    if "limit" in request.query_params and request.url.path.split("/")[3] not in {
+        "analytics", "kanban", "timeline"
+    }:
+        try:
+            size = int(request.query_params["limit"])
+        except ValueError:
+            raise CommandError(422, "PAGE_SIZE_NOT_ALLOWED") from None
+        require_page_size(db, size)
+    request_modules(db, request)
     request.state.actor = user.id
     return user
 
@@ -231,22 +250,30 @@ class LoginLimiter:
 
 
 def session_response(db, tokens, user, family, expires):
+    from app.services.enterprise import policy
+
+    settings = policy(db, required=False)
+    seconds = settings.access_ttl_seconds if settings else 600
     jti = secrets.token_urlsafe(32)
+    issued = now()
     record = RefreshSession(
         id=uuid4(),
+        created_at=issued,
         user_id=user.id,
         family_id=family,
         jti_hash=jti_hash(jti),
         token_version=user.token_version,
         expires_at=expires,
+        last_seen_at=issued,
     )
     db.add(record)
     db.flush()
     refresh = tokens.encode(user, family, "refresh", expires, jti)
     result = {
-        "access_token": tokens.access(user, family),
+        "access_token": tokens.encode(user, family, "access", now() + timedelta(seconds=seconds),
+                           secrets.token_urlsafe(32)),
         "token_type": "bearer",
-        "expires_in": 600,
+        "expires_in": seconds,
         "csrf_token": tokens.csrf(family, expires),
         "user": user_view(user),
     }
@@ -259,16 +286,38 @@ def login(db, tokens, request, body):
         body.email, request.client.host if request.client else "local"
     )
     user = db.scalar(select(User).where(User.email == body.email).with_for_update())
+    from app.services.enterprise import policy
+
+    settings = policy(db, required=False)
+    moment = now()
+    locked = bool(user and user.locked_until and user.locked_until > moment)
     valid = verify_password(
-        user.password_hash if user else DUMMY_HASH, body.password.get_secret_value()
+        user.password_hash if user and not locked else DUMMY_HASH, body.password.get_secret_value()
     )
-    if not valid or not user or not user.is_active:
+    if not valid or not user or not user.is_active or locked:
+        if user and user.is_active and settings and not locked:
+            window = timedelta(seconds=settings.failed_window_seconds)
+            if user.failed_window_at is None or moment - user.failed_window_at >= window:
+                user.failed_window_at, user.failed_attempt_count = moment, 0
+            user.failed_attempt_count += 1
+            if user.failed_attempt_count >= settings.failed_attempt_threshold:
+                user.locked_until = moment + timedelta(seconds=settings.lockout_seconds)
+            touch(user)
         audit(db, request, "login_failed", outcome="denied")
         raise CommandError(401, "INVALID_CREDENTIALS", persist=True)
+    if settings is None and user.role != "admin":
+        raise CommandError(503, "SECURITY_CONFIGURATION_REQUIRED")
+    if user.failed_attempt_count or user.failed_window_at or user.locked_until:
+        user.failed_attempt_count = 0
+        user.failed_window_at = user.locked_until = None
+        touch(user)
     if PASSWORDS.check_needs_rehash(user.password_hash):
         user.password_hash = PASSWORDS.hash(body.password.get_secret_value())
         touch(user)
-    record, refresh, result = session_response(db, tokens, user, uuid4(), now() + timedelta(days=7))
+    seconds = settings.refresh_absolute_seconds if settings else 604800
+    record, refresh, result = session_response(
+        db, tokens, user, uuid4(), now() + timedelta(seconds=seconds)
+    )
     audit(db, request, "login_success", actor=user.id, entity_id=record.family_id)
     return refresh, result
 
@@ -302,6 +351,9 @@ def cookie_session(db, tokens, request):
 def rotate(db, tokens, request):
     origin(request, tokens)
     user, record = cookie_session(db, tokens, request)
+    from app.services.enterprise import session_policy
+
+    session_policy(db, record)
     tokens.check_csrf(request.headers.get("x-csrf-token", ""), record.family_id, record.expires_at)
     if record.consumed_at is not None or record.revoked_at is not None:
         revoke(db, family=record.family_id)
@@ -341,9 +393,10 @@ def logout(db, tokens, request):
 
 def change_password(db, tokens, request, user, body):
     origin(request, tokens)
-    db.refresh(user, with_for_update=True)
-    if not verify_password(user.password_hash, body.current_password.get_secret_value()):
-        raise CommandError(401, "INVALID_CREDENTIALS")
+    from app.services.enterprise import reauthenticate, validate_password
+
+    reauthenticate(db, user, body, request)
+    validate_password(db, body.new_password.get_secret_value())
     user.password_hash = PASSWORDS.hash(body.new_password.get_secret_value())
     user.token_version += 1
     touch(user)

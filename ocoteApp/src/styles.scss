@@ -29,8 +29,12 @@ small, .muted, .eyebrow { color: var(--ocote-text-secondary); }
 small { display: block; font-size: 14px; }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 9999; background: var(--ocote-surface); padding: 12px; }
 .skip-link:focus { top: 8px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .app-header { min-height: 72px; border-top: 4px solid var(--ocote-primary); border-bottom: 1px solid var(--ocote-border); background: var(--ocote-surface); display: flex; align-items: center; gap: 20px; padding: 8px 28px; }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-weight: 750; font-size: 24px; color: var(--ocote-secondary); }
+.brand picture, .brand img { display: block; width: 48px; height: 48px; flex: 0 0 auto; }
+.brand img { object-fit: contain; }
+@media (min-width: 1280px) { .brand picture, .brand img { width: 204px; height: 67px; } }
 .environment { font-size: 12px; font-weight: 700; color: var(--ocote-secondary); border-left: 1px solid var(--ocote-border); padding-left: 20px; }
 .account { display: flex; gap: 12px; align-items: center; margin-left: auto; min-width: 0; }
 .account a { text-decoration: none; color: var(--ocote-text); overflow-wrap: anywhere; }
@@ -79,8 +83,9 @@ progress { accent-color: var(--ocote-primary); width: 180px; max-width: 100%; }
 mat-form-field { width: 100%; }
 .narrow-form { max-width: 480px; display: grid; gap: 8px; }
 .profile { display: grid; gap: 32px; grid-template-columns: minmax(180px, 1fr) minmax(240px, 2fr); }
-.login-page { min-height: 100dvh; display: grid; align-content: center; justify-items: center; padding: 32px 20px; background: linear-gradient(180deg, var(--ocote-surface) 0%, var(--ocote-background) 100%); }
-.login-brand { text-align: center; margin-bottom: 24px; }
+.login-page { min-height: 100dvh; display: grid; align-content: center; justify-items: center; padding: 32px 20px; background: #F6F4F0; }
+.login-brand { text-align: center; margin-bottom: 24px; width: min(100%, 400px); }
+.login-brand img { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 660; object-fit: contain; mix-blend-mode: multiply; }
 .login-brand h1 { color: var(--ocote-secondary); font-size: 36px; margin: 8px 0; }
 .login-brand p { color: var(--ocote-text-secondary); margin: 0; }
 .login-form { width: min(100%, 400px); padding-top: 24px; border-top: 3px solid var(--ocote-secondary); }

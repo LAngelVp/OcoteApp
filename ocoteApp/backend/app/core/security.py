@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -22,6 +23,19 @@ DUMMY_HASH = PASSWORDS.hash(secrets.token_urlsafe(32))
 CONFIG_LOCK = 726_018_242
 COOKIE = "ocote_refresh"
 COOKIE_PATH = "/api/v1/auth"
+PASSWORD_BLOCKLIST = Path(__file__).with_name("data") / "ncsc-100k.txt"
+PASSWORD_BLOCKLIST_SHA256 = "c2e5696882c603b76bb67a47ee970897e5a76fc4c3f5547abe3d0ca340c576e0"
+
+
+@lru_cache(maxsize=1)
+def compromised_passwords():
+    try:
+        content = PASSWORD_BLOCKLIST.read_bytes()
+        if hashlib.sha256(content).hexdigest() != PASSWORD_BLOCKLIST_SHA256:
+            raise ValueError("Invalid password blocklist integrity")
+        return frozenset(line.casefold() for line in content.decode("utf-8").splitlines())
+    except (OSError, ValueError, UnicodeError):
+        raise CommandError(503, "PASSWORD_BLOCKLIST_UNAVAILABLE") from None
 
 
 def now() -> datetime:

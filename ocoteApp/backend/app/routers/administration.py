@@ -50,7 +50,7 @@ def crud(path, model, create_schema, update_schema):
     def listing(
         actor: Administrator,
         db: Database,
-        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+        limit: Annotated[int, Query(ge=1, le=100)] = 5,
         cursor: UUID | None = None,
     ):
         query = select(model).order_by(model.id).limit(limit + 1)
@@ -149,6 +149,9 @@ def reset_password(
 ):
     record = service.get_record(db, User, identity)
     service.check_version(record, body.expected_version)
+    from app.services.enterprise import validate_password
+
+    validate_password(db, body.new_password.get_secret_value())
     record.password_hash = PASSWORDS.hash(body.new_password.get_secret_value())
     record.token_version += 1
     touch(record)
@@ -289,7 +292,7 @@ def configuration_status(actor: Administrator, db: Database):
 def audit_events(
     actor: Administrator,
     db: Database,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    limit: Annotated[int, Query(ge=1, le=100)] = 5,
     cursor: UUID | None = None,
 ):
     query = select(AuditEvent).order_by(AuditEvent.id).limit(limit + 1)
@@ -330,7 +333,7 @@ RELEASE_PROJECTION = (
 def releases(
     actor: Administrator,
     db: Database,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    limit: Annotated[int, Query(ge=1, le=100)] = 5,
     cursor: UUID | None = None,
 ):
     query = "SELECT " + RELEASE_PROJECTION + " FROM release_history"

@@ -17,7 +17,7 @@ export class Api {
     const rows: Row[] = [], seen = new Set<string>();
     let cursor = '';
     do {
-      const page = await this.get<Page>(path, { ...query, limit: '100', ...(cursor ? { cursor } : {}) });
+      const page = await this.get<Page>(path, { ...query, limit: '5', ...(cursor ? { cursor } : {}) });
       rows.push(...page.items);
       cursor = page.next_cursor ?? '';
       if (cursor && seen.has(cursor)) throw new Error('Invalid pagination');
@@ -36,6 +36,9 @@ export class Api {
   }
   download(identity: string): Promise<Blob> {
     return firstValueFrom(this.http.get('/api/v1/evidence/' + encodeURIComponent(identity) + '/content', { responseType: 'blob' }));
+  }
+  logo(identity: string): Promise<Blob> {
+    return firstValueFrom(this.http.get('/api/v1/branding/logo/' + encodeURIComponent(identity), { responseType: 'blob' }));
   }
   async exportFile(path: string, body: Row): Promise<Blob> {
     try { return await firstValueFrom(this.http.post('/api/v1' + path, body, { responseType: 'blob' })); }

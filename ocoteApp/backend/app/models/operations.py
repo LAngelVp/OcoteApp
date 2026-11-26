@@ -77,6 +77,8 @@ class EvidenceFile(Identity, Base):
     uploaded_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     original_name: Mapped[str] = mapped_column(String(255))
     storage_key: Mapped[str] = mapped_column(String(32), unique=True)
+    storage_config_id: Mapped[UUID | None] = mapped_column(ForeignKey("integration_configs.id"))
+    storage_config_version: Mapped[int | None]
     media_type: Mapped[str] = mapped_column(String(100))
     size_bytes: Mapped[int] = mapped_column(BigInteger)
     sha256: Mapped[str] = mapped_column(String(64))

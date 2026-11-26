@@ -44,7 +44,7 @@ def page(db, query, model, limit, cursor):
 
 
 @router.get("/annual-plans")
-def plans(user: CurrentUser, db: Database, limit: Limit = 50, cursor: UUID | None = None):
+def plans(user: CurrentUser, db: Database, limit: Limit = 5, cursor: UUID | None = None):
     rows, following = page(
         db, service.scope(select(AnnualPlan), AnnualPlan, user), AnnualPlan, limit, cursor
     )
@@ -95,7 +95,7 @@ def plan_status(
 def objectives(
     user: CurrentUser,
     db: Database,
-    limit: Limit = 50,
+    limit: Limit = 5,
     cursor: UUID | None = None,
     annual_plan_id: UUID | None = None,
     department_id: UUID | None = None,
@@ -144,7 +144,7 @@ def objective_period(
 def tasks(
     user: CurrentUser,
     db: Database,
-    limit: Limit = 50,
+    limit: Limit = 5,
     cursor: UUID | None = None,
     annual_plan_id: UUID | None = None,
     department_id: UUID | None = None,
@@ -230,7 +230,7 @@ task_command("/schedule-changes", ScheduleChange, "schedule_changed")
 
 @router.get("/tasks/{identity}/subtasks")
 def subtasks(
-    identity: UUID, user: CurrentUser, db: Database, limit: Limit = 50, cursor: UUID | None = None
+    identity: UUID, user: CurrentUser, db: Database, limit: Limit = 5, cursor: UUID | None = None
 ):
     service.visible(db, Task, identity, user)
     rows, following = page(
@@ -290,7 +290,7 @@ def request_subtask_date(
 def date_requests(
     user: CurrentUser,
     db: Database,
-    limit: Limit = 50,
+    limit: Limit = 5,
     cursor: UUID | None = None,
     status: Literal["pending", "approved", "rejected", "cancelled"] | None = None,
 ):
@@ -325,7 +325,7 @@ decision_command("cancel", "cancelled")
 
 @router.get("/tasks/{identity}/history")
 def history(
-    identity: UUID, user: CurrentUser, db: Database, limit: Limit = 50, cursor: UUID | None = None
+    identity: UUID, user: CurrentUser, db: Database, limit: Limit = 5, cursor: UUID | None = None
 ):
     service.visible(db, Task, identity, user)
     query = select(TaskHistory).where(TaskHistory.task_id == identity)
