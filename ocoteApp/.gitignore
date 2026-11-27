@@ -63,7 +63,7 @@ htmlcov/
 /backend/*.egg-info/
 
 # Portable PostgreSQL: obtain binaries separately; never commit live data
-/database/postgres/
+# /database/postgres/
 /database/data/
 /database/logs/
 /database/backups/
