@@ -25,6 +25,8 @@ import { problem, Problem } from './core/problem';
       @if (session.has('date-requests:create')) { <a routerLink="/solicitudes-fecha" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>event_repeat</mat-icon>Solicitudes de fecha</a> }
       @if (session.has('analytics:read') && configuration.enabled('analytics')) { <a routerLink="/analitica" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>monitoring</mat-icon>Analitica</a> }
       @if (session.has('evaluations:read')) { <a routerLink="/evaluaciones" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>fact_check</mat-icon>Evaluaciones</a> }
+      @if (configuration.enabled('imports') && session.user()?.role !== 'colaborador') { <a routerLink="/importaciones" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>upload_file</mat-icon>Importaciones</a> }
+      @if (configuration.enabled('executive_reports') && session.has('exports:read')) { <a routerLink="/reportes-ejecutivos" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>description</mat-icon>Reportes ejecutivos</a> }
       @if (session.has('administration:manage')) { <p class="nav-label">ADMINISTRACION</p>
         @for (item of adminLinks; track item.path) { <a [routerLink]="'/administracion/' + item.path" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>{{ item.icon }}</mat-icon>{{ item.label }}</a> }
       }<a routerLink="/perfil" routerLinkActive="active" ariaCurrentWhenActive="page"><mat-icon>account_circle</mat-icon>Mi perfil</a>
@@ -41,6 +43,7 @@ export class Shell {
     { path: 'colaboracion', label: 'Colaboracion', icon: 'forum' },
     { path: 'notificaciones', label: 'Notificaciones', icon: 'notifications_active' },
     { path: 'integraciones', label: 'Integraciones', icon: 'hub' },
+    { path: 'operaciones', label: 'Operaciones avanzadas', icon: 'storage' },
     { path: 'departamentos', label: 'Departamentos', icon: 'domain' },
     { path: 'usuarios', label: 'Usuarios', icon: 'group' },
     { path: 'etapas', label: 'Etapas', icon: 'account_tree' },

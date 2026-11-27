@@ -37,6 +37,9 @@ MODULES = {
     "devops",
     "api_keys",
     "outgoing_webhooks",
+    "imports",
+    "executive_reports",
+    "advanced_operations",
 }
 FUTURE_MODULES = set()
 

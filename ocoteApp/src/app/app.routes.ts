@@ -9,6 +9,7 @@ export const routes: Routes = [
 		{ path: 'administracion/colaboracion', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'administracion/notificaciones', loadComponent: () => import('./admin/notifications.page').then(module => module.NotificationsAdminPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'administracion/integraciones', loadComponent: () => import('./admin/integrations.page').then(module => module.IntegrationsPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
+		{ path: 'administracion/operaciones', loadComponent: () => import('./admin/advanced.page').then(module => module.AdvancedOperationsPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'plantillas', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permissions: ['tasks:manage', 'planning:manage'] } },
 		{ path: 'administracion/:section', loadComponent: () => import('./admin/admin.page').then(module => module.AdminPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		...['planes', 'objetivos'].flatMap(path => [
@@ -18,6 +19,8 @@ export const routes: Routes = [
 		{ path: 'tareas', loadComponent: () => import('./operations/tasks.page').then(module => module.TasksPage) },
 		{ path: 'tareas/:id', loadComponent: () => import('./operations/task-detail.page').then(module => module.TaskDetailPage) },
 		{ path: 'mi-actividad', loadComponent: () => import('./operations/notifications.page').then(module => module.NotificationsPage) },
+		{ path: 'importaciones', loadComponent: () => import('./operations/bulk.page').then(module => module.ImportsPage), canActivate: [permitted], data: { permissions: ['tasks:manage', 'planning:manage'] } },
+		{ path: 'reportes-ejecutivos', loadComponent: () => import('./operations/bulk.page').then(module => module.ExecutiveReportsPage), canActivate: [permitted], data: { permission: 'exports:read' } },
 		{ path: 'analitica', loadComponent: () => import('./operations/analytics.page').then(module => module.AnalyticsPage), canActivate: [permitted], data: { permission: 'analytics:read' } },
 		...['evaluaciones','evaluaciones/:id'].map(path => ({ path, loadComponent: () => import('./operations/evaluations.page').then(module => module.EvaluationsPage), canActivate: [permitted], data: { permission:'evaluations:read' } })),
 		...['kanban','timeline'].map(view => ({ path:view,loadComponent:() => import('./operations/execution.page').then(module => module.ExecutionPage),data:{ view } })),

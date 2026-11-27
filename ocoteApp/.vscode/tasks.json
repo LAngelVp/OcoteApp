@@ -3,6 +3,100 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "OCOTE F12: build Architect",
+      "type": "process",
+      "command": "node",
+      "args": ["-e", "const dependency=require('node:module').createRequire(require.resolve('@angular/cli/package.json'));const {Architect}=dependency('@angular-devkit/architect'); const {WorkspaceNodeModulesArchitectHost}=dependency('@angular-devkit/architect/node'); const {workspaces,logging,schema}=dependency('@angular-devkit/core'); const {NodeJsSyncHost}=dependency('@angular-devkit/core/node'); (async()=>{const {workspace}=await workspaces.readWorkspace('angular.json',workspaces.createWorkspaceHost(new NodeJsSyncHost()));const registry=new schema.CoreSchemaRegistry();registry.addPostTransform(schema.transforms.addUndefinedDefaults);const architect=new Architect(new WorkspaceNodeModulesArchitectHost(workspace,process.cwd()),registry);const logger=new logging.Logger('F12');logger.subscribe(entry=>console.log(entry.message));const run=await architect.scheduleTarget({project:'ocoteApp',target:'build',configuration:'production'},{watch:false,progress:false},{logger});const result=await run.result;console.log('F12_ARCHITECT_RESULT='+JSON.stringify({success:result.success,target:result.target}));if(typeof result.success!=='boolean')throw Error('Missing builder result');run.stop();process.exit(result.success?0:1);})().catch(error=>{console.error(error);process.exit(1);});"],
+      "options": { "cwd": "${workspaceFolder}", "env": { "NG_CLI_ANALYTICS": "false", "NG_BUILD_PARALLEL_TS": "0", "NG_BUILD_MAX_WORKERS": "1" } },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: comprobacion offline",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.f12_local", "check-cut1"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: PG0",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "pytest", "-q", "--tb=short", "backend/tests"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: Ruff",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "ruff", "check", "backend"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: dependencias",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "pip", "check"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: Angular",
+      "type": "process",
+      "command": "node",
+      "args": ["node_modules/@angular/cli/bin/ng.js", "test", "--watch=false", "--browsers=ChromeHeadless", "--progress=false", "--reporters=dots"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "CHROME_BIN": "C:/Program Files/Google/Chrome/Application/chrome.exe", "NG_CLI_ANALYTICS": "false" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: visual",
+      "type": "process",
+      "command": "node",
+      "args": ["backend/tools/f12_visual.cjs"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "CHROME_BIN": "C:/Program Files/Google/Chrome/Application/chrome.exe", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F12: credencial administrativa",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.f12_local", "authorize"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "" }
+      },
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "clear": true,
+        "echo": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "OCOTE F11: credencial administrativa",
       "type": "process",
       "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",

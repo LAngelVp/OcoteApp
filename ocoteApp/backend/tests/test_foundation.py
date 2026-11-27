@@ -38,7 +38,7 @@ def client(app):
         yield client
 
 
-def test_live_does_not_connect_and_only_authorized_f11_routes(app, client):
+def test_live_does_not_connect_and_only_authorized_f12_routes(app, client):
     app.state.session_factory = MagicMock(side_effect=AssertionError)
     response = client.get("/api/v1/health/live")
     assert response.status_code == 200
@@ -72,6 +72,8 @@ def test_live_does_not_connect_and_only_authorized_f11_routes(app, client):
         "analytics",
         "evaluations",
         "exports",
+        "imports",
+        "executive-reports",
         "admin",
         "configuration",
         "branding",
@@ -110,6 +112,17 @@ def test_live_does_not_connect_and_only_authorized_f11_routes(app, client):
         "/api/v1/admin/object-storage/{identity}",
         "/api/v1/admin/object-storage/{identity}/test",
         "/api/v1/admin/object-storage/{identity}/activation",
+        "/api/v1/admin/operations/health",
+        "/api/v1/admin/operations/agent",
+        "/api/v1/admin/operations/principals",
+        "/api/v1/admin/operations/agent/tests",
+        "/api/v1/admin/operations/agent/activate",
+        "/api/v1/admin/operations/agent/deactivate",
+        "/api/v1/admin/operations/backups",
+        "/api/v1/admin/operations/backups/{identity}/verify",
+        "/api/v1/admin/operations/jobs",
+        "/api/v1/admin/operations/retention-policies",
+        "/api/v1/admin/operations/retention-policies/{identity}",
     }
     assert {path for path in paths if path.split("/")[3] in {
         "configuration", "branding", "calendar"
@@ -148,7 +161,9 @@ def test_ready_requires_monitor_before_database(app, client, token):
 @pytest.mark.parametrize(
     "database,heads,status",
     [
-        ("ocoteAppDatabase", ["20261126_0010"], 200),
+        ("ocoteAppDatabase", ["20261126_0011"], 200),
+        ("ocote_f2_00000000000000000000000000000000", ["20261126_0011"], 503),
+        ("ocoteAppDatabase", ["20261126_0010"], 503),
         ("ocote_f2_00000000000000000000000000000000", ["20261126_0010"], 503),
         ("ocoteAppDatabase", ["20261126_0009"], 503),
         ("ocote_f2_00000000000000000000000000000000", ["20261126_0009"], 503),

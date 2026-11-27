@@ -73,7 +73,8 @@ class JsonLimitMiddleware:
             if message["type"] == "http.disconnect":
                 return
             body.extend(message.get("body", b""))
-            maximum = (10485760 if upload else
+            maximum = (13992000 if path == "/api/v1/imports" and scope["method"] == "POST" else
+                       10485760 if upload else
                        1410000 if path == "/api/v1/admin/branding/logo" else 1048576)
             if len(body) > maximum:
                 await problem(Request(scope), 413, "PAYLOAD_TOO_LARGE", "Request body too large.")(

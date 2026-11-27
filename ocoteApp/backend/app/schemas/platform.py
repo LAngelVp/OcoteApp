@@ -6,7 +6,8 @@ from app.schemas.identity import Command, ExactSecret, Version
 
 Purpose = Literal["local_storage", "clamav", "backup", "jwt_signing", "csrf", "health_monitor",
                   "object_storage", "notifications", "calendar_feed", "integrations",
-                  "service_keys", "sso_context"]
+                  "service_keys", "sso_context", "import_staging", "report_result",
+                  "operations_agent"]
 Kind = Literal["local_storage", "clamav"]
 Reason = Annotated[str, Field(min_length=10, max_length=1000)]
 

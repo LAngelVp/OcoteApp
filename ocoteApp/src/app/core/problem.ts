@@ -57,6 +57,23 @@ const messages: Record<string, string> = {
   EVALUATION_NOT_FINAL: 'Solo se pueden exportar evaluaciones finales.',
   EXPORT_TOO_LARGE: 'La exportacion supera el limite permitido. Acota los filtros.',
   COHORT_TOO_LARGE: 'La cohorte supera el limite de lectura. Acota plan, departamento o periodo.',
+  IMPORT_FORMULA_FORBIDDEN: 'El archivo contiene una celda con formula o prefijo no permitido.',
+  IMPORT_ACTIVE_CONTENT_FORBIDDEN: 'El XLSX contiene formulas, macros o referencias externas no permitidas.',
+  IMPORT_ARCHIVE_INVALID: 'El contenedor XLSX no es valido o contiene entradas no permitidas.',
+  IMPORT_ARCHIVE_TOO_LARGE: 'El XLSX supera el limite de expansion permitido.',
+  IMPORT_MAPPING_INVALID: 'El mapeo debe usar campos distintos y permitidos para la entidad.',
+  IMPORT_PREVIEW_STALE: 'La simulacion ya no coincide con la configuracion o los permisos actuales.',
+  IMPORT_STAGING_EXPIRED: 'El lote temporal ha vencido.',
+  IMPORT_NOT_PREVIEWABLE: 'El lote ya no admite una simulacion nueva.',
+  IMPORT_PREVIEW_LIMIT: 'El lote alcanzo el limite de simulaciones.',
+  IMPORT_SINGLE_SHEET_REQUIRED: 'El XLSX debe contener una unica hoja visible.',
+  IMPORT_SCANNER_UNAVAILABLE: 'El antivirus no esta disponible; no se proceso el archivo.',
+  OPERATIONS_AGENT_UNAVAILABLE: 'El agente de operaciones no esta disponible.',
+  OPERATIONS_AGENT_UNCONFIGURED: 'El agente de operaciones no esta configurado.',
+  OPERATIONS_AGENT_TEST_REQUIRED: 'La revision del agente necesita una prueba vigente.',
+  OPERATIONS_AGENT_CAPABILITY_UNAVAILABLE: 'El agente no dispone de la capacidad aprobada solicitada.',
+  REPORT_EXPIRED: 'El reporte temporal ha vencido.',
+  REPORT_UNSUPPORTED_CHARACTERS: 'El PDF no puede representar uno de los caracteres. Selecciona XLSX.',
 };
 
 export interface Problem { message: string; requestId?: string; conflict: boolean; }

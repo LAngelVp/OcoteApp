@@ -14,7 +14,8 @@ from app.core.evidence import private_root
 ALGORITHM = "AES-256-GCM"
 PURPOSES = frozenset({"jwt_signing", "csrf", "health_monitor", "local_storage", "clamav", "backup",
                       "object_storage", "notifications", "calendar_feed", "integrations",
-                      "service_keys", "sso_context"})
+                      "service_keys", "sso_context", "import_staging", "report_result",
+                      "operations_agent"})
 
 
 def unavailable():
@@ -128,6 +129,32 @@ class Vault:
                 value.nonce,
                 value.ciphertext,
                 self._value_context(key, value.owner_id, value.version),
+            )
+        except (InvalidTag, ValueError, TypeError):
+            raise unavailable() from None
+
+    def _payload_context(self, key, owner_id, version):
+        if key.purpose not in {"import_staging", "report_result"}:
+            raise unavailable()
+        context = json.loads(self._value_context(key, owner_id, version))
+        return associated_data(**{**context, "format": 2, "content": "bulk"})
+
+    def encrypt_payload(self, key, owner_id, version, plaintext):
+        if not isinstance(plaintext, bytes) or not 1 <= len(plaintext) <= 16777216:
+            raise unavailable()
+        nonce = os.urandom(12)
+        ciphertext = self._cipher(key).encrypt(
+            nonce, plaintext, self._payload_context(key, owner_id, version),
+        )
+        return EncryptedValue(key.id, owner_id, version, nonce, ciphertext)
+
+    def decrypt_payload(self, key, value):
+        if value.key_id != key.id or not 17 <= len(value.ciphertext) <= 16777232:
+            raise unavailable()
+        try:
+            return self._cipher(key).decrypt(
+                value.nonce, value.ciphertext,
+                self._payload_context(key, value.owner_id, value.version),
             )
         except (InvalidTag, ValueError, TypeError):
             raise unavailable() from None

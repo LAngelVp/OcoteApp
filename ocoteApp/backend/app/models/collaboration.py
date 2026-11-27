@@ -35,17 +35,18 @@ class JobRun(Mutable, Base):
     __tablename__ = "job_runs"
     kind: Mapped[str] = mapped_column(String(40))
     owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
-    service_principal_id: Mapped[UUID] = mapped_column(ForeignKey("service_principals.id"))
+    service_principal_id: Mapped[UUID | None] = mapped_column(ForeignKey("service_principals.id"))
     request_id: Mapped[UUID]
     idempotency_key: Mapped[UUID]
     input_hash: Mapped[str] = mapped_column(String(64))
+    operation_payload: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     state: Mapped[str] = mapped_column(String(20))
     attempt: Mapped[int]
     retry_of_id: Mapped[UUID | None] = mapped_column(ForeignKey("job_runs.id"))
     lease_token: Mapped[UUID | None]
     lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     next_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    configuration_revision_id: Mapped[UUID] = mapped_column(
+    configuration_revision_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("configuration_revisions.id")
     )
 

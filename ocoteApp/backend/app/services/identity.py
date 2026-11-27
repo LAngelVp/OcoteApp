@@ -74,6 +74,7 @@ def database(request: Request):
                 ["analytics"],
                 ["evaluations"],
                 ["exports"],
+                ["executive-reports"],
             ]
             if reporting:
                 db.connection(execution_options={"isolation_level": "REPEATABLE READ"})

@@ -41,7 +41,13 @@ export class Api {
     return firstValueFrom(this.http.get('/api/v1/branding/logo/' + encodeURIComponent(identity), { responseType: 'blob' }));
   }
   async exportFile(path: string, body: Row): Promise<Blob> {
-    try { return await firstValueFrom(this.http.post('/api/v1' + path, body, { responseType: 'blob' })); }
+    return this.binary(path, 'POST', body);
+  }
+  async reportFile(identity: string): Promise<Blob> {
+    return this.binary('/executive-reports/' + encodeURIComponent(identity) + '/content', 'GET');
+  }
+  private async binary(path: string, method: 'GET' | 'POST', body?: Row): Promise<Blob> {
+    try { return await firstValueFrom(this.http.request(method, '/api/v1' + path, { body, responseType: 'blob' })); }
     catch (error) {
       if (error instanceof HttpErrorResponse && error.error instanceof Blob) {
         let payload: unknown;
