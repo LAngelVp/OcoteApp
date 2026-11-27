@@ -28,7 +28,7 @@ La referencia de esquema vigente es **`20261126_0011`**, con 72 tablas y 12 rele
 
 **Limitacion de producto importante:** el actualizador distribuible consultado admite origen y destino en la head vigente `0011`; no contiene un proceso generico ya homologado para `0011 -> 0012`. Una version de aplicacion y una revision Alembic son identificadores distintos.
 
-### 1.2. Stack de referencia
+### 1.2. Stack de referencia de desarrollo
 
 | Capa | Version o contrato confirmado | Observaciones de mantenimiento |
 | --- | --- | --- |
