@@ -18,6 +18,7 @@ from app.routers.collaboration import router as collaboration_router
 from app.routers.enterprise import router as enterprise_router
 from app.routers.execution import router as execution_router
 from app.routers.health import router
+from app.routers.integrations import router as integrations_router
 from app.routers.notifications import router as notifications_router
 from app.routers.operations import router as operations_router
 from app.routers.platform import router as platform_router
@@ -67,4 +68,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(enterprise_router)
     app.include_router(collaboration_router)
     app.include_router(notifications_router)
+    app.include_router(integrations_router)
     return app

@@ -40,6 +40,7 @@ export class Shell {
     { path: 'configuracion', label: 'Configuracion', icon: 'tune' },
     { path: 'colaboracion', label: 'Colaboracion', icon: 'forum' },
     { path: 'notificaciones', label: 'Notificaciones', icon: 'notifications_active' },
+    { path: 'integraciones', label: 'Integraciones', icon: 'hub' },
     { path: 'departamentos', label: 'Departamentos', icon: 'domain' },
     { path: 'usuarios', label: 'Usuarios', icon: 'group' },
     { path: 'etapas', label: 'Etapas', icon: 'account_tree' },

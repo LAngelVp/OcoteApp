@@ -143,6 +143,9 @@ def request_modules(db, request):
 
 
 def session_policy(db, record, claims=None, *, activity=True):
+    from app.services.federation import session_allowed
+
+    session_allowed(db, record)
     settings = policy(db, required=False)
     if settings is None:
         return

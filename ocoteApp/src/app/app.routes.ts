@@ -8,6 +8,7 @@ export const routes: Routes = [
 		{ path: 'administracion/configuracion', loadComponent: () => import('./admin/enterprise.page').then(module => module.EnterprisePage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'administracion/colaboracion', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'administracion/notificaciones', loadComponent: () => import('./admin/notifications.page').then(module => module.NotificationsAdminPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
+		{ path: 'administracion/integraciones', loadComponent: () => import('./admin/integrations.page').then(module => module.IntegrationsPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		{ path: 'plantillas', loadComponent: () => import('./admin/collaboration.page').then(module => module.CollaborationPage), canActivate: [permitted], data: { permissions: ['tasks:manage', 'planning:manage'] } },
 		{ path: 'administracion/:section', loadComponent: () => import('./admin/admin.page').then(module => module.AdminPage), canActivate: [permitted], data: { permission: 'administration:manage' } },
 		...['planes', 'objetivos'].flatMap(path => [

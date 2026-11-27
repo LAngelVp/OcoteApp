@@ -90,6 +90,9 @@ mat-form-field { width: 100%; }
 .login-brand p { color: var(--ocote-text-secondary); margin: 0; }
 .login-form { width: min(100%, 400px); padding-top: 24px; border-top: 3px solid var(--ocote-secondary); }
 .login-form form { display: grid; gap: 8px; }
+.sso-providers { display: grid; gap: 12px; margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--ocote-border); }
+.sso-providers button { height: auto; min-height: 48px; white-space: normal; overflow-wrap: anywhere; padding-block: 10px; }
+.sso-return { padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--ocote-border); overflow-wrap: anywhere; }
 .login-page footer { margin-top: 28px; font-size: 14px; color: var(--ocote-text-secondary); }
 .workflow-row { padding: 16px 0; border-bottom: 1px solid var(--ocote-border); }
 .code { font-family: monospace; font-size: 13px; overflow-wrap: anywhere; }

@@ -33,6 +33,10 @@ MODULES = {
     "email_notifications",
     "corporate_messaging",
     "calendar_feeds",
+    "sso",
+    "devops",
+    "api_keys",
+    "outgoing_webhooks",
 }
 FUTURE_MODULES = set()
 

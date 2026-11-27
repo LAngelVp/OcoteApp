@@ -22,7 +22,9 @@ class CalendarAccessFilter(logging.Filter):
     def filter(self, record):
         if isinstance(record.args, tuple) and len(record.args) == 5:
             target = record.args[2]
-            if isinstance(target, str) and target.startswith("/api/v1/calendar-feeds/"):
+            if isinstance(target, str) and target.startswith(
+                ("/api/v1/calendar-feeds/", "/api/v1/auth/sso/")
+            ):
                 arguments = list(record.args)
                 arguments[2] = target.partition("?")[0]
                 record.args = tuple(arguments)

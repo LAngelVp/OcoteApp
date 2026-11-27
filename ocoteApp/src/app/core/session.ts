@@ -9,6 +9,10 @@ export interface User {
   department_id: string | null; permissions: string[];
 }
 interface Tokens { access_token: string; csrf_token: string; expires_in: number; }
+export type SSOPurpose = 'login' | 'bind' | 'probe';
+export interface SSOProvider { id: string; name: string; provider: 'oidc' | 'saml' | 'ldap'; }
+export interface SSOStart { transaction_id: string; authorization_url: string | null; expires_at: string; state?: string; }
+export interface SSOStatus { transaction_id: string; purpose: SSOPurpose; provider_name: string; expires_at: string; }
 export const NO_SESSION = new HttpContextToken(() => false);
 export interface SessionLock { run<T>(action: () => Promise<T>): Promise<T>; }
 export const SESSION_LOCK = new InjectionToken<SessionLock>('Same-origin session lock', { providedIn: 'root', factory: () => ({
@@ -60,6 +64,38 @@ export class Session implements OnDestroy {
       try { await this.profile(); } catch (error) { this.clear(); throw error; }
     });
     this.ready.set(true);
+  }
+  ssoProviders(cursor = ''): Promise<{ items: SSOProvider[]; next_cursor: string | null }> {
+    return firstValueFrom(this.http.get<{ items: SSOProvider[]; next_cursor: string | null }>('/api/v1/auth/sso/providers', {
+      ...this.options(), params: { limit: '5', ...(cursor ? { cursor } : {}) },
+    }));
+  }
+  startSSO(identity: string, purpose: 'login' | 'bind' = 'login', current_password: string | null = null): Promise<SSOStart> {
+    return this.lock(() => firstValueFrom(this.http.post<SSOStart>(`/api/v1/auth/sso/${encodeURIComponent(identity)}/${purpose === 'bind' ? 'bind' : 'start'}`, {
+      purpose, current_password,
+    }, { ...this.options(), ...(purpose === 'bind' ? { headers: this.headers() } : {}) })));
+  }
+  ssoStatus(transaction: string): Promise<SSOStatus> {
+    return firstValueFrom(this.http.get<SSOStatus>(`/api/v1/auth/sso/transactions/${encodeURIComponent(transaction)}`, this.options()));
+  }
+  ldapSSO(provider: string, start: SSOStart, username: string, password: string): Promise<{ transaction_id: string }> {
+    return this.lock(() => firstValueFrom(this.http.post<{ transaction_id: string }>(`/api/v1/auth/sso/${encodeURIComponent(provider)}/ldap`, {
+      transaction_id: start.transaction_id, state: start.state, username, password,
+    }, this.options())));
+  }
+  async finishSSO(transaction: string, purpose: SSOPurpose): Promise<Record<string, unknown>> {
+    return this.lock(async () => {
+      const path = '/api/v1/auth/sso/' + (purpose === 'login' ? '' : purpose + '/') + 'finish';
+      const result = await firstValueFrom(this.http.post<Record<string, unknown>>(path, { transaction_id: transaction }, {
+        ...this.options(), ...(purpose !== 'login' ? { headers: this.headers() } : {}),
+      }));
+      if (purpose === 'login') {
+        this.accept(result as unknown as Tokens);
+        try { await this.profile(); } catch (error) { this.clear(); throw error; }
+        this.ready.set(true);
+      }
+      return result;
+    });
   }
   refresh(): Promise<void> {
     return this.rotation ??= this.lock(async () => {

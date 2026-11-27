@@ -13,7 +13,8 @@ from app.core.evidence import private_root
 
 ALGORITHM = "AES-256-GCM"
 PURPOSES = frozenset({"jwt_signing", "csrf", "health_monitor", "local_storage", "clamav", "backup",
-                      "object_storage", "notifications", "calendar_feed"})
+                      "object_storage", "notifications", "calendar_feed", "integrations",
+                      "service_keys", "sso_context"})
 
 
 def unavailable():

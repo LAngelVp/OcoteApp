@@ -5,7 +5,8 @@ from pydantic import Field, StrictBool, StrictInt, model_validator
 from app.schemas.identity import Command, ExactSecret, Version
 
 Purpose = Literal["local_storage", "clamav", "backup", "jwt_signing", "csrf", "health_monitor",
-                  "object_storage", "notifications", "calendar_feed"]
+                  "object_storage", "notifications", "calendar_feed", "integrations",
+                  "service_keys", "sso_context"]
 Kind = Literal["local_storage", "clamav"]
 Reason = Annotated[str, Field(min_length=10, max_length=1000)]
 

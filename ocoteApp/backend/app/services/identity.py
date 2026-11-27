@@ -257,7 +257,10 @@ class LoginLimiter:
                 entries.append(moment)
 
 
-def session_response(db, tokens, user, family, expires):
+def session_response(
+    db, tokens, user, family, expires, *, external_identity_id=None,
+    federated_authenticated_at=None, federated_revocation_deadline=None,
+):
     from app.services.enterprise import policy
 
     settings = policy(db, required=False)
@@ -273,6 +276,9 @@ def session_response(db, tokens, user, family, expires):
         token_version=user.token_version,
         expires_at=expires,
         last_seen_at=issued,
+        external_identity_id=external_identity_id,
+        federated_authenticated_at=federated_authenticated_at,
+        federated_revocation_deadline=federated_revocation_deadline,
     )
     db.add(record)
     db.flush()
@@ -378,7 +384,10 @@ def rotate(db, tokens, request):
         "refresh:" + str(user.id), request.client.host if request.client else "local"
     )
     successor, refresh, result = session_response(
-        db, tokens, user, record.family_id, record.expires_at
+        db, tokens, user, record.family_id, record.expires_at,
+        external_identity_id=record.external_identity_id,
+        federated_authenticated_at=record.federated_authenticated_at,
+        federated_revocation_deadline=record.federated_revocation_deadline,
     )
     record.consumed_at = now()
     record.replaced_by_id = successor.id

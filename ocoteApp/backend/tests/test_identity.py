@@ -78,7 +78,8 @@ def api(tokens):
             app = create_app(tokens=tokens)
             app.state.session_factory = factory
             with TestClient(
-                app, base_url=tokens.settings.auth_origin, raise_server_exceptions=False
+                app, base_url=tokens.settings.auth_origin, raise_server_exceptions=False,
+                client=("127.0.0.1", 50000),
             ) as client:
                 client.headers["origin"] = tokens.settings.auth_origin
                 yield client, factory

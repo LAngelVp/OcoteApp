@@ -46,7 +46,9 @@ def context(db, identity):
     config_lock(db, exclusive=False)
     if db.scalar(text("SELECT current_user")) != "ocote_runtime":
         raise CommandError(503, "RUNTIME_IDENTITY_REQUIRED")
-    if db.scalar(text("SELECT version_num FROM alembic_version")) != "20261126_0009":
+    if db.scalar(text("SELECT version_num FROM alembic_version")) not in {
+        "20261126_0009", "20261126_0010",
+    }:
         raise CommandError(503, "F10_REVISION_REQUIRED")
     actor = db.get(ServicePrincipal, identity)
     if (

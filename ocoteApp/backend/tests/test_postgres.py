@@ -59,7 +59,8 @@ def test_real_roles_and_scoped_privileges(runtime, migrator):
             is False
         )
     assert runtime.execute("SELECT version_num FROM public.alembic_version").fetchall() in (
-        [("20261125_0007",)], [("20261125_0008",)]
+        [("20261125_0007",)], [("20261125_0008",)],
+        [("20261126_0009",)], [("20261126_0010",)],
     )
     assert runtime.execute("SELECT count(*) FROM public.release_history").fetchone()[0] >= 1
     for privilege in ("INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"):

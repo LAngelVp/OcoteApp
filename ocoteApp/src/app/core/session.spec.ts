@@ -51,6 +51,41 @@ describe('F4 memory session and same-origin HTTP', () => {
     run.and.returnValue(Promise.reject(new Error('unavailable')));
     await expectAsync(session.refresh()).toBeRejected(); expect(session.token()).toBeNull(); http.expectNone('/api/v1/auth/csrf');
   });
+  it('finishes SSO under the session lock, then loads permissions without storing provider tokens', async () => {
+    const storage = spyOn(Storage.prototype, 'setItem');
+    const pending = session.finishSSO('synthetic-transaction', 'login');
+    const finish = http.expectOne('/api/v1/auth/sso/finish');
+    expect(finish.request.body).toEqual({ transaction_id: 'synthetic-transaction' });
+    expect(finish.request.withCredentials).toBeTrue();
+    expect(finish.request.headers.has('Authorization')).toBeFalse();
+    finish.flush(tokens); await settle();
+    http.expectOne('/api/v1/auth/me').flush(user); await pending;
+    expect(session.token()).toBe(tokens.access_token); expect(session.user()?.id).toBe(user.id);
+    expect(run).toHaveBeenCalledTimes(1); expect(storage).not.toHaveBeenCalled();
+  });
+  it('keeps the existing local session when finishing an administrative probe', async () => {
+    await login(); const pending = session.finishSSO('synthetic-probe', 'probe');
+    const finish = http.expectOne('/api/v1/auth/sso/probe/finish');
+    expect(finish.request.headers.get('Authorization')).toBe('Bearer synthetic-access');
+    expect(finish.request.headers.get('X-CSRF-Token')).toBe('synthetic-csrf');
+    finish.flush({ passed: true, is_active: false }); await pending;
+    expect(session.token()).toBe('synthetic-access'); expect(session.user()?.id).toBe(user.id);
+    http.expectNone('/api/v1/auth/me');
+  });
+  it('never retries rejected public SSO through a human refresh', async () => {
+    const pending = session.finishSSO('synthetic-transaction', 'login');
+    const rejected = expectAsync(pending).toBeRejected();
+    http.expectOne('/api/v1/auth/sso/finish').flush({}, { status: 401, statusText: 'Unauthorized' });
+    await rejected; http.expectNone('/api/v1/auth/csrf'); http.expectNone('/api/v1/auth/refresh');
+  });
+  it('fails closed on unavailable Web Locks before starting SSO or submitting a directory password', async () => {
+    run.and.returnValue(Promise.reject(new Error('unavailable')));
+    await expectAsync(session.startSSO('synthetic-provider')).toBeRejected();
+    await expectAsync(session.ldapSSO('synthetic-provider', {
+      transaction_id: 'synthetic-transaction', authorization_url: null, expires_at: 'synthetic', state: 's'.repeat(43),
+    }, 'synthetic-user', 'synthetic-password')).toBeRejected();
+    http.expectNone(request => request.url.includes('/auth/sso/'));
+  });
   it('sends Bearer and CSRF only to relative API requests', async () => {
     await login(); const pending = firstValueFrom(client.post('/api/v1/tasks', { title:'Synthetic' }));
     const request = http.expectOne('/api/v1/tasks');

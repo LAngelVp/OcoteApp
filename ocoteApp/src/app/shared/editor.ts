@@ -12,8 +12,9 @@ import { Feedback } from './feedback';
 
 export interface Option { value: string; label: string; disabled?: boolean; }
 export interface Field {
-  key: string; label: string; type?: 'text' | 'textarea' | 'date' | 'datetime-local' | 'time' | 'number' | 'decimal' | 'password' | 'email' | 'select' | 'multi' | 'check';
+  key: string; label: string; type?: 'text' | 'textarea' | 'secret' | 'date' | 'datetime-local' | 'time' | 'number' | 'decimal' | 'password' | 'email' | 'select' | 'multi' | 'check';
   required?: boolean; min?: number; max?: number; pattern?: string; options?: Option[]; value?: unknown; hint?: string;
+  preserveWhitespace?: boolean;
   requiredWhen?: { key: string; values: string[] };
 }
 export interface EditData { title: string; fields: Field[]; message?: string; confirm?: string; validate?: (values: Row) => string | null; submit: (values: Row) => Promise<unknown>; }
@@ -21,7 +22,7 @@ export function reason(): Field { return { key: 'reason', label: 'Motivo', type:
 export function textValidator(field: Field): ValidatorFn {
   return control => {
     if (typeof control.value !== 'string') return null;
-    const value = control.value.trim();
+    const value = field.preserveWhitespace ? control.value : control.value.trim();
     if (!value) return field.required ? { required: true } : null;
     if (field.min !== undefined && value.length < field.min) return { minlength: true };
     if (field.max !== undefined && value.length > field.max) return { maxlength: true };
@@ -57,14 +58,15 @@ export const decimalValidator: ValidatorFn = control => {
     <mat-dialog-content><ocote-feedback [issue]="issue()" />@if (data.message) { <p>{{ data.message }}</p> }<div class="field-grid">
       @for (field of data.fields; track field.key) {
         @if (field.type === 'check') { <mat-checkbox [formControlName]="field.key">{{ field.label }}</mat-checkbox> }
-        @else { <mat-form-field [class.wide]="field.type === 'textarea'">
+        @else { <mat-form-field [class.wide]="field.type === 'textarea' || field.type === 'secret'">
           <mat-label>{{ field.label }}</mat-label>
           @if (field.type === 'select' || field.type === 'multi') {
             <mat-select [formControlName]="field.key" [multiple]="field.type === 'multi'" [required]="required(field)">
               @if (!required(field) && field.type !== 'multi') { <mat-option [value]="null">Sin departamento</mat-option> }
               @for (option of field.options; track option.value) { <mat-option [value]="option.value" [disabled]="!!option.disabled">{{ option.label }}</mat-option> }
             </mat-select>
-          } @else if (field.type === 'textarea') { <textarea matInput [formControlName]="field.key" rows="3" [required]="!!field.required" [maxlength]="field.max ?? 10000"></textarea> }
+          } @else if (field.type === 'secret') { <textarea matInput [formControlName]="field.key" rows="4" [required]="!!field.required" [maxlength]="field.max ?? 65536" autocomplete="off" autocapitalize="off" spellcheck="false" style="-webkit-text-security:disc"></textarea> }
+          @else if (field.type === 'textarea') { <textarea matInput [formControlName]="field.key" rows="3" [required]="!!field.required" [maxlength]="field.max ?? 10000"></textarea> }
           @else if (field.type === 'number' || field.type === 'decimal') { <input matInput type="number" [formControlName]="field.key" [required]="!!field.required" [min]="field.min ?? null" [max]="field.max ?? null" [step]="field.type === 'decimal' ? 0.0001 : 1"> }
           @else { <input matInput [type]="field.type ?? 'text'" [formControlName]="field.key" [required]="!!field.required"
               [attr.maxlength]="field.max" [attr.autocomplete]="field.type === 'password' ? 'new-password' : 'off'"> }
@@ -87,7 +89,7 @@ export class Editor {
   readonly form = new FormGroup<Record<string, FormControl>>({});
   constructor() {
     inject(DestroyRef).onDestroy(() => {
-      for (const field of this.data.fields.filter(field => field.type === 'password')) {
+      for (const field of this.data.fields.filter(field => field.type === 'password' || field.type === 'secret')) {
         this.form.get(field.key)?.reset(null, { emitEvent: false });
         field.value = undefined;
       }
@@ -100,7 +102,7 @@ export class Editor {
         validators.push(field.type === 'decimal' ? decimalValidator : integerValidator);
         if (field.min !== undefined) validators.push(Validators.min(field.min));
         if (field.max !== undefined) validators.push(Validators.max(field.max));
-      } else if (field.type === 'password') {
+      } else if (field.type === 'password' || field.type === 'secret') {
         if (field.min !== undefined) validators.push(Validators.minLength(field.min));
         if (field.max !== undefined) validators.push(Validators.maxLength(field.max));
       } else validators.push(textValidator(field));
@@ -138,7 +140,7 @@ export class Editor {
         const value = values[field.key];
         if (field.type === 'number') values[field.key] = integerValue(value);
         else if (field.type === 'decimal') values[field.key] = decimalValue(value);
-        else if (typeof value === 'string' && field.type !== 'password' && field.type !== 'date') values[field.key] = value.trim();
+        else if (typeof value === 'string' && field.type !== 'password' && field.type !== 'secret' && field.type !== 'date' && !field.preserveWhitespace) values[field.key] = value.trim();
       }
       await this.data.submit(values); this.ref.close(true);
     }

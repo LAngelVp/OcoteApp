@@ -53,8 +53,10 @@ def checked_addresses(host, port, approved, allow_private, resolver=socket.getad
 
 
 class PinnedHTTPS(http.client.HTTPSConnection):
-    def __init__(self, host, port, address, connect_timeout, read_timeout):
-        super().__init__(host, port, timeout=connect_timeout, context=ssl.create_default_context())
+    def __init__(self, host, port, address, connect_timeout, read_timeout, *, context=None):
+        super().__init__(
+            host, port, timeout=connect_timeout, context=context or ssl.create_default_context()
+        )
         self.address, self.read_timeout = address, read_timeout
 
     def connect(self):
@@ -67,15 +69,21 @@ class PinnedHTTPS(http.client.HTTPSConnection):
             raise
 
 
-def https_request(config, host, port, method, target, headers, content=b"", limit=MAX_BODY):
+def https_request(
+    config, host, port, method, target, headers, content=b"", limit=MAX_BODY,
+    *, reject_redirects=True,
+):
     addresses = checked_addresses(host, port, config["approved_addresses"],
                                   config["allow_private_endpoint"])
+    options = {}
+    if config.get("ca_certificates_pem"):
+        options["context"] = ssl.create_default_context(cadata=config["ca_certificates_pem"])
     connection = PinnedHTTPS(host, port, addresses[0], config["connect_timeout_seconds"],
-                             config["read_timeout_seconds"])
+                             config["read_timeout_seconds"], **options)
     try:
         connection.request(method, target, body=content, headers=headers)
         response = connection.getresponse()
-        if 300 <= response.status < 400:
+        if reject_redirects and 300 <= response.status < 400:
             raise unavailable()
         content_length = response.getheader("Content-Length")
         if content_length and (not content_length.isdigit() or int(content_length) > limit):

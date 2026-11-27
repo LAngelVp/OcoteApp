@@ -51,6 +51,11 @@ class RefreshSession(Identity, Base):
     token_version: Mapped[int]
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    external_identity_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("external_identities.id", ondelete="RESTRICT")
+    )
+    federated_authenticated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    federated_revocation_deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replaced_by_id: Mapped[UUID | None] = mapped_column(

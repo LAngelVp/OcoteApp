@@ -1,7 +1,7 @@
 import logging
 from http import HTTPStatus
 from time import perf_counter
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -23,6 +23,16 @@ class CommandError(Exception):
         self.persist = persist
 
 
+def sso_callback_path(path):
+    parts = path.strip("/").split("/")
+    if len(parts) != 6 or parts[:4] != ["api", "v1", "auth", "sso"] or parts[5] != "callback":
+        return False
+    try:
+        return str(UUID(parts[4])) == parts[4]
+    except ValueError:
+        return False
+
+
 class JsonLimitMiddleware:
     def __init__(self, app: ASGIApp):
         self.app = app
@@ -40,11 +50,18 @@ class JsonLimitMiddleware:
             and parts[:3] == ["api", "v1", "tasks"]
             and parts[4] == "evidence"
         )
+        callback = scope["method"] == "POST" and sso_callback_path(path)
+        content_type = headers.get(b"content-type", b"").split(b";", 1)[0].strip().lower()
+        if callback and content_type != b"application/x-www-form-urlencoded":
+            await problem(Request(scope), 415, "SSO_FORM_REQUIRED", "SSO form required.")(
+                scope, receive, send
+            )
+            return
         if (
             not upload
+            and not callback
             and path not in {"/api/v1/auth/refresh", "/api/v1/auth/logout"}
-            and headers.get(b"content-type", b"").split(b";", 1)[0].strip().lower()
-            != b"application/json"
+            and content_type != b"application/json"
         ):
             await problem(Request(scope), 415, "JSON_REQUIRED", "JSON commands required.")(
                 scope, receive, send

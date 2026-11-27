@@ -460,7 +460,7 @@ def test_f9_api_template_and_recurrence_are_idempotent_with_technical_actor(core
         },
     )
     assert response.status_code == 200, response.text
-    from tools.f10_worker import recurrence_tick as tick
+    from tools.f11_worker import recurrence_tick as tick
 
     report = tick(factory, 1)
     assert report == {"processed": 0, "generated": 0, "paused": 1, "conflicts": 0, "failures": 0}
