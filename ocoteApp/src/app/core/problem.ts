@@ -1,6 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 const messages: Record<string, string> = {
+  SETUP_SEALED: 'La instalacion ya esta sellada. El asistente permanece cerrado.',
+  SETUP_DATABASE_NOT_EMPTY: 'El destino no esta vacio. La instalacion inicial esta bloqueada.',
+  SETUP_CONNECTION_UNAVAILABLE: 'PostgreSQL no esta disponible. No se guardaron credenciales ni se considero un destino nuevo.',
+  SETUP_CAPABILITY_INVALID: 'La capacidad de instalacion no es valida o ha vencido.',
+  SETUP_ROLE_PERMISSIONS: 'Los roles SQL no cumplen los permisos separados requeridos.',
+  SETUP_EXTENSION_REQUIRED: 'El destino requiere la extension btree_gist aprovisionada por el DBA.',
+  SETUP_TEST_REQUIRED: 'La prueba de conexion ha vencido o ya no coincide con los datos.',
+  SETUP_RECOVERY_REQUIRED: 'La instalacion permanece bloqueada para recuperacion supervisada.',
   INVALID_CREDENTIALS: 'Correo o contrasena incorrectos.',
   TOKEN_EXPIRED: 'La sesion ha vencido. Inicia sesion nuevamente.',
   SESSION_REVOKED: 'La sesion ya no esta disponible.',

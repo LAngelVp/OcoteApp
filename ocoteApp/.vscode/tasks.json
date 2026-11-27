@@ -3,6 +3,42 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "OCOTE F7 final: build Architect",
+      "type": "process",
+      "command": "node",
+      "args": ["backend/tools/delivery_build.cjs"],
+      "options": { "cwd": "${workspaceFolder}", "env": { "NG_CLI_ANALYTICS": "false", "NG_BUILD_PARALLEL_TS": "0", "NG_BUILD_MAX_WORKERS": "1" } },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F7 final: credencial administrativa (solo Corte2)",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.delivery_cut2", "authorize", "--approval", "${input:ocoteDeliveryApproval}", "--execute"],
+      "options": { "cwd": "${workspaceFolder}", "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" } },
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true, "echo": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F7 final: final-gates (solo Corte2)",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.delivery_cut2", "final-gates", "--approval", "${input:ocoteDeliveryApproval}", "--artifacts", "${input:ocoteDeliveryEvidence}", "--execute"],
+      "options": { "cwd": "${workspaceFolder}", "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" } },
+      "presentation": { "reveal": "always", "panel": "dedicated", "echo": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "OCOTE F7 final: preparar Corte2 sin ejecutar",
+      "type": "process",
+      "command": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "args": ["-m", "tools.delivery_cut2", "prepare"],
+      "options": { "cwd": "${workspaceFolder}", "env": { "PYTHONPATH": "${workspaceFolder}/backend", "PGPASSWORD": "", "OCOTE_RUN_PG_TESTS": "0" } },
+      "presentation": { "reveal": "always", "panel": "dedicated", "echo": false },
+      "problemMatcher": []
+    },
+    {
       "label": "OCOTE F12: build Architect",
       "type": "process",
       "command": "node",
@@ -248,5 +284,9 @@
         }
       }
     }
+  ],
+  "inputs": [
+    { "id": "ocoteDeliveryApproval", "type": "promptString", "description": "Ruta del manifiesto Corte1 aprobado (no contiene secretos)" },
+    { "id": "ocoteDeliveryEvidence", "type": "promptString", "description": "Directorio privado nuevo de evidencia Corte2" }
   ]
 }

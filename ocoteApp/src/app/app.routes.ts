@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { permitted, signedIn } from './core/session';
 
 export const routes: Routes = [
+	{ path: 'instalacion', loadComponent: () => import('./auth/setup.page').then(module => module.SetupPage) },
 	{ path: 'login', loadComponent: () => import('./auth/auth.pages').then(module => module.LoginPage) },
 	{ path: '', loadComponent: () => import('./shell').then(module => module.Shell), canActivate: [signedIn], children: [
 		{ path: 'administracion/infraestructura', loadComponent: () => import('./admin/platform.page').then(module => module.PlatformPage), canActivate: [permitted], data: { permission: 'administration:manage' } },

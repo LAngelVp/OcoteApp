@@ -23,6 +23,7 @@ from app.routers.integrations import router as integrations_router
 from app.routers.notifications import router as notifications_router
 from app.routers.operations import router as operations_router
 from app.routers.platform import router as platform_router
+from app.routers.setup import closed_router as setup_closed_router
 from app.services.identity import LoginLimiter
 
 
@@ -72,4 +73,5 @@ def create_app(settings: Settings | None = None, *, tokens=None) -> FastAPI:
     app.include_router(notifications_router)
     app.include_router(integrations_router)
     app.include_router(bulk_router)
+    app.include_router(setup_closed_router)
     return app
