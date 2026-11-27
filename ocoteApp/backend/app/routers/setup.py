@@ -8,7 +8,7 @@ from app.core.errors import (
     RequestContextMiddleware,
     install_error_handlers,
 )
-from app.schemas.installation import Connection, Install
+from app.schemas.installation import Connection, Install, LocalInstall, PortableLocal
 from app.services.installation import Setup
 
 closed_router = APIRouter()
@@ -58,19 +58,40 @@ def create_setup_app(setup: Setup) -> FastAPI:
     @app.get("/api/v1/setup/status")
     def status(request: Request):
         authorize(request, require_pair=False)
-        return {"state": "prepared", "head": "20261126_0011"}
+        return {"state": "prepared", "head": "20261126_0011",
+            "local_portable_available": (setup.portable_directory / "bin/initdb.exe").is_file(),
+            "local_data_directory": "postgres-data"}
 
     @app.post("/api/v1/setup/pair")
     def pair(request: Request):
         authorize(request, require_pair=False)
         with setup.lock:
-            return setup.pair()
+            return {**setup.pair(),
+                    "local_portable_available": (
+                        setup.portable_directory / "bin/initdb.exe"
+                    ).is_file(),
+                    "local_data_directory": "postgres-data"}
 
     @app.post("/api/v1/setup/connection-tests")
     def test(body: Connection, request: Request):
         authorize(request)
         with setup.lock:
             return setup.test(body)
+
+    @app.post("/api/v1/setup/local-checks")
+    def local_check(body: PortableLocal, request: Request):
+        authorize(request)
+        with setup.lock:
+            return setup.local_check(body)
+
+    @app.post("/api/v1/setup/local-install")
+    def local_install(body: LocalInstall, request: Request):
+        authorize(request)
+        result = setup.install_local(body, request)
+        activate = getattr(app.state, "activate_runtime", None)
+        if activate is not None:
+            app.state.runtime = activate()
+        return result
 
     @app.post("/api/v1/setup/install")
     def install(body: Install, request: Request):

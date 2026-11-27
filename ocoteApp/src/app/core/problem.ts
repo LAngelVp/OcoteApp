@@ -1,6 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 const messages: Record<string, string> = {
+  SETUP_PORTABLE_UNAVAILABLE: 'Este paquete no contiene PostgreSQL portable completo.',
+  SETUP_PORTABLE_VERSION_REJECTED: 'El runtime portable debe ser PostgreSQL18 compatible.',
+  SETUP_LOCAL_DATA_PATH_REJECTED: 'La carpeta debe ser nueva y estar dentro del estado privado de la instalacion.',
+  SETUP_LOCAL_DATA_NOT_EMPTY: 'La carpeta de datos contiene informacion. No se modifico.',
+  SETUP_LOCAL_PORT_IN_USE: 'El puerto local ya esta ocupado. Selecciona otro puerto.',
+  SETUP_LOCAL_EXISTING_STATE: 'Ya existe un intento o una instalacion local. No se reinicializo.',
+  SETUP_LOCAL_PREPARATION_FAILED: 'No se pudo preparar PostgreSQL local. La instalacion no se sello.',
+  SETUP_LOCAL_INSTALL_FAILED: 'La instalacion local se detuvo sin sellarse. Se requiere revision del intento.',
+  SETUP_LOCAL_RECOVERY_REQUIRED: 'El intento local permanece bloqueado para recuperacion supervisada.',
+  SETUP_LOCAL_IDENTITY_REJECTED: 'El servidor local no corresponde a esta instalacion. No se intervino.',
   SETUP_SEALED: 'La instalacion ya esta sellada. El asistente permanece cerrado.',
   SETUP_DATABASE_NOT_EMPTY: 'El destino no esta vacio. La instalacion inicial esta bloqueada.',
   SETUP_CONNECTION_UNAVAILABLE: 'PostgreSQL no esta disponible. No se guardaron credenciales ni se considero un destino nuevo.',

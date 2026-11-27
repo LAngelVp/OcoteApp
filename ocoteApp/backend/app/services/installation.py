@@ -10,7 +10,7 @@ import tempfile
 from contextlib import ExitStack, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from threading import Lock
+from threading import RLock
 from time import monotonic
 from uuid import uuid4
 
@@ -230,7 +230,7 @@ def probe(body):
 
 
 class Setup:
-    def __init__(self, directory, origin, *, legacy_paths=None):
+    def __init__(self, directory, origin, *, legacy_paths=None, portable_directory=None):
         if os.name != "nt":
             raise CommandError(503, "OS_SEAL_PLATFORM_NOT_VERIFIED")
         self.directory = Path(directory).absolute()
@@ -253,8 +253,10 @@ class Setup:
         self.paired = False
         self.expires = monotonic() + 900
         self.tested = None
-        self.lock = Lock()
+        self.lock = RLock()
         self.closed = False
+        self.portable_directory = Path(portable_directory or BACKEND_DIR.parent / "postgres")
+        self.portable_metadata = None
         write_private(
             self.directory / "prepared.json",
             canonical(
@@ -292,6 +294,50 @@ class Setup:
 
     def fingerprint(self, body):
         return hmac.digest(self.code.encode(), canonical(secret_values(body)), "sha256")
+
+    def local_check(self, body):
+        from app.services.portable_postgres import PortablePostgres
+        if self.closed or any((self.directory / name).exists() for name in (
+            "sealed.json", "installing.json", "local-failure.json",
+        )):
+            raise CommandError(403, "SETUP_SEALED")
+        return PortablePostgres(self.directory, self.portable_directory, body).validate()
+
+    def install_local(self, body, request):
+        from app.services.portable_postgres import PortablePostgres
+        if not self.lock.acquire(blocking=False):
+            raise CommandError(409, "SETUP_BUSY")
+        cluster = None
+        try:
+            self.local_check(body.local)
+            cluster = PortablePostgres(self.directory, self.portable_directory, body.local)
+            self.portable_metadata = cluster.prepare()
+            connection = body.local.connection()
+            tested = self.test(connection)
+            command = Install(connection=connection, test_id=tested["test_id"],
+                              admin=body.admin, organization_timezone=body.organization_timezone)
+            return self.install(command, request)
+        except Exception as error:
+            stop_error = None
+            if cluster is not None and not self.closed:
+                try:
+                    cluster.stop_failed_attempt()
+                except Exception as stopping:
+                    stop_error = getattr(stopping, "code", "SETUP_LOCAL_STOP_FAILED")
+                if cluster.created and not (self.directory / "local-failure.json").exists():
+                    write_private(self.directory / "local-failure.json", canonical({
+                        "state": "failed", "request_id": request.state.request_id,
+                        "code": getattr(error, "code", "SETUP_LOCAL_INSTALL_FAILED"),
+                        "stop_error": stop_error, "sealed": False,
+                    }))
+            self.tested = None
+            if stop_error:
+                raise CommandError(503, "SETUP_LOCAL_RECOVERY_REQUIRED") from None
+            if isinstance(error, CommandError):
+                raise
+            raise CommandError(503, "SETUP_LOCAL_INSTALL_FAILED") from None
+        finally:
+            self.lock.release()
 
     def test(self, body):
         self.tested = None
@@ -461,6 +507,8 @@ def install_new(setup, body, request):
                         "instance": str(setup.identity),
                         "state": "sealed",
                     }
+                    if setup.portable_metadata is not None:
+                        bootstrap["portable_postgres"] = setup.portable_metadata
                     OSSealedFile(setup.directory / "bootstrap.dpapi", setup.identity).create(
                         canonical(bootstrap),
                     )

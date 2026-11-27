@@ -8,6 +8,84 @@ import pytest
 from tools.delivery import ROOT, allowed, package, sha, verify
 
 
+@pytest.fixture
+def portable_binaries(tmp_path):
+    from tools.delivery import POSTGRES_EXECUTABLES
+    root = tmp_path / "portable-input"
+    for folder in ("bin", "lib", "share"):
+        (root / folder).mkdir(parents=True)
+    for name in POSTGRES_EXECUTABLES:
+        (root / "bin" / name).write_bytes(b"synthetic executable fixture; never run")
+    (root / "lib/runtime.dll").write_bytes(b"synthetic library")
+    (root / "share/postgresql.conf.sample").write_text("synthetic template")
+    return root
+
+
+def test_optional_portable_package_is_deterministic_signed_inventory(
+    build, tmp_path, portable_binaries,
+):
+    first, second = tmp_path / "portable1.zip", tmp_path / "portable2.zip"
+    manifest = package(ROOT, build, first, portable_binaries)
+    package(ROOT, build, second, portable_binaries)
+    assert first.read_bytes() == second.read_bytes()
+    assert verify(first) == manifest
+    assert manifest["portable_postgres"]["included"]
+    assert "postgres/bin/initdb.exe" in manifest["files"]
+    assert not any(name.startswith("database/") for name in manifest["files"])
+    with zipfile.ZipFile(first) as archive:
+        sbom = json.loads(archive.read("sbom.cdx.json"))
+    native = {component["name"]: component["hashes"][0]["content"]
+              for component in sbom["components"] if component["type"] == "file"}
+    assert native == {name: metadata["sha256"] for name, metadata in manifest["files"].items()
+                      if name.startswith("postgres/")}
+
+
+@pytest.mark.parametrize("name", ["PG_VERSION", "postmaster.pid", "postgresql.conf",
+                                 "postmaster.opts", "backup.dump", "postgres.log"])
+def test_portable_package_rejects_live_files(build, tmp_path, portable_binaries, name):
+    (portable_binaries / "share" / name).write_text("synthetic live input must be rejected")
+    with pytest.raises(ValueError):
+        package(ROOT, build, tmp_path / "forbidden.zip", portable_binaries)
+    assert not (tmp_path / "forbidden.zip").exists()
+
+
+def test_portable_package_requires_all_executables(build, tmp_path, portable_binaries):
+    (portable_binaries / "bin/initdb.exe").unlink()
+    with pytest.raises(ValueError):
+        package(ROOT, build, tmp_path / "missing.zip", portable_binaries)
+
+
+@pytest.mark.parametrize("portable,trusted", [(True, True), (False, True), (True, False)])
+def test_upgrade_defaults_only_to_exact_signed_portable_tree(
+    build, tmp_path, portable_binaries, monkeypatch, portable, trusted,
+):
+    from tools import delivery, delivery_security, delivery_upgrade
+
+    artifact = tmp_path / "release.zip"
+    manifest = package(ROOT, build, artifact, portable_binaries if portable else None)
+    extracted = tmp_path / "extracted"
+    with zipfile.ZipFile(artifact) as archive:
+        archive.extractall(extracted)
+    monkeypatch.setattr(delivery, "ROOT", extracted)
+    monkeypatch.setattr(delivery_security, "verify_signature", lambda *_args: {
+        "manifest_sha256": sha(delivery.canonical(manifest)) if trusted else "0" * 64,
+    })
+    command = MagicMock()
+    monkeypatch.setattr(delivery_upgrade, "interactive_upgrade", command)
+    monkeypatch.setattr("sys.argv", ["delivery", "upgrade", "--artifact", str(artifact),
+        "--evidence", str(tmp_path / "evidence"), "--maintenance", str(tmp_path / "maintenance"),
+        "--trusted-sha256", "0" * 64, "--restore-database", "synthetic_restore",
+        "--operator", "synthetic", "--writers-stopped", "--execute",
+        "--signature", "synthetic.sig", "--public-key", "synthetic.pub"])
+    if portable and trusted:
+        delivery.main()
+        assert command.call_args.args[0].pg_bin == extracted / "postgres/bin"
+    else:
+        with pytest.raises(ValueError, match="explicit pg-bin"):
+            delivery.main()
+        command.assert_not_called()
+
+
 @pytest.mark.parametrize("mutation", ["none", "zip", "manifest", "signature", "wrong-key"])
 def test_ed25519_detached_signature_fail_closed(build, tmp_path, mutation):
     import base64

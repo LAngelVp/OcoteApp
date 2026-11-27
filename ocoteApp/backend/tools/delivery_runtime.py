@@ -70,6 +70,10 @@ def read_bootstrap(directory):
 def runtime_app(directory):
     directory = Path(directory).absolute()
     sealed = read_bootstrap(directory)
+    if "portable_postgres" in sealed:
+        from app.services.portable_postgres import ensure_started
+        from tools.delivery import ROOT
+        ensure_started(directory, sealed["portable_postgres"], ROOT / "postgres")
     connection = sealed["connection"]
     query = {"sslmode": connection["sslmode"], "hostaddr": connection["approved_address"]}
     if connection["mode"] == "managed":

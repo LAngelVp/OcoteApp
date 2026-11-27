@@ -50,7 +50,7 @@ def templates():
     )
     values = {
         "operations/api.task.xml.template": task(
-            "OCOTE API",
+            "OCOTE API (owned portable PostgreSQL first when sealed Local)",
             "__PYTHON_EXE__",
             '-m tools.delivery runtime --state "__PRIVATE_STATE__" --port __INTERNAL_PORT__ '
             '--behind-approved-proxy --log-file "__PRIVATE_TECHNICAL_LOG_DIR__\\api.log" '
@@ -92,6 +92,9 @@ def templates():
             "service_identity": "__DEDICATED_ACCOUNT__",
             "operations_agent": "__SEPARATELY_APPROVED_BACKUP_RESTORE_AGENT__",
             "readiness_exception": "monitor-token-only; writes remain fenced by maintenance",
+            "portable_postgres": {"startup": "runtime and workers ensure owned cluster first",
+                                   "data_directory": "__SEALED_PRIVATE_DATA_DIRECTORY__",
+                                   "initdb_at_boot": False, "superuser_in_runtime": False},
         }
     )
     values["operations/README.md"] = (
@@ -99,6 +102,8 @@ def templates():
         "Templates only. Replace every __PLACEHOLDER__ under approved change control.\n"
         "Do not import tasks or install a service on the developer host.\n"
         "API uses native Task Scheduler with restart-on-failure and a dedicated account.\n"
+        "Sealed Local portable starts its owned PostgreSQL before API and worker SQL.\n"
+        "Never schedule initdb or copy a developer cluster; external PostgreSQL is not started.\n"
         "Worker passes use runtime only, bounded limits, approved principals "
         "and maintenance fencing.\n"
         "Backup/restore tasks require the separately approved operations agent "

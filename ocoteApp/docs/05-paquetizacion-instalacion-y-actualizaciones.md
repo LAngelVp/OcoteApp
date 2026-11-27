@@ -1,5 +1,38 @@
 # OCOTE: paquetizacion, instalacion y actualizaciones
 
+## 12. PostgreSQL Portable Integrado (2026-11-27)
+
+Incremento de instalacion autorizado, no fase funcional ni nueva revision. package --postgres-dir incorpora explicitamente solo bin/lib/share y licencias del runtime en postgres/; sin bandera conserva paquete sin binarios. Rechaza enlaces/directorios ajenos, PG_VERSION/postmaster.pid/postgresql.conf/postmaster.opts/dumps/logs o carpetas de datos/backups/exports/locks. Minimos initdb/pg_ctl/postgres/psql/pg_dump/pg_restore .exe, inventario completo SHA256/firma Ed25519; database/postgres sigue ignorado, nunca binarios/data en Git. El runtime portable y su procedencia/licencias deben aprobarse antes de entrega real.
+
+Wizard Local integrado solicita puerto libre loopback (5432 propuesto), ruta de datos nueva bajo estado privado y tres passwords independientes/fuertes postgres/migrador/runtime, solo memoria/write-only. ocoteAppDatabase se muestra readonly y backend Literal impide cambiarla. No solicita host/IP/CA al usuario Local; Externo/Nube conserva campos/roles/verify-full/CA y aprovisionamiento por DBA. Accion local unificada en instalacion: probar/preparar cluster nuevo/initdb UTF8 SCRAM por pwfile privado temporal, arrancar pg_ctl con logs privados, roles/base exacta/btree_gist por conexion superusuario solo local/temporal; despues ejecutar flujo0011/no-op/admin/DPAPI/RSA3072/sellado existente. Passwords no aparecen en argv/log/respuestas ni PGPASSWORD persistente; la superusuario no queda en bootstrap runtime.
+
+Nunca reutilizar un cluster/directorio con datos, detener un servidor ajeno, sobrescribir raiz/configuracion ni inferir virginidad por una caida. Directorio de datos debe estar bajo estado privado/fuera del repo y no tener enlaces; puerto ocupado bloquea. Fallo detiene solo el cluster del intento, conserva diagnostico sanitizado/checkpoint y no emite sealed; no borra evidencia ni datos de otro intento. Estado parcial queda bloqueado para recuperacion supervisada, no reset automatico.
+
+Runtime Local portable inicia ordenadamente su cluster firmado antes de API/workers, comprobando identidad del directorio/PID/puerto y usando pg_ctl con salida a archivos privados, no pipes heredados; externo no cambia. Plantillas nativas cubren dependencia PostgreSQL/API y fencing de mantenimiento. Upgrade puede seleccionar postgres/bin de la instalacion firmada, nunca los binarios/data del desarrollador. Pruebas de esta tarea solo simuladas/PG0, sin PG1/SQL real/initdb real ni tocar database/data/ocoteAppDatabase; las evidencias reales F7 anteriores no homologan automaticamente este incremento.
+
+### Parametros Para Release Y Cliente
+
+Desde la raiz fuente, con build Architect aprobado, release.sh puede anadir exclusivamente --postgres-dir al comando package existente. El directorio indicado debe contener bin/lib/share nuevos del proveedor, no un cluster. El empaquetador lo lee, no ejecuta binarios PostgreSQL; debe revisarse su procedencia/licencias antes de distribuirlo.
+
+```bash
+PYTHONPATH=backend backend/.venv/Scripts/python -m tools.delivery package --build dist/ocote-app/browser --postgres-dir database/postgres --output __RELEASE_NUEVO__.zip
+```
+
+Omitir --postgres-dir genera la variante sin runtime; no se autodetecta database/postgres. Cada archivo portable queda como componente file de CycloneDX con SHA256 exacto, ademas de1034 componentes lock; identidad por contenido no es version/procedencia homologada del proveedor. verify exige cobertura SBOM/manifest completa y el mismo proceso sign/verify-signature de seccion11. No copiar data/logs/backups/exports ni un lock de arranque;1583 rutas previas se retiraron del indice solo por autorizacion visible y .gitignore se reactivo, conservando disco.
+
+ocote-cliente.cmd mantiene los argumentos explicitos de confianza/estado/origen; no agrega credenciales SQL ni comandos initdb/pg_ctl. Desde backend del paquete nuevo extraido, para **un cliente nuevo autorizado**, el contrato de CLI es:
+
+```text
+python -m tools.delivery setup --state "__ESTADO_NUEVO_PRIVADO_FUERA_DEL_RELEASE__" --origin "__ORIGEN_HTTPS_APROBADO__" --artifact "__RELEASE_NUEVO__.zip" --signature "__RELEASE_NUEVO__.zip.sig" --public-key "__ANCLA_INDEPENDIENTE__.pem" --behind-approved-proxy
+python -m tools.delivery runtime --state "__MISMO_ESTADO_SELLADO__" --artifact "__RELEASE_NUEVO__.zip" --signature "__RELEASE_NUEVO__.zip.sig" --public-key "__ANCLA_INDEPENDIENTE__.pem" --behind-approved-proxy
+```
+
+--behind-approved-proxy solo cuando el proxy HTTPS ya esta aprobado/configurado; en otro caso usar --tls-cert/--tls-key privados aprobados, nunca HTTP publico o TLS bypass. El wrapper conserva log-file/port y demas parametros operativos existentes. El Wizard ofrece Local integrado y Externo/Nube; sin runtime incluido, Local permanece deshabilitado. Base fija ocoteAppDatabase en ambas rutas; el backend rechaza nombres alternativos/puertos no enteros/credenciales locales debiles o repetidas. Accion final Local Preparar e instalar crea todo el destino nuevo; password postgres se descarta, no se sella en runtime. Externo mantiene connection-tests/test_id y provision previa del DBA.
+
+Datos por defecto __ESTADO_PRIVADO__/postgres-data, seleccion alternativa solo como descendiente nuevo de ese estado, sin enlaces ni contenido. No editar PG_VERSION/postmaster.pid ni borrar carpetas para reintentar: fallo queda bloqueado con diagnostico sanitizado y exige recuperacion supervisada. No parar cluster al finalizar una pasada worker: API y workers comparten el cluster propio de larga vida; las plantillas delegan el arranque sincronico al runtime firmado y no instalan un task PostgreSQL independiente.
+
+upgrade conserva todos sus argumentos/confirmaciones de seccion10-11. --pg-bin ahora es opcional **solo si** el arbol actual extraido contiene PostgreSQL y coincide con el manifest del artefacto firmado; toma postgres/bin de ese arbol. Si no, exige --pg-bin aprobado explicito, sin fallback al checkout. No actualiza automaticamente el major PostgreSQL ni migra datos de un cluster preexistente. Gate local PG0 744/108 omitidas/Ruff/pip/Angular233/Architect aprobado; [acta27](03-estado-actual-y-roadmap.md#27-postgresql-portable-local-integrado-2026-11-27). Ningun comando de cliente de este bloque se ejecuto contra el desarrollador; homologacion real portable pendiente.
+
 ## 11. Etapa2 Release Engineering (2026-11-27)
 
 **Herramientas implementadas/validadas localmente; no despliegue ni remediacion automatica.** [Acta26/auditoria](03-estado-actual-y-roadmap.md#26-etapa2-release-engineering-2026-11-27): PG0715/108 omitidas/Ruff/pip, SBOM1034 componentes, firma/verificacion efimera/tampering/reopen simulado/plantillas aprobados. Huellae9f86d9d8ac15baec7bcfde29c17b31c3c34f2c0151f0fa568e2d95bb801c89c, evidencia LOCALAPPDATA/OCOTE/release-engineering/e2776d22-9f7f-44bb-af62-d4749ef47a2d. Npm21 moderadas, Pythonsetuptools80.9.0 con1 aviso moderado y1 bajo unicos; locks sin cambios, excepciones2026-12-24 no renovadas. Resolver/aceptar riesgo con decision explicita antes de piloto; no afirmar paquete limpio por estar firmado.

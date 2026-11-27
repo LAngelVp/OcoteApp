@@ -3,7 +3,7 @@ from typing import Literal, Self
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, StrictInt, field_validator, model_validator
 
 from app.schemas.identity import Command, ExactSecret, UserCreate
 
@@ -92,3 +92,56 @@ def secret_values(body: Connection) -> dict:
         name: value.get_secret_value() if isinstance(value, SecretStr) else value
         for name, value in body.__dict__.items()
     }
+
+
+class PortableLocal(Command):
+    database: Literal["ocoteAppDatabase"] = "ocoteAppDatabase"
+    port: StrictInt = Field(default=5432, ge=1, le=65535)
+    data_directory: str = Field(default="postgres-data", min_length=1, max_length=500)
+    postgres_password: ExactSecret = Field(min_length=14, max_length=128)
+    migrator_password: ExactSecret = Field(min_length=14, max_length=128)
+    runtime_password: ExactSecret = Field(min_length=14, max_length=128)
+
+    @model_validator(mode="after")
+    def safe_passwords(self) -> Self:
+        values = [value.get_secret_value() for value in (
+            self.postgres_password, self.migrator_password, self.runtime_password,
+        )]
+        if len(set(values)) != 3:
+            raise ValueError("Three independent local PostgreSQL credentials are required")
+        for value in values:
+            classes = sum((any(character.islower() for character in value),
+                           any(character.isupper() for character in value),
+                           any(character.isdigit() for character in value),
+                           any(not character.isalnum() for character in value)))
+            if classes < 3 or any(
+                ord(character) < 32 or ord(character) == 127 for character in value
+            ):
+                raise ValueError("Local credentials require14 characters and3 character classes")
+        if any(ord(character) < 32 for character in self.data_directory):
+            raise ValueError("Invalid local state path")
+        return self
+
+    def connection(self):
+        return Connection(mode="local", host="127.0.0.1", approved_address="127.0.0.1",
+                          port=self.port, database=self.database, runtime_role="ocote_runtime",
+                          migrator_role="ocote_migrador", runtime_password=self.runtime_password,
+                          migrator_password=self.migrator_password, sslmode="disable")
+
+
+class LocalInstall(Command):
+    local: PortableLocal
+    admin: UserCreate
+    organization_timezone: str
+
+    @model_validator(mode="after")
+    def explicit_administrator(self) -> Self:
+        try:
+            ZoneInfo(self.organization_timezone)
+        except (ValueError, KeyError):
+            raise ValueError("Use an installed IANA timezone") from None
+        Install(connection=self.local.connection(), test_id="0" * 32, admin=self.admin,
+                organization_timezone=self.organization_timezone)
+        if self.admin.password == self.local.postgres_password:
+            raise ValueError("Administrator credentials must be independent of PostgreSQL")
+        return self

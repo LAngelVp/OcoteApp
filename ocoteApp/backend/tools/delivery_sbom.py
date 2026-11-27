@@ -104,7 +104,7 @@ def npm_inventory(lock):
     return list(components.values())
 
 
-def generate(root):
+def generate(root, portable=None):
     root = Path(root)
     python_lock, npm_lock = root / "backend/requirements.lock", root / "package-lock.json"
     result = {
@@ -134,6 +134,15 @@ def generate(root):
             key=lambda component: component["bom-ref"],
         ),
     }
+    for name, content in sorted((portable or {}).items()):
+        digest = hashlib.sha256(content).hexdigest()
+        purl = "pkg:generic/ocote-portable-file/" + quote(name, safe="") + "@" + digest
+        result["components"].append({
+            "type": "file", "name": name, "version": digest, "bom-ref": purl, "purl": purl,
+            "hashes": [{"alg": "SHA-256", "content": digest}],
+            "properties": [{"name": "ocote:inventory", "value": "portable-runtime-file"}],
+        })
+    result["components"].sort(key=lambda component: component["bom-ref"])
     validate(result)
     return result
 
@@ -155,7 +164,7 @@ def validate(sbom):
             or reference != component["purl"]
             or not component["name"]
             or not component["version"]
-            or component["type"] != "library"
+            or component["type"] not in {"library", "file"}
         ):
             raise ValueError("Invalid or duplicated SBOM component")
         references.add(reference)

@@ -10,6 +10,11 @@ from pathlib import Path, PurePosixPath
 from app.services.installation import HEAD, canonical
 
 ROOT = Path(__file__).resolve().parents[2]
+POSTGRES_EXECUTABLES = ("initdb.exe", "pg_ctl.exe", "postgres.exe", "psql.exe",
+                        "pg_dump.exe", "pg_restore.exe")
+POSTGRES_LIVE_NAMES = {"pg_version", "postmaster.pid", "postmaster.opts", "postgresql.conf",
+                       "pg_hba.conf", "pg_ident.conf", "data", "logs", "backups", "exports",
+                       ".ocote-start.lock"}
 FORBIDDEN = {
     ".venv",
     ".env",
@@ -20,6 +25,8 @@ FORBIDDEN = {
     "logs",
     "backups",
     "database",
+    "exports",
+    ".ocote-start.lock",
     ".git",
     ".angular",
     "test-results",
@@ -39,17 +46,57 @@ def allowed(name):
         and all(part not in {"", ".", ".."} for part in name.split("/"))
         and not any(part.lower() in FORBIDDEN for part in path.parts)
         and path.suffix.lower() not in {".log", ".dump", ".dpapi", ".pem", ".key", ".pyc"}
+        and (path.parts[0] != "postgres" or portable_path_allowed(path.parts[1:]))
         and not any(
             part.lower().startswith(".env") and part != ".env.example" for part in path.parts
         )
     )
 
 
+def portable_path_allowed(parts):
+    if not parts or any(part.lower() in POSTGRES_LIVE_NAMES for part in parts):
+        return False
+    if parts[0].lower() not in {"bin", "lib", "share"}:
+        return len(parts) == 1 and Path(parts[0]).stem.lower() in {
+            "copyright", "license", "licence", "notice", "readme",
+        }
+    return Path(parts[-1]).suffix.lower() not in {".dump", ".backup", ".bak", ".log", ".gz"}
+
+
+def portable_inventory(directory):
+    directory = Path(directory).absolute()
+    if directory.is_symlink() or directory.is_junction() or not directory.is_dir():
+        raise ValueError("An unlinked PostgreSQL portable directory is required")
+    for executable in POSTGRES_EXECUTABLES:
+        source = directory / "bin" / executable
+        if not source.is_file() or source.stat().st_size == 0:
+            raise ValueError("Portable PostgreSQL is missing a required executable")
+    for folder in ("lib", "share"):
+        if not (directory / folder).is_dir():
+            raise ValueError("Portable PostgreSQL requires its lib and share runtime resources")
+    values = {}
+    names = set()
+    for parent, directories, files in os.walk(directory, followlinks=False):
+        for name in sorted(directories + files):
+            source = Path(parent) / name
+            relative = source.relative_to(directory)
+            if (source.is_symlink() or source.is_junction()
+                    or not portable_path_allowed(relative.parts)):
+                raise ValueError("Live data or unsupported files in portable PostgreSQL input")
+            if source.is_file():
+                destination = "postgres/" + relative.as_posix()
+                if destination.casefold() in names or not allowed(destination):
+                    raise ValueError("Unsafe or duplicated portable runtime entry")
+                names.add(destination.casefold())
+                values[destination] = source.read_bytes()
+    return values
+
+
 def sha(content):
     return hashlib.sha256(content).hexdigest()
 
 
-def inventory(root, build):
+def inventory(root, build, postgres_dir=None):
     root, build = Path(root), Path(build)
     receipt = json.loads((build.parent / "architect-result.json").read_text())
     if receipt.get("success") is not True or receipt.get("configuration") != "production":
@@ -111,7 +158,8 @@ def inventory(root, build):
     values[".env.example"] = EXAMPLE
     from tools.delivery_sbom import generate
 
-    values["sbom.cdx.json"] = canonical(generate(root))
+    portable = portable_inventory(postgres_dir) if postgres_dir is not None else {}
+    values["sbom.cdx.json"] = canonical(generate(root, portable))
     values["inventory/package-lock.json"] = (root / "package-lock.json").read_bytes()
     values["frontend/architect-result.json"] = canonical(receipt)
     for name, body in {
@@ -125,11 +173,12 @@ def inventory(root, build):
         ),
     }.items():
         values[name] = body.encode("ascii")
+    values.update(portable)
     return values
 
 
-def package(root, build, destination):
-    values = inventory(root, build)
+def package(root, build, destination, postgres_dir=None):
+    values = inventory(root, build, postgres_dir)
     manifest = {
         "format": 1,
         "application": "OCOTE",
@@ -139,6 +188,8 @@ def package(root, build, destination):
         "head": HEAD,
         "compatible_source_revisions": [HEAD],
         "new_installation": True,
+        "portable_postgres": {"included": postgres_dir is not None, "directory": "postgres",
+                      "major": 18},
         "files": {
             name: {"sha256": sha(content), "bytes": len(content)}
             for name, content in sorted(values.items())
@@ -172,7 +223,9 @@ def verify(artifact):
             len(names) != len(set(name.casefold() for name in names))
             or "manifest.json" not in names
             or any(not allowed(name) for name in names)
-            or sum(entry.file_size for entry in entries) > 268435456
+            or sum(entry.file_size for entry in entries) > (
+                1073741824 if any(name.startswith("postgres/") for name in names) else 268435456
+            )
             or any(
                 stat.S_ISLNK(entry.external_attr >> 16) or entry.flag_bits & 1 for entry in entries
             )
@@ -183,6 +236,11 @@ def verify(artifact):
             raise ValueError("Unsupported artifact")
         if set(names) != set(manifest["files"]) | {"manifest.json"}:
             raise ValueError("Manifest does not cover the complete package")
+        portable = manifest.get("portable_postgres", {}).get("included", False)
+        if any(name.startswith("postgres/") for name in names) != portable or (
+            portable and not all("postgres/bin/" + name in names for name in POSTGRES_EXECUTABLES)
+        ):
+            raise ValueError("Portable runtime declaration does not match package")
         from tools.delivery_sbom import validate
 
         sbom = json.loads(archive.read("sbom.cdx.json"))
@@ -192,6 +250,11 @@ def verify(artifact):
             archive.read("backend/requirements.lock")
         ) or sources["ocote:npm-lock-sha256"] != sha(archive.read("inventory/package-lock.json")):
             raise ValueError("SBOM does not match packaged lockfiles")
+        native = {component["name"]: component["hashes"] for component in sbom["components"]
+                  if component["type"] == "file"}
+        if native != {name: [{"alg": "SHA-256", "content": manifest["files"][name]["sha256"]}]
+                      for name in names if name.startswith("postgres/")}:
+            raise ValueError("SBOM does not cover the exact portable runtime")
         for name, entry in manifest["files"].items():
             content = archive.read(name)
             if len(content) != entry["bytes"] or sha(content) != entry["sha256"]:
@@ -243,7 +306,7 @@ def start_server(arguments):
         from app.routers.setup import create_setup_app
         from app.services.installation import Setup
 
-        setup = Setup(arguments.state, arguments.origin)
+        setup = Setup(arguments.state, arguments.origin, portable_directory=ROOT / "postgres")
         print("Local one-use setup capability (15min; never URL/chat):", setup.code, flush=True)
         app = create_setup_app(setup)
         app.state.activate_runtime = lambda: runtime_app(arguments.state)
@@ -315,6 +378,7 @@ def main():
     pack = commands.add_parser("package")
     pack.add_argument("--build", type=Path, default=ROOT / "dist/ocote-app/browser")
     pack.add_argument("--output", type=Path, required=True)
+    pack.add_argument("--postgres-dir", type=Path)
     check = commands.add_parser("verify")
     check.add_argument("artifact", type=Path)
     keys = commands.add_parser("keygen")
@@ -352,8 +416,9 @@ def main():
         if action == "setup":
             serve.add_argument("--origin", required=True)
     update = commands.add_parser("upgrade")
-    for name in ("artifact", "pg-bin", "evidence", "maintenance"):
+    for name in ("artifact", "evidence", "maintenance"):
         update.add_argument("--" + name, type=Path, required=True)
+    update.add_argument("--pg-bin", type=Path)
     for name in ("trusted-sha256", "restore-database", "operator"):
         update.add_argument("--" + name, required=True)
     update.add_argument("--writers-stopped", action="store_true", required=True)
@@ -376,7 +441,7 @@ def main():
     reopening.add_argument("--execute", action="store_true", required=True)
     arguments = parser.parse_args()
     if arguments.action == "package":
-        result = package(ROOT, arguments.build, arguments.output)
+        result = package(ROOT, arguments.build, arguments.output, arguments.postgres_dir)
         print(
             json.dumps(
                 {
@@ -432,7 +497,14 @@ def main():
     elif arguments.action == "upgrade":
         from tools.delivery_security import verify_signature
 
-        verify_signature(arguments.artifact, arguments.signature, arguments.public_key)
+        trusted = verify_signature(arguments.artifact, arguments.signature, arguments.public_key)
+        if arguments.pg_bin is None:
+            verify_directory(ROOT)
+            installed = json.loads((ROOT / "manifest.json").read_text())
+            if (installed.get("portable_postgres", {}).get("included") is not True
+                    or sha(canonical(installed)) != trusted["manifest_sha256"]):
+                raise ValueError("An explicit pg-bin or the signed bundled runtime is required")
+            arguments.pg_bin = ROOT / "postgres/bin"
         from tools.delivery_upgrade import interactive_upgrade
 
         interactive_upgrade(arguments)
