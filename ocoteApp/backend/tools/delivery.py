@@ -77,6 +77,10 @@ def inventory(root, build):
                 "delivery.py",
                 "delivery_runtime.py",
                 "delivery_upgrade.py",
+                "delivery_security.py",
+                "delivery_sbom.py",
+                "delivery_operations.py",
+                "delivery_templates.py",
             }:
                 continue
             if source.is_file() and source.suffix in {".py", ".mako", ".txt", ".md"}:
@@ -99,14 +103,24 @@ def inventory(root, build):
     from tools.delivery_support import build_support
 
     values["backend/tools/delivery_support.py"] = build_support(root)
+    from tools.delivery_templates import templates
+    from tools.delivery_worker import build_worker
+
+    values["backend/tools/delivery_worker.py"] = build_worker(root)
+    values.update(templates())
     values[".env.example"] = EXAMPLE
+    from tools.delivery_sbom import generate
+
+    values["sbom.cdx.json"] = canonical(generate(root))
+    values["inventory/package-lock.json"] = (root / "package-lock.json").read_bytes()
     values["frontend/architect-result.json"] = canonical(receipt)
     for name, body in {
-        "install.cmd": "@echo off\r\ncd /d %~dp0backend\r\npython -m tools.delivery setup %*\r\n",
-        "start.cmd": "@echo off\r\ncd /d %~dp0backend\r\npython -m tools.delivery runtime %*\r\n",
-        "update.cmd": "@echo off\r\ncd /d %~dp0backend\r\npython -m tools.delivery upgrade %*\r\n",
+        "install.cmd": '@echo off\r\ncd /d "%~dp0backend"\r\npython -m tools.delivery setup %*\r\n',
+        "start.cmd": '@echo off\r\ncd /d "%~dp0backend"\r\npython -m tools.delivery runtime %*\r\n',
+        "update.cmd": ('@echo off\r\ncd /d "%~dp0backend"\r\n'
+                   'python -m tools.delivery upgrade %*\r\n'),
         "dependencies.cmd": (
-            "@echo off\r\ncd /d %~dp0backend\r\n"
+            '@echo off\r\ncd /d "%~dp0backend"\r\n'
             "python -m pip install --require-hashes -r requirements.lock\r\n"
         ),
     }.items():
@@ -169,6 +183,15 @@ def verify(artifact):
             raise ValueError("Unsupported artifact")
         if set(names) != set(manifest["files"]) | {"manifest.json"}:
             raise ValueError("Manifest does not cover the complete package")
+        from tools.delivery_sbom import validate
+
+        sbom = json.loads(archive.read("sbom.cdx.json"))
+        validate(sbom)
+        sources = {entry["name"]: entry["value"] for entry in sbom["metadata"]["properties"]}
+        if sources["ocote:python-lock-sha256"] != sha(
+            archive.read("backend/requirements.lock")
+        ) or sources["ocote:npm-lock-sha256"] != sha(archive.read("inventory/package-lock.json")):
+            raise ValueError("SBOM does not match packaged lockfiles")
         for name, entry in manifest["files"].items():
             content = archive.read(name)
             if len(content) != entry["bytes"] or sha(content) != entry["sha256"]:
@@ -209,6 +232,13 @@ def start_server(arguments):
             raise ValueError("Explicit TLS or an approved HTTPS proxy is required")
         private_root(arguments.tls_key.resolve().parent)
     verify_directory(ROOT)
+    from tools.delivery_security import verify_signature
+
+    trusted = verify_signature(arguments.artifact, arguments.signature, arguments.public_key)
+    if trusted["manifest_sha256"] != sha(
+        canonical(json.loads((ROOT / "manifest.json").read_text()))
+    ):
+        raise ValueError("Extracted release is not the signed artifact")
     if arguments.action == "setup":
         from app.routers.setup import create_setup_app
         from app.services.installation import Setup
@@ -238,7 +268,45 @@ def start_server(arguments):
         proxy_headers=False,
         ssl_certfile=str(arguments.tls_cert) if arguments.tls_cert else None,
         ssl_keyfile=str(arguments.tls_key) if arguments.tls_key else None,
+        log_config=logging_profile(
+            arguments.log_file, arguments.log_max_bytes, arguments.log_files
+        ),
     )
+
+
+def logging_profile(path, max_bytes, files):
+    if path is None:
+        import uvicorn.config
+
+        return uvicorn.config.LOGGING_CONFIG
+    from app.core.evidence import private_root
+
+    path = Path(path).absolute()
+    private_root(path.parent)
+    if (
+        path.is_symlink()
+        or path.is_junction()
+        or not 1 <= files <= 1000
+        or not (1048576 <= max_bytes <= 104857600)
+    ):
+        raise ValueError("Invalid private technical log rotation")
+    return {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {"technical": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"}},
+        "handlers": {
+            "technical": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": str(path),
+                "maxBytes": max_bytes,
+                "backupCount": files,
+                "encoding": "utf-8",
+                "formatter": "technical",
+            }
+        },
+        "root": {"level": "INFO", "handlers": ["technical"]},
+        "loggers": {"uvicorn": {"level": "INFO", "handlers": ["technical"], "propagate": False}},
+    }
 
 
 def main():
@@ -249,6 +317,25 @@ def main():
     pack.add_argument("--output", type=Path, required=True)
     check = commands.add_parser("verify")
     check.add_argument("artifact", type=Path)
+    keys = commands.add_parser("keygen")
+    keys.add_argument("--directory", type=Path, required=True)
+    signing = commands.add_parser("sign")
+    signing.add_argument("artifact", type=Path)
+    signing.add_argument("--private-key", type=Path, required=True)
+    signing.add_argument("--signature", type=Path, required=True)
+    signed = commands.add_parser("verify-signature")
+    signed.add_argument("artifact", type=Path)
+    signed.add_argument("--public-key", type=Path, required=True)
+    signed.add_argument("--signature", type=Path, required=True)
+    sbom = commands.add_parser("sbom")
+    sbom.add_argument("--output", type=Path, required=True)
+    operations = commands.add_parser("operations-templates")
+    operations.add_argument("--output", type=Path, required=True)
+    measurement = commands.add_parser("record-restore")
+    measurement.add_argument("--proof", type=Path, required=True)
+    measurement.add_argument("--output", type=Path, required=True)
+    measurement.add_argument("--rpo-goal", type=int, required=True)
+    measurement.add_argument("--rto-goal", type=int, required=True)
     for action in ("setup", "runtime"):
         serve = commands.add_parser(action)
         serve.add_argument("--state", type=Path, required=True)
@@ -256,6 +343,12 @@ def main():
         serve.add_argument("--tls-cert", type=Path)
         serve.add_argument("--tls-key", type=Path)
         serve.add_argument("--behind-approved-proxy", action="store_true")
+        serve.add_argument("--log-file", type=Path)
+        serve.add_argument("--log-max-bytes", type=int, default=10485760)
+        serve.add_argument("--log-files", type=int, default=10)
+        serve.add_argument("--artifact", type=Path, required=True)
+        serve.add_argument("--signature", type=Path, required=True)
+        serve.add_argument("--public-key", type=Path, required=True)
         if action == "setup":
             serve.add_argument("--origin", required=True)
     update = commands.add_parser("upgrade")
@@ -265,6 +358,22 @@ def main():
         update.add_argument("--" + name, required=True)
     update.add_argument("--writers-stopped", action="store_true", required=True)
     update.add_argument("--execute", action="store_true", required=True)
+    update.add_argument("--signature", type=Path, required=True)
+    update.add_argument("--public-key", type=Path, required=True)
+    reopening = commands.add_parser("reopen")
+    for name in (
+        "state",
+        "receipt",
+        "maintenance",
+        "ca-file",
+        "artifact",
+        "signature",
+        "public-key",
+    ):
+        reopening.add_argument("--" + name, type=Path, required=True)
+    for name in ("expected-instance", "origin", "operator"):
+        reopening.add_argument("--" + name, required=True)
+    reopening.add_argument("--execute", action="store_true", required=True)
     arguments = parser.parse_args()
     if arguments.action == "package":
         result = package(ROOT, arguments.build, arguments.output)
@@ -277,12 +386,63 @@ def main():
                 }
             )
         )
+    elif arguments.action == "operations-templates":
+        from tools.delivery_templates import templates
+
+        if arguments.output.exists():
+            raise ValueError("Template output must be new")
+        for name, content in templates().items():
+            path = arguments.output / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
+    elif arguments.action == "record-restore":
+        from tools.delivery_templates import record_restore
+
+        print(
+            json.dumps(
+                record_restore(
+                    arguments.proof, arguments.output, arguments.rpo_goal, arguments.rto_goal
+                )
+            )
+        )
+    elif arguments.action == "keygen":
+        from tools.delivery_security import keygen
+
+        _, public = keygen(arguments.directory)
+        print(json.dumps({"public_key": str(public), "private_key_printed": False}))
+    elif arguments.action == "sign":
+        from tools.delivery_security import sign
+
+        print(json.dumps(sign(arguments.artifact, arguments.private_key, arguments.signature)))
+    elif arguments.action == "verify-signature":
+        from tools.delivery_security import verify_signature
+
+        print(
+            json.dumps(
+                verify_signature(arguments.artifact, arguments.signature, arguments.public_key)
+            )
+        )
+    elif arguments.action == "sbom":
+        from tools.delivery_sbom import generate
+
+        with arguments.output.open("xb") as stream:
+            stream.write(canonical(generate(ROOT)))
     elif arguments.action == "verify":
         print(json.dumps({"head": verify(arguments.artifact)["head"], "verified": True}))
     elif arguments.action == "upgrade":
+        from tools.delivery_security import verify_signature
+
+        verify_signature(arguments.artifact, arguments.signature, arguments.public_key)
         from tools.delivery_upgrade import interactive_upgrade
 
         interactive_upgrade(arguments)
+    elif arguments.action == "reopen":
+        from tools.delivery_operations import reopen
+
+        values = vars(arguments).copy()
+        values.pop("action")
+        values.pop("execute")
+        print(json.dumps(reopen(**values)))
     else:
         start_server(arguments)
 

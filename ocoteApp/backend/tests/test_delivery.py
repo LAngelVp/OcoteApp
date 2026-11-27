@@ -8,6 +8,385 @@ import pytest
 from tools.delivery import ROOT, allowed, package, sha, verify
 
 
+@pytest.mark.parametrize("mutation", ["none", "zip", "manifest", "signature", "wrong-key"])
+def test_ed25519_detached_signature_fail_closed(build, tmp_path, mutation):
+    import base64
+
+    from cryptography.exceptions import InvalidSignature
+
+    from tools.delivery_security import keygen, sign, verify_signature
+
+    artifact = tmp_path / "signed.zip"
+    package(ROOT, build, artifact)
+    private, public = keygen(tmp_path / "ephemeral-keys")
+    signature = tmp_path / "signed.zip.sig"
+    sign(artifact, private, signature)
+    if mutation == "none":
+        assert verify_signature(artifact, signature, public)["algorithm"] == "Ed25519"
+        return
+    if mutation == "zip":
+        with artifact.open("ab") as stream:
+            stream.write(b"tampered trailing bytes")
+    elif mutation == "manifest":
+        with zipfile.ZipFile(artifact, "a") as archive:
+            archive.writestr("manifest.json", '{"format":1}')
+    elif mutation == "signature":
+        envelope = json.loads(signature.read_text())
+        content = bytearray(base64.b64decode(envelope["signature"]))
+        content[0] ^= 1
+        envelope["signature"] = base64.b64encode(content).decode()
+        signature.write_text(json.dumps(envelope))
+    else:
+        _, public = keygen(tmp_path / "different-ephemeral-keys")
+    with pytest.raises((ValueError, InvalidSignature, KeyError)):
+        verify_signature(artifact, signature, public)
+
+
+def test_ed25519_keys_cannot_be_created_inside_repository():
+    from tools.delivery_security import keygen
+
+    with pytest.raises(ValueError):
+        keygen(ROOT / "forbidden-signing-keys")
+
+
+def test_cyclonedx_sbom_is_deterministic_exact_and_packaged(build, tmp_path):
+    from app.services.installation import canonical
+    from tools.delivery_sbom import generate, validate
+
+    first, second = generate(ROOT), generate(ROOT)
+    assert canonical(first) == canonical(second)
+    validate(first)
+    assert first["bomFormat"] == "CycloneDX" and first["specVersion"] == "1.6"
+    assert "timestamp" not in first["metadata"] and "serialNumber" not in first
+    assert any(
+        component["purl"].startswith("pkg:pypi/psycopg@") for component in first["components"]
+    )
+    assert any(
+        component["purl"].startswith("pkg:npm/%40angular/core@")
+        for component in first["components"]
+    )
+    assert all(
+        component.get("hashes")
+        for component in first["components"]
+        if component["purl"].startswith("pkg:pypi/")
+    )
+    artifact = tmp_path / "sbom.zip"
+    manifest = package(ROOT, build, artifact)
+    assert "sbom.cdx.json" in manifest["files"]
+    with zipfile.ZipFile(artifact) as archive:
+        assert archive.read("sbom.cdx.json") == canonical(first)
+
+
+def test_python_audit_uses_exact_versions_and_reports_unknown_severity(tmp_path):
+    import httpx
+
+    from app.services.installation import private_directory
+    from tools.delivery_audit import python_audit
+
+    private_directory(tmp_path)
+
+    def respond(request):
+        if request.method == "POST":
+            assert json.loads(request.content)["queries"][0]["version"] == "1.2.3"
+            return httpx.Response(200, json={"results": [{"vulns": [{"id": "SYNTHETIC-1"}]}]})
+        return httpx.Response(200, json={"id": "SYNTHETIC-1", "affected": []})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        report = python_audit(client, [{"name": "synthetic", "version": "1.2.3"}], tmp_path)
+    assert report["affected_components_by_max_severity"]["unknown"] == 1
+    assert report["status"] == "complete"
+
+
+def test_python_advisory_alias_inherits_known_severity_without_double_count():
+    from tools.delivery_audit import advisory_groups
+
+    result = advisory_groups(
+        [
+            {
+                "id": "GHSA-synthetic",
+                "aliases": ["CVE-synthetic"],
+                "database_specific": {"severity": "MODERATE"},
+            },
+            {"id": "PYSEC-synthetic", "aliases": ["CVE-synthetic"], "database_specific": None},
+            {"id": "GHSA-other", "database_specific": {"severity": "LOW"}},
+        ]
+    )
+    assert len(result) == 2
+    assert sorted(group["severity"] for group in result) == ["low", "moderate"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["none", "instance", "receipt", "marker", "health", "runtime-identity", "tls", "receipt-write"],
+)
+def test_reopen_requires_signed_verified_instance_and_health(
+    build, tmp_path, monkeypatch, mutation
+):
+    import hmac
+    from datetime import UTC, datetime, timedelta
+
+    import httpx
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    from app.services.installation import HEAD, canonical, private_directory, write_private
+    from tools import delivery_operations as operations
+    from tools.delivery_security import keygen, sign, verify_signature
+
+    private_directory(tmp_path)
+    artifact = tmp_path / "release.zip"
+    package(ROOT, build, artifact)
+    private, public = keygen(tmp_path / "ephemeral-keys")
+    signature = tmp_path / "release.zip.sig"
+    sign(artifact, private, signature)
+    trusted = verify_signature(artifact, signature, public)
+    state, evidence = tmp_path / "state", tmp_path / "upgrade"
+    private_directory(state)
+    private_directory(evidence)
+    instance, release, request = str(uuid4()), str(uuid4()), str(uuid4())
+    marker = state / "maintenance.json"
+    marker_bytes = canonical(
+        {
+            "state": "maintenance",
+            "head": HEAD,
+            "instance": instance,
+            "release": release,
+            "request_id": request,
+        }
+    )
+    write_private(marker, marker_bytes)
+    completed = {
+        "state": "verified_pending_reopening",
+        "head": HEAD,
+        "instance": instance,
+        "release": release,
+        "request_id": request,
+        "backup": {
+            "head": HEAD,
+            "verified_at": "2026-11-27T00:00:00+00:00",
+            "restore_input": "authenticated-decryption-of-encrypted-backup",
+        },
+        "artifact_sha256": trusted["zip_sha256"],
+        "manifest_sha256": trusted["manifest_sha256"],
+        "maintenance_sha256": sha(marker_bytes),
+    }
+    root = bytes(range(32))
+    completed["receipt_mac"] = hmac.digest(root, canonical(completed), "sha256").hex()
+    receipt = evidence / "complete.json"
+    write_private(receipt, canonical(completed))
+    monkeypatch.setattr(
+        operations,
+        "read_bootstrap",
+        lambda _path: {
+            "instance": instance,
+            "auth_origin": "https://customer.example.invalid",
+            "health_token": "synthetic-health-token-for-tests-only",
+        },
+    )
+    monkeypatch.setattr(operations.OSSealedFile, "read", lambda _self: root)
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "synthetic-only")])
+    now = datetime.now(UTC)
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(hours=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(key, hashes.SHA256())
+    )
+    ca = tmp_path / "synthetic-ca.crt"
+    ca.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+
+    def respond(http_request):
+        if http_request.url.path.endswith("/live"):
+            return httpx.Response(200, json={"status": "alive"})
+        assert http_request.headers["X-Health-Token"] == "synthetic-health-token-for-tests-only"
+        return httpx.Response(
+            503 if mutation == "health" else 200,
+            json={"status": "ready"},
+            headers={
+                "X-OCOTE-Instance": str(uuid4()) if mutation == "runtime-identity" else instance,
+                "X-OCOTE-Head": HEAD,
+                "X-OCOTE-Manifest": trusted["manifest_sha256"],
+            },
+        )
+
+    if mutation == "receipt":
+        completed["state"] = "running"
+        receipt.write_bytes(canonical(completed))
+    if mutation == "marker":
+        marker.write_bytes(marker_bytes + b" ")
+    if mutation == "tls":
+        ca.write_text("invalid CA fixture")
+    if mutation == "receipt-write":
+        original = operations.write_private
+
+        def fail_final(path, content):
+            if path.name == "reopen.json":
+                raise OSError("synthetic receipt disk failure")
+            return original(path, content)
+
+        monkeypatch.setattr(operations, "write_private", fail_final)
+    values = {
+        "state": state,
+        "receipt": receipt,
+        "maintenance": marker,
+        "expected_instance": str(uuid4()) if mutation == "instance" else instance,
+        "origin": "https://customer.example.invalid",
+        "ca_file": ca,
+        "artifact": artifact,
+        "signature": signature,
+        "public_key": public,
+        "operator": "Synthetic operator",
+        "client_factory": lambda **options: httpx.Client(
+            **options, transport=httpx.MockTransport(respond)
+        ),
+    }
+    if mutation != "none":
+        with pytest.raises((ValueError, OSError)):
+            operations.reopen(**values)
+        assert marker.exists()
+    else:
+        result = operations.reopen(**values)
+        assert result["state"] == "reopened" and result["sql_connections_opened"] == 0
+        assert not marker.exists() and (evidence / "reopened-maintenance.json").exists()
+        assert json.loads((evidence / "reopen.json").read_text())["instance"] == instance
+
+
+def test_operations_templates_are_deterministic_unregistered_and_without_credentials():
+    from defusedxml.ElementTree import fromstring
+
+    from tools.delivery_templates import templates
+    from tools.delivery_worker import build_worker
+
+    first, second = templates(), templates()
+    assert first == second
+    assert len([name for name in first if name.endswith(".task.xml.template")]) == 6
+    for name, content in first.items():
+        if ".xml." in name:
+            fromstring(content)
+        assert b"powershell.exe" not in content.lower()
+        assert b"<Password>" not in content
+        assert b"__" in content or name.endswith("README.md")
+    assert b"--public-key" in first["operations/api.task.xml.template"]
+    assert b"__APPROVED_OFF_HOST_UNC__" in first["operations/backup.task.xml.template"]
+    worker = build_worker(ROOT)
+    compile(worker, "<generated-worker>", "exec")
+    assert b"WORKER_SOURCE_SHA256" in worker
+    assert b"def main(" not in worker
+
+
+def test_restore_measurement_requires_verified_uuid_and_measures_goals(tmp_path):
+    from tools.delivery_templates import record_restore
+
+    identity = uuid4()
+    proof = tmp_path / "proof.json"
+    values = {
+        "instance": str(uuid4()),
+        "isolated_target_uuid": str(identity),
+        "target_database": "ocote_f2_restore_" + identity.hex,
+        "restore_verified": True,
+        "backup_sha256": "a" * 64,
+        "encrypted_backup_sha256": "b" * 64,
+        "recoverable_data_at": "2026-11-27T00:00:00+00:00",
+        "incident_at": "2026-11-27T01:00:00+00:00",
+        "restore_started_at": "2026-11-27T01:00:00+00:00",
+        "restore_finished_at": "2026-11-27T01:10:00+00:00",
+    }
+    proof.write_text(json.dumps(values))
+    report = record_restore(proof, tmp_path / "measurement.json", 86400, 14400)
+    assert report["rpo_seconds"] == 3600 and report["rto_seconds"] == 600
+    assert report["goals_met"]
+    values["target_database"] = "ocoteAppDatabase"
+    proof.write_text(json.dumps(values))
+    with pytest.raises(ValueError):
+        record_restore(proof, tmp_path / "forbidden.json", 86400, 14400)
+
+
+def test_technical_log_rotation_is_bounded_and_private(tmp_path):
+    from app.services.installation import private_directory
+    from tools.delivery import logging_profile
+
+    private_directory(tmp_path)
+    profile = logging_profile(tmp_path / "api.log", 1048576, 8)
+    assert profile["handlers"]["technical"]["backupCount"] == 8
+    assert profile["handlers"]["technical"]["class"] == "logging.handlers.RotatingFileHandler"
+    with pytest.raises(ValueError):
+        logging_profile(tmp_path / "api.log", 1, 0)
+
+
+def test_distributed_runtime_fences_writes_but_exposes_authenticated_health_identity(
+    tmp_path,
+    monkeypatch,
+):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.services.installation import HEAD, canonical, private_directory
+    from tools import delivery, delivery_runtime
+
+    state, release = tmp_path / "state", tmp_path / "release"
+    private_directory(state)
+    release.mkdir()
+    manifest = canonical({"head": HEAD, "files": {}})
+    (release / "manifest.json").write_bytes(manifest)
+    identity = str(uuid4())
+    monkeypatch.setattr(delivery, "ROOT", release)
+    monkeypatch.setattr(
+        delivery_runtime,
+        "read_bootstrap",
+        lambda _path: {
+            "instance": identity,
+            "state": "sealed",
+            "auth_origin": "https://localhost:8443",
+            "organization_timezone": "America/Mexico_City",
+            "health_token": "synthetic-health-token-for-tests-only",
+            "signing_key": "synthetic-only",
+            "csrf": "a" * 64,
+            "connection": {
+                "mode": "local",
+                "sslmode": "disable",
+                "approved_address": "127.0.0.1",
+                "host": "127.0.0.1",
+                "port": 5432,
+                "database": "ocoteAppDatabase",
+                "runtime_password": "synthetic-only",
+            },
+        },
+    )
+    monkeypatch.setattr(delivery_runtime, "Tokens", lambda _auth: object())
+    fake = FastAPI()
+    calls = []
+
+    @fake.post("/api/v1/synthetic-write")
+    def write():
+        calls.append("write")
+        return {"ok": True}
+
+    @fake.get("/api/v1/health/ready")
+    def ready():
+        return {"status": "ready"}
+
+    monkeypatch.setattr(delivery_runtime, "create_app", lambda *_args, **_kwargs: fake)
+    app = delivery_runtime.runtime_app(state)
+    (state / "maintenance.json").write_text('{"state":"maintenance"}')
+    with TestClient(app) as client:
+        assert client.post("/api/v1/synthetic-write").status_code == 503
+        assert not calls
+        response = client.get("/api/v1/health/ready")
+        assert response.headers["X-OCOTE-Instance"] == identity
+        assert response.headers["X-OCOTE-Manifest"] == sha(manifest)
+        (state / "maintenance.json").unlink()
+        assert client.post("/api/v1/synthetic-write").status_code == 200
+    assert calls == ["write"]
+
+
 def test_vault_verification_uses_persisted_secret_version():
     from app.core.vault import Vault
     from tools.delivery_upgrade import verify_vault

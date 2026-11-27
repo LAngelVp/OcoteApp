@@ -1,5 +1,6 @@
 import getpass
 import hashlib
+import hmac
 import importlib
 import json
 import os
@@ -229,7 +230,17 @@ def upgrade(
             root = OSSealedFile(root_path, instance).read()
             verify_vault(source, root, instance)
             root_digest = sha(root_path.read_bytes())
-            write_private(maintenance, canonical({"state": "maintenance", "head": HEAD}))
+            request_id, attempt = uuid4(), uuid4()
+            marker = canonical(
+                {
+                    "state": "maintenance",
+                    "head": HEAD,
+                    "instance": str(instance),
+                    "request_id": str(request_id),
+                    "release": str(attempt),
+                }
+            )
+            write_private(maintenance, marker)
             write_private(evidence / "master.dpapi", root_path.read_bytes())
             original = snapshotter.snapshot(source)
             security = comparator.security_catalog(source)
@@ -297,7 +308,6 @@ def upgrade(
                 or sha(root_path.read_bytes()) != root_digest
             ):
                 raise CommandError(409, "DELIVERY_SOURCE_CHANGED")
-            request_id, attempt = uuid4(), uuid4()
             timestamp = datetime.now(UTC)
             source.execute(
                 "INSERT INTO release_history(id,created_at,updated_at,application_version,"
@@ -333,20 +343,21 @@ def upgrade(
             comparator.preserved(original, snapshotter.snapshot(source), ledger=True)
             if comparator.security_catalog(source) != security:
                 raise CommandError(409, "DELIVERY_SECURITY_CHANGED")
-            write_private(
-                evidence / "complete.json",
-                canonical(
-                    {
-                        "state": "verified_pending_reopening",
-                        "release": str(attempt),
-                        "request_id": str(request_id),
-                        "head": HEAD,
-                        "backup": verified,
-                        "schema_change": False,
-                        "bootstrap_changed": False,
-                    }
-                ),
-            )
+            completed = {
+                "state": "verified_pending_reopening",
+                "release": str(attempt),
+                "request_id": str(request_id),
+                "head": HEAD,
+                "instance": str(instance),
+                "backup": verified,
+                "schema_change": False,
+                "bootstrap_changed": False,
+                "artifact_sha256": trusted_sha256,
+                "manifest_sha256": sha(canonical(manifest)),
+                "maintenance_sha256": sha(marker),
+            }
+            completed["receipt_mac"] = hmac.digest(root, canonical(completed), "sha256").hex()
+            write_private(evidence / "complete.json", canonical(completed))
             shutil.copyfile(artifact, evidence / "verified-artifact.zip")
             return {
                 "head": HEAD,

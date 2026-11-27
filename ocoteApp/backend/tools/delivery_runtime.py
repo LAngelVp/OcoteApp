@@ -51,7 +51,7 @@ class DeliveryAuth(AuthSettings):
         return self
 
 
-def runtime_app(directory):
+def read_bootstrap(directory):
     directory = Path(directory).absolute()
     private_root(directory)
     receipt = json.loads((directory / "sealed.json").read_text())
@@ -64,6 +64,12 @@ def runtime_app(directory):
         or "migrator_password" in sealed["connection"]
     ):
         raise CommandError(503, "SETUP_SEAL_FAILED")
+    return sealed
+
+
+def runtime_app(directory):
+    directory = Path(directory).absolute()
+    sealed = read_bootstrap(directory)
     connection = sealed["connection"]
     query = {"sslmode": connection["sslmode"], "hostaddr": connection["approved_address"]}
     if connection["mode"] == "managed":
@@ -104,5 +110,28 @@ def runtime_app(directory):
             csrf_secret_file=root / "csrf.key",
         )
         tokens = Tokens(auth)
+    identity = sealed["instance"]
+    from app.services.installation import HEAD, canonical
+    from tools.delivery import ROOT, sha
+
+    manifest_hash = sha(canonical(json.loads((ROOT / "manifest.json").read_text())))
     sealed.clear()
-    return create_app(settings, tokens=tokens)
+    app = create_app(settings, tokens=tokens)
+
+    @app.middleware("http")
+    async def monitor_identity(request, call_next):
+        if (directory / "maintenance.json").exists() and request.url.path not in {
+            "/api/v1/health/live",
+            "/api/v1/health/ready",
+        }:
+            from app.core.errors import problem
+
+            return problem(request, 503, "MAINTENANCE", "Runtime is fenced for maintenance.")
+        response = await call_next(request)
+        if request.url.path == "/api/v1/health/ready" and response.status_code == 200:
+            response.headers["X-OCOTE-Instance"] = identity
+            response.headers["X-OCOTE-Head"] = HEAD
+            response.headers["X-OCOTE-Manifest"] = manifest_hash
+        return response
+
+    return app
